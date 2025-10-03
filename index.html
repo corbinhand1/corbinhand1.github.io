@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nebula Creative — Events & Production</title>
+  <meta name="description" content="Nebula Creative builds unforgettable live and virtual experiences.">
+  <meta property="og:title" content="Nebula Creative — Events & Production" />
+  <meta property="og:description" content="Unforgettable live and virtual experiences." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://nebulacreative.org/" />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="container">
+    <nav class="nav">
+      <div class="brand">
+        <img src="/assets/logo.svg" alt="Nebula Creative logo">
+        <span>Nebula Creative</span>
+      </div>
+      <a class="btn ghost" href="#contact">Get in touch</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero container">
+      <h1>Events that feel effortless.<br><span class="accent">Production that performs.</span></h1>
+      <p>We design and deliver end‑to‑end production for conferences, product launches, tours, and internal events. Two decades of backstage experience—now focused on your brand.</p>
+      <div class="cta">
+        <a class="btn" href="#contact">Book a discovery call</a>
+        <a class="btn ghost" href="#work">See our work</a>
+      </div>
+    </section>
+
+    <section id="work" class="container grid">
+      <article class="card">
+        <h3>Conference Ops</h3>
+        <p>Stage management, lighting design, broadcast packages, and onsite crew.</p>
+      </article>
+      <article class="card">
+        <h3>Product Launches</h3>
+        <p>From run of show to cue‑to‑cue, we craft moments that stick.</p>
+      </article>
+      <article class="card">
+        <h3>Tours & Roadshows</h3>
+        <p>Scalable rigs, rock‑solid logistics, and repeatable excellence.</p>
+      </article>
+      <article class="card span2">
+        <h3>Featured Clients</h3>
+        <ul class="pill-list">
+          <li>Amazon</li>
+          <li>Salesforce</li>
+          <li>Disney</li>
+          <li>Fortune 500 &amp; startups</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="container testimonial">
+      <blockquote>
+        “Nebula Creative ran the show like clockwork—from pre‑pro to encore.”
+      </blockquote>
+      <cite>— Happy Client</cite>
+    </section>
+
+    <section id="contact" class="container contact">
+      <h2>Let’s make something exceptional</h2>
+      <p>Email <a href="mailto:corbin.hand@gmail.com">corbin.hand@gmail.com</a> or use the form.</p>
+      <form id="contact-form" action="https://formspree.io/f/mayvlvdl" method="POST">
+        <div class="field">
+          <label for="name">Name</label>
+          <input id="name" name="name" required />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" name="email" required />
+        </div>
+        <div class="field">
+          <label for="message">Project details</label>
+          <textarea id="message" name="message" rows="5" required></textarea>
+        </div>
+        <button class="btn" type="submit">Send</button>
+        <p class="tiny">This form uses Formspree’s free tier. Update the endpoint later if you prefer another tool.</p>
+      </form>
+    </section>
+  </main>
+
+  <footer class="container footer">
+    <span>© <span id="year"></span> Nebula Creative • Nashville, TN</span>
+    <a href="/privacy.html">Privacy</a>
+  </footer>
+
+  <script src="/script.js"></script>
+</body>
+</html>
