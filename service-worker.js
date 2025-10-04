@@ -1,16 +1,16 @@
 // Service Worker for Nebula Creative
 // Provides intelligent caching for better performance
 
-const CACHE_VERSION = '20241003-2330';
-const CACHE_NAME = `nebula-creative-${CACHE_VERSION}`;
+const CACHE_VERSION = '20241004-0435';
+const CACHE_NAME = `nebula-creative-cache-v${CACHE_VERSION}`;
 
 // Assets to cache immediately
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/assets/mobile-baseline.css',
-  '/assets/index-d514c5cd.css',
-  '/assets/index-f6064654.js',
+  '/assets/index-cc3a18c3.js',
+  '/assets/index-9cba4db6.css',
   '/assets/Nebula Logo Color Text.png',
   '/assets/Nebula Icon V.png',
   '/assets/Nebula Icon White&Blu.png',
