@@ -471,59 +471,28 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
   // Add ref for scrollable container
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // AGGRESSIVE auto-scroll to bottom function - MULTIPLE METHODS
+  // NUCLEAR OPTION: Force scroll to bottom - SIMPLE AND BRUTAL
   const scrollToBottom = () => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      
-      // Method 1: Direct scrollTop
+      // FORCE scroll to absolute bottom
       container.scrollTop = container.scrollHeight;
-      
-      // Method 2: Force with requestAnimationFrame
-      requestAnimationFrame(() => {
-        container.scrollTop = container.scrollHeight;
-      });
-      
-      // Method 3: Force with setTimeout
+      // FORCE it again immediately
       setTimeout(() => {
         container.scrollTop = container.scrollHeight;
       }, 0);
-      
-      // Method 4: Force with longer timeout
-      setTimeout(() => {
-        container.scrollTop = container.scrollHeight;
-      }, 100);
     }
   };
 
-  // AGGRESSIVE auto-scroll when new logs are added - MULTIPLE TRIGGERS
+  // NUCLEAR: Force scroll on EVERY log change
   useEffect(() => {
-    // Immediate scroll
     scrollToBottom();
-    
-    // Delayed scroll after animation
-    setTimeout(scrollToBottom, 50);
-    setTimeout(scrollToBottom, 100);
-    setTimeout(scrollToBottom, 200);
-    setTimeout(scrollToBottom, 500);
   }, [allLogs]);
 
-  // FORCE scroll on every render - AGGRESSIVE
+  // NUCLEAR: Force scroll every 100ms
   useEffect(() => {
-    const interval = setInterval(scrollToBottom, 500);
+    const interval = setInterval(scrollToBottom, 100);
     return () => clearInterval(interval);
-  }, []);
-
-  // FORCE scroll when component mounts
-  useEffect(() => {
-    scrollToBottom();
-  }, []);
-
-  // FORCE scroll on window resize
-  useEffect(() => {
-    const handleResize = () => scrollToBottom();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Safari-specific fix: Force font sizes immediately and repeatedly
@@ -665,12 +634,12 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
           ref={scrollContainerRef}
           className="space-y-2" 
           style={{ 
-            minHeight: 'auto', 
-            height: 'auto', 
-            maxHeight: '60vh', 
-            overflowY: 'auto',
+            height: '300px', 
+            maxHeight: '300px',
+            overflowY: 'scroll',
             overflowX: 'hidden',
-            scrollBehavior: 'smooth'
+            scrollBehavior: 'auto',
+            border: '1px solid red' // DEBUG: Make container visible
           }}
         >
           {/* Debug: Show log count */}
