@@ -69,7 +69,7 @@ const TypeLine: React.FC<{ show: boolean; children: React.ReactNode }> = ({
     return () => clearInterval(id);
   }, [show, children]);
   return (
-    <div className="font-mono text-slate-300/90 text-[10px] sm:text-[11px] md:text-[12px] tracking-tight">
+    <div className="font-mono text-slate-300/90 text-[14px] sm:text-[15px] md:text-[16px] tracking-tight">
       {val}
     </div>
   );
@@ -518,7 +518,7 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
       >
         <div className="flex items-center gap-0.5 mb-0.5">
           <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse" />
-          <h3 className="font-semibold text-slate-200 text-[10px]">Stage Manager</h3>
+          <h3 className="font-semibold text-slate-200 text-[12px]">Stage Manager</h3>
         </div>
 
         <div className="space-y-0 max-h-16 overflow-y-auto">
@@ -528,7 +528,7 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="text-slate-300 font-mono leading-tight text-[8px]"
+              className="text-slate-300 font-mono leading-tight text-[10px]"
             >
               {log}
             </motion.div>
