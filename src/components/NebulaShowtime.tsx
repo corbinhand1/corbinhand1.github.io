@@ -672,40 +672,7 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
             backdropFilter: 'blur(8px)'
           }}
         >
-          {/* Debug: Show log count */}
-          <div style={{ fontSize: '12px', color: 'yellow', marginBottom: '10px' }}>
-            Debug: {allLogs.length} logs
-          </div>
           
-          {/* FORCE SCROLL TO BOTTOM BUTTON */}
-          <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-            <button 
-              onClick={scrollToBottom}
-              style={{
-                background: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                color: 'rgba(255,255,255,0.8)',
-                padding: '6px 12px',
-                fontSize: '11px',
-                borderRadius: '16px',
-                cursor: 'pointer',
-                backdropFilter: 'blur(10px)',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
-                transition: 'all 0.2s ease',
-                fontWeight: '500'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              ↓ Latest
-            </button>
-          </div>
           {/* ALWAYS SHOW LAST 10 LOGS - FORCE VISIBILITY */}
           {allLogs.slice(-10).map((log, i) => (
             <motion.div
