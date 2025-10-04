@@ -68,10 +68,37 @@
         position: relative !important;
         z-index: 9999 !important;
       }
+      
+      /* FORCE DEBUG: Target any div inside stage manager */
+      .stage-manager-mobile div {
+        border: 2px solid blue !important;
+        background: rgba(0,0,255,0.1) !important;
+      }
+      
+      /* FORCE DEBUG: Target the stage manager itself */
+      .stage-manager-mobile {
+        border: 4px solid green !important;
+        background: rgba(0,255,0,0.1) !important;
+      }
     </style>
   </head>
   <body class="bg-gray-900 text-white min-h-screen">
-    <div id="root"></div>
+    <div id="root">
+      <div style="color: red; font-size: 24px; padding: 20px;">
+        REACT NOT LOADING - DEBUG MODE
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Test if React loads
+      setTimeout(() => {
+        const root = document.getElementById('root');
+        if (root.innerHTML.includes('REACT NOT LOADING')) {
+          console.error('REACT FAILED TO LOAD');
+        } else {
+          console.log('REACT LOADED SUCCESSFULLY');
+        }
+      }, 2000);
+    </script>
   </body>
 </html>
