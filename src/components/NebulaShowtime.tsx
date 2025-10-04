@@ -590,8 +590,11 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
         lineHeight: '1.3'
       }}
       transition={{ delay: 0.5 }}
-      style={{ position: "fixed", top: "4px", right: "4px", zIndex: 50 }}
       style={{ 
+        position: "fixed", 
+        top: "4px", 
+        right: "4px", 
+        zIndex: 50,
         width: '400px',
         padding: '20px',
         fontSize: '24px',
