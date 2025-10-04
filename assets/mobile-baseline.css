@@ -156,19 +156,19 @@ input:focus-visible {
 .fixed.top-1.right-1,
 [class*="stage-manager"] {
   position: fixed !important;
-  top: var(--space-3) !important;
+  top: 80px !important;
   right: var(--space-3) !important;
   z-index: 50 !important;
-  width: 280px !important;
+  width: 240px !important;
   max-width: calc(100vw - var(--space-8)) !important;
   background: rgba(255, 255, 255, 0.08) !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  border-radius: var(--radius-lg) !important;
+  border-radius: var(--radius-md) !important;
   backdrop-filter: blur(20px) !important;
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-  max-height: 50vh !important;
+  max-height: 40vh !important;
   height: auto !important;
   overflow: hidden !important;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif !important;
@@ -177,29 +177,29 @@ input:focus-visible {
 .stage-manager-mobile h3,
 .fixed.top-1.right-1 h3,
 [class*="stage-manager"] h3 {
-  font-size: var(--text-lg) !important;
+  font-size: var(--text-sm) !important;
   font-weight: 700 !important;
   line-height: 1.1 !important;
   color: rgba(255, 255, 255, 0.95) !important;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-  letter-spacing: -0.2px !important;
+  letter-spacing: -0.1px !important;
   margin: 0 !important;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif !important;
 }
 
 .stage-manager-scroll-container {
-  height: 180px !important;
-  max-height: 180px !important;
-  min-height: 180px !important;
+  height: 140px !important;
+  max-height: 140px !important;
+  min-height: 140px !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   scroll-behavior: smooth !important;
-  padding-right: var(--space-2) !important;
+  padding-right: var(--space-1) !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: var(--space-2) !important;
+  gap: var(--space-1) !important;
   background: rgba(255, 255, 255, 0.02) !important;
-  border-radius: var(--radius-md) !important;
+  border-radius: var(--radius-sm) !important;
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
   backdrop-filter: blur(8px) !important;
 }
@@ -218,11 +218,11 @@ input:focus-visible {
   .stage-manager-mobile,
   .fixed.top-1.right-1,
   [class*="stage-manager"] {
-    width: 260px !important;
-    top: var(--space-2) !important;
+    width: 220px !important;
+    top: 60px !important;
     right: var(--space-2) !important;
-    max-height: 45vh !important;
-    border-radius: var(--radius-md) !important;
+    max-height: 35vh !important;
+    border-radius: var(--radius-sm) !important;
     backdrop-filter: blur(16px) !important;
     box-shadow: 
       0 4px 20px rgba(0, 0, 0, 0.4),
@@ -237,9 +237,9 @@ input:focus-visible {
   }
   
   .stage-manager-scroll-container {
-    height: 140px !important;
-    max-height: 140px !important;
-    min-height: 140px !important;
+    height: 100px !important;
+    max-height: 100px !important;
+    min-height: 100px !important;
     padding-right: var(--space-1) !important;
     gap: var(--space-1) !important;
   }
