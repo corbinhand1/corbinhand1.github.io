@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Handwritten font stack for sticky notes. Adjust to your
+ * preferred handwritten fonts; the fallbacks ensure readability
+ * even when a custom font fails to load. */
+.font-handwritten {
+  font-family: "Caveat", "Patrick Hand", "Marker Felt", cursive;
+}
+
+/* Additional global styles */
+body {
+  @apply bg-gray-900 text-white;
+}

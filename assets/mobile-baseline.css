@@ -1,0 +1,261 @@
+/* Mobile-First Baseline Styles for Nebula Creative */
+
+:root {
+  /* Fluid typography scale - improved for better readability */
+  --step-0: clamp(14px, 1.6vw, 16px);
+  --step-1: clamp(18px, 2vw, 22px);
+  --step-2: clamp(22px, 3vw, 28px);
+  --step-3: clamp(28px, 4vw, 36px);
+  
+  /* Spacing scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  
+  /* Mobile-first breakpoints */
+  --mobile: 375px;
+  --tablet: 768px;
+  --desktop: 1024px;
+  --wide: 1200px;
+  
+  /* Safe area insets for modern devices */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+}
+
+/* Reset and base styles */
+html, body { 
+  overflow-x: hidden; 
+  margin: 0;
+  padding: 0;
+}
+
+body { 
+  font-size: var(--step-0); 
+  line-height: 1.5; 
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Container system */
+.container { 
+  width: min(100%, 1200px); 
+  margin-inline: auto; 
+  padding-inline: max(var(--space-md), var(--safe-area-inset-left), var(--safe-area-inset-right)); 
+}
+
+/* Responsive media */
+img, video, iframe { 
+  max-width: 100%; 
+  height: auto; 
+  display: block; 
+}
+
+/* Grid system */
+.grid { 
+  display: grid; 
+  gap: var(--space-md); 
+  grid-template-columns: 1fr; 
+}
+
+@media (min-width: 640px) { 
+  .grid { 
+    grid-template-columns: repeat(2, 1fr); 
+  } 
+}
+
+@media (min-width: 1024px) { 
+  .grid { 
+    grid-template-columns: repeat(3, 1fr); 
+  } 
+}
+
+/* Touch-friendly buttons */
+button, a.button, .btn { 
+  min-height: 44px; 
+  padding: 12px 16px; 
+  border: none;
+  border-radius: 8px;
+  font-size: var(--step-0);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Mobile-first responsive utilities */
+.mobile-only { display: block; }
+.tablet-up { display: none; }
+.desktop-up { display: none; }
+
+@media (min-width: 768px) {
+  .mobile-only { display: none; }
+  .tablet-up { display: block; }
+}
+
+@media (min-width: 1024px) {
+  .desktop-up { display: block; }
+}
+
+/* Mobile-specific fixes for Nebula Creative */
+@media (max-width: 767px) {
+  /* Prevent horizontal scroll - CRITICAL */
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+    /* Respect safe areas on modern devices */
+    padding-top: var(--safe-area-inset-top);
+    padding-bottom: var(--safe-area-inset-bottom);
+  }
+  
+  #root {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    /* Ensure content doesn't get cut off by safe areas */
+    min-height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+  }
+
+  /* Stage Manager Panel - readable and compact */
+  .fixed.top-1.right-1,
+  .stage-manager-mobile,
+  [class*="stage-manager"] {
+    position: fixed !important;
+    top: 70px !important;
+    right: 10px !important;
+    left: auto !important;
+    width: 280px !important;
+    max-width: calc(100vw - 20px) !important;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    padding: 12px !important;
+  }
+
+  /* Main heading - proper mobile size */
+  h1 {
+    font-size: clamp(36px, 12vw, 56px) !important;
+    line-height: 1.1 !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Paragraph text - readable */
+  p {
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+    max-width: 100% !important;
+  }
+
+  /* Button container - center and make touch-friendly */
+  .relative.z-20 {
+    position: relative !important;
+    margin: 20px auto !important;
+    text-align: center !important;
+  }
+
+  /* All buttons - touch-friendly */
+  button {
+    min-height: 56px !important;
+    padding: 14px 24px !important;
+    font-size: 15px !important;
+    margin: 8px !important;
+    border-radius: 8px !important;
+    width: auto !important;
+    min-width: 120px !important;
+  }
+
+  /* Sticky Notes - hide all but one on mobile */
+  [class*="sticky"],
+  .fixed[style*="width: 160px"] {
+    display: none !important;
+  }
+
+  /* Show only ONE sticky note */
+  [class*="sticky"]:last-of-type {
+    display: block !important;
+    position: fixed !important;
+    bottom: 120px !important;
+    right: 10px !important;
+    width: 120px !important;
+    height: 120px !important;
+    font-size: 12px !important;
+    padding: 10px !important;
+    z-index: 30 !important;
+  }
+
+  /* Container padding */
+  .max-w-7xl,
+  .max-w-6xl {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  /* Any element with px-5 class */
+  .px-5 {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Confetti canvas - ensure it fits */
+  canvas {
+    max-width: 100vw !important;
+  }
+
+  /* Video player modal */
+  .fixed.inset-0 > div {
+    width: 95vw !important;
+    margin: 0 auto !important;
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .logo-tablet {
+    height: 160px !important;
+    max-height: 160px !important;
+  }
+  
+  .stage-manager-tablet {
+    width: 200px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 1024px) {
+  .logo-desktop {
+    height: 200px !important;
+    max-height: 200px !important;
+  }
+  
+  .stage-manager-desktop {
+    width: 320px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Performance optimizations */
+* {
+  box-sizing: border-box;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus management for accessibility */
+button:focus,
+a:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
