@@ -164,15 +164,8 @@ button, a.button, .btn {
     min-width: 120px !important;
   }
 
-  /* Sticky Notes - hide all but one on mobile */
-  [class*="sticky"],
-  .fixed[style*="width: 160px"] {
-    display: none !important;
-  }
-
-  /* Show only ONE sticky note */
-  [class*="sticky"]:last-of-type {
-    display: block !important;
+  /* Sticky Notes - ensure only one shows on mobile */
+  .sticky-note-mobile {
     position: fixed !important;
     bottom: 120px !important;
     right: 10px !important;

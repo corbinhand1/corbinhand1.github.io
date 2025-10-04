@@ -203,9 +203,11 @@ const CLEANUP_NOTES = [
 function Sticky({
   text,
   pos,
+  className = "",
 }: {
   text: string;
   pos: { right: number; bottom: number; rot?: number };
+  className?: string;
 }) {
   const size = "clamp(80px, 8vw, 120px)";
   return (
@@ -213,7 +215,7 @@ function Sticky({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 220, damping: 18 }}
-      className="fixed z-[40] sm:z-[60] pointer-events-none sticky-note-mobile"
+      className={`fixed z-[40] sm:z-[60] pointer-events-none ${className}`}
       style={{ right: pos.right, bottom: pos.bottom, transform: `rotate(${pos.rot ?? -2}deg)` }}
     >
       <div
@@ -677,7 +679,7 @@ const NebulaShowtime: React.FC = () => {
   useEffect(() => {
     const checkMobile = () => {
       const width = window.innerWidth;
-      const isMobileDevice = width < 640 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const isMobileDevice = width < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       console.log('Screen width:', width, 'Is mobile:', isMobileDevice);
       setIsMobile(isMobileDevice);
     };
@@ -800,6 +802,7 @@ const NebulaShowtime: React.FC = () => {
           <Sticky 
             text={randomCleanup} 
             pos={{ right: 8, bottom: 8, rot: -3 }} 
+            className="sticky-note-mobile"
           />
         ) : (
           <>
