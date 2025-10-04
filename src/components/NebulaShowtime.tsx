@@ -671,21 +671,12 @@ const NebulaShowtime: React.FC = () => {
   const [isMobile, setIsMobile] = useState(true); // Default to mobile for safety
   const clockMs = useClock(true);
   
-  // Set random sticky note text once on component mount
-  const [randomMishap] = useState(() => PRODUCTION_MISHAPS[Math.floor(Math.random() * PRODUCTION_MISHAPS.length)]);
+  // Set random sticky note text once on component mount - MOBILE ONLY
   const [randomCleanup] = useState(() => CLEANUP_NOTES[Math.floor(Math.random() * CLEANUP_NOTES.length)]);
 
-  // Detect mobile device - more aggressive detection
+  // MOBILE ONLY - No device detection needed
   useEffect(() => {
-    const checkMobile = () => {
-      const width = window.innerWidth;
-      const isMobileDevice = width < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      console.log('Screen width:', width, 'Is mobile:', isMobileDevice);
-      setIsMobile(isMobileDevice);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    setIsMobile(true); // Always mobile
   }, []);
 
   const handleConfettiPressed = () => {
@@ -797,12 +788,7 @@ const NebulaShowtime: React.FC = () => {
 
         <ConfettiPile pieces={pilePieces} heightPx={pileHeight} />
         
-        {/* Always render both, CSS will hide second one on mobile */}
-        <Sticky 
-          text={randomMishap} 
-          pos={{ right: 20, bottom: 20, rot: -4 }} 
-          className="sticky-note-desktop"
-        />
+        {/* MOBILE ONLY - Single sticky note */}
         <Sticky 
           text={randomCleanup} 
           pos={{ right: 12, bottom: 160, rot: -3 }} 

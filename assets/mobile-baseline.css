@@ -14,11 +14,8 @@
   --space-lg: 24px;
   --space-xl: 32px;
   
-  /* Mobile-first breakpoints */
+  /* Mobile-only breakpoints */
   --mobile: 375px;
-  --tablet: 768px;
-  --desktop: 1024px;
-  --wide: 1200px;
   
   /* Safe area insets for modern devices */
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
@@ -54,23 +51,11 @@ img, video, iframe {
   display: block; 
 }
 
-/* Grid system */
+/* Grid system - Mobile only */
 .grid { 
   display: grid; 
   gap: var(--space-md); 
   grid-template-columns: 1fr; 
-}
-
-@media (min-width: 640px) { 
-  .grid { 
-    grid-template-columns: repeat(2, 1fr); 
-  } 
-}
-
-@media (min-width: 1024px) { 
-  .grid { 
-    grid-template-columns: repeat(3, 1fr); 
-  } 
 }
 
 /* Touch-friendly buttons */
@@ -84,19 +69,8 @@ button, a.button, .btn {
   transition: all 0.2s ease;
 }
 
-/* Mobile-first responsive utilities */
+/* Mobile-only utilities */
 .mobile-only { display: block; }
-.tablet-up { display: none; }
-.desktop-up { display: none; }
-
-@media (min-width: 768px) {
-  .mobile-only { display: none; }
-  .tablet-up { display: block; }
-}
-
-@media (min-width: 1024px) {
-  .desktop-up { display: block; }
-}
 
 /* Mobile-specific fixes for Nebula Creative */
 @media (max-width: 767px) {
@@ -164,12 +138,7 @@ button, a.button, .btn {
     min-width: 120px !important;
   }
 
-  /* Hide desktop sticky note on mobile */
-  .sticky-note-desktop {
-    display: none !important;
-  }
-  
-  /* Show and style mobile sticky note */
+  /* MOBILE ONLY - Single sticky note */
   .sticky-note-mobile {
     display: block !important;
     position: fixed !important;
@@ -207,36 +176,7 @@ button, a.button, .btn {
   }
 }
 
-/* Tablet styles */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .logo-tablet {
-    height: 160px !important;
-    max-height: 160px !important;
-  }
-  
-  .stage-manager-tablet {
-    width: 200px !important;
-    font-size: 10px !important;
-  }
-}
-
-/* Desktop styles */
-@media (min-width: 1024px) {
-  .logo-desktop {
-    height: 200px !important;
-    max-height: 200px !important;
-  }
-  
-  .stage-manager-desktop {
-    width: 320px !important;
-    font-size: 12px !important;
-  }
-  
-  /* Show desktop sticky note on desktop */
-  .sticky-note-desktop {
-    display: block !important;
-  }
-}
+/* MOBILE ONLY - No tablet or desktop styles */
 
 /* Performance optimizations */
 * {
