@@ -159,14 +159,18 @@ button, a.button, .btn {
   max-height: none !important;
 }
 
-/* Force Stage Manager content container to grow */
+/* Force Stage Manager content container to be scrollable */
 .stage-manager-mobile .space-y-2,
 .fixed.top-1.right-1 .space-y-2,
 [class*="stage-manager"] .space-y-2 {
   height: auto !important;
-  max-height: none !important;
+  max-height: 60vh !important;
   min-height: auto !important;
-  overflow: visible !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scroll-behavior: smooth !important;
+  /* Add padding for better scroll experience */
+  padding-right: 8px !important;
 }
 
 /* Ensure Stage Manager can extend beyond viewport */
@@ -213,9 +217,9 @@ button, a.button, .btn {
     font-size: 14px !important;
     line-height: 1.4 !important;
     padding: 14px !important;
-    /* CRITICAL: Allow box to grow with content */
+    /* CRITICAL: Allow box to grow with content but limit height */
     height: auto !important;
-    max-height: none !important;
+    max-height: 70vh !important;
     overflow: visible !important;
     min-height: auto !important;
   }
@@ -233,6 +237,17 @@ button, a.button, .btn {
   [class*="stage-manager"] .text-slate-300 {
     font-size: 14px !important;
     line-height: 1.3 !important;
+  }
+
+  /* Mobile Stage Manager content container - scrollable */
+  .fixed.top-1.right-1 .space-y-2,
+  .stage-manager-mobile .space-y-2,
+  [class*="stage-manager"] .space-y-2 {
+    max-height: 50vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scroll-behavior: smooth !important;
+    padding-right: 6px !important;
   }
 
   /* Main heading - proper mobile size */

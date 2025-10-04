@@ -468,8 +468,20 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
   const [allLogs, setAllLogs] = useState<string[]>([]);
   const [currentCueText, setCurrentCueText] = useState("");
   const [showCues, setShowCues] = useState(true);
-  // No scrolling - let the box grow naturally
-  // Remove log limits to show all cues
+  // Add ref for scrollable container
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom function
+  const scrollToBottom = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
+  };
+
+  // Auto-scroll when new logs are added
+  useEffect(() => {
+    scrollToBottom();
+  }, [allLogs]);
 
   // Safari-specific fix: Force font sizes immediately and repeatedly
   useEffect(() => {
@@ -606,7 +618,18 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
           }}>Stage Manager</h3>
         </motion.div>
 
-        <div className="space-y-2" style={{ minHeight: 'auto', height: 'auto', maxHeight: 'none', overflow: 'visible' }}>
+        <div 
+          ref={scrollContainerRef}
+          className="space-y-2" 
+          style={{ 
+            minHeight: 'auto', 
+            height: 'auto', 
+            maxHeight: '60vh', 
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            scrollBehavior: 'smooth'
+          }}
+        >
           {/* Debug: Show log count */}
           <div style={{ fontSize: '12px', color: 'yellow', marginBottom: '10px' }}>
             Debug: {allLogs.length} logs
