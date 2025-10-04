@@ -611,7 +611,7 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
           padding: 4,
           backdropFilter: "blur(12px)",
           height: 'auto',
-          maxHeight: '60vh',
+          maxHeight: '65vh',
           minHeight: 'auto',
           overflow: 'hidden'
         }}
@@ -632,14 +632,16 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
 
         <div 
           ref={scrollContainerRef}
-          className="space-y-2" 
           style={{ 
             height: '300px', 
             maxHeight: '300px',
             overflowY: 'scroll',
             overflowX: 'hidden',
             scrollBehavior: 'auto',
-            border: '1px solid red' // DEBUG: Make container visible
+            border: '1px solid red', // DEBUG: Make container visible
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
           }}
         >
           {/* Debug: Show log count */}

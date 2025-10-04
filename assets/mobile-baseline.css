@@ -152,11 +152,10 @@ button, a.button, .btn {
 .fixed.top-1.right-1,
 [class*="stage-manager"] {
   height: auto !important;
-  max-height: none !important;
+  max-height: 70vh !important;
   min-height: auto !important;
-  overflow: visible !important;
-  /* Allow box to extend beyond viewport if needed */
-  max-height: none !important;
+  overflow: hidden !important;
+  /* Fixed height container with scrollable content */
 }
 
 /* NUCLEAR: Force Stage Manager content container - FIXED HEIGHT */
@@ -175,16 +174,16 @@ button, a.button, .btn {
   background: rgba(255,0,0,0.1) !important;
 }
 
-/* Ensure Stage Manager can extend beyond viewport */
+/* Ensure Stage Manager has proper height constraints */
 .stage-manager-mobile,
 .fixed.top-1.right-1,
 [class*="stage-manager"] {
-  /* Remove any viewport height constraints */
-  max-height: none !important;
+  /* Fixed height container */
+  max-height: 70vh !important;
   /* Ensure it can grow as tall as needed */
   height: auto !important;
-  /* Allow content to overflow if needed */
-  overflow: visible !important;
+  /* Prevent content overflow */
+  overflow: hidden !important;
 }
 
 /* Mobile-specific fixes for Nebula Creative */
