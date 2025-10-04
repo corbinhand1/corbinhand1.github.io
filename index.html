@@ -56,29 +56,16 @@
         font-size: 24px !important;
       }
       
-      /* NUCLEAR DEBUG: Force scrollable container to be visible */
+      /* Beautiful Stage Manager styling */
       .stage-manager-scroll-container {
         height: 300px !important;
         max-height: 300px !important;
         min-height: 300px !important;
-        overflow-y: scroll !important;
+        overflow-y: auto !important;
         overflow-x: hidden !important;
-        border: 3px solid red !important;
-        background: rgba(255,0,0,0.3) !important;
+        scroll-behavior: smooth !important;
         position: relative !important;
         z-index: 9999 !important;
-      }
-      
-      /* FORCE DEBUG: Target any div inside stage manager */
-      .stage-manager-mobile div {
-        border: 2px solid blue !important;
-        background: rgba(0,0,255,0.1) !important;
-      }
-      
-      /* FORCE DEBUG: Target the stage manager itself */
-      .stage-manager-mobile {
-        border: 4px solid green !important;
-        background: rgba(0,255,0,0.1) !important;
       }
     </style>
   </head>
