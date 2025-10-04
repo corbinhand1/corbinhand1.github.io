@@ -28,6 +28,17 @@
     </script>
     <script type="module" crossorigin src="./assets/index-cc3a18c3.js?v=20241004-0435"></script>
     <link rel="stylesheet" href="./assets/index-9cba4db6.css?v=20241004-0435">
+    
+    <!-- DEBUG: Check if JavaScript is loading -->
+    <script>
+      console.log('HTML loaded, checking for React...');
+      window.addEventListener('load', function() {
+        console.log('Page loaded, root element:', document.getElementById('root'));
+        setTimeout(function() {
+          console.log('After 2 seconds, root content:', document.getElementById('root').innerHTML);
+        }, 2000);
+      });
+    </script>
   </head>
   <body class="bg-gray-900 text-white min-h-screen">
     <div id="root"></div>
