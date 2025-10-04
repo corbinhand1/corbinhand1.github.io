@@ -1,0 +1,62 @@
+name: Cache Busting and Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  bust-cache-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Generate asset version
+      id: version
+      run: |
+        ASSET_VERSION=$(date +%Y%m%d-%H%M)
+        echo "ASSET_VERSION=$ASSET_VERSION" >> $GITHUB_OUTPUT
+        echo "Generated asset version: $ASSET_VERSION"
+    
+    - name: Update HTML with cache busting
+      run: |
+        ASSET_VERSION="${{ steps.version.outputs.ASSET_VERSION }}"
+        
+        # Update index.html
+        if [ -f "index.html" ]; then
+          sed -i "s/v=[0-9]\{8\}-[0-9]\{4\}/v=$ASSET_VERSION/g" index.html
+          echo "Updated index.html with version $ASSET_VERSION"
+        fi
+        
+        # Update any other HTML files
+        find . -name "*.html" -not -path "./node_modules/*" -not -path "./dist/*" -exec sed -i "s/v=[0-9]\{8\}-[0-9]\{4\}/v=$ASSET_VERSION/g" {} \;
+        
+        # Show changes
+        git diff --name-only
+        git diff
+    
+    - name: Commit changes if any
+      run: |
+        if git diff --quiet; then
+          echo "No changes to commit"
+        else
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "chore(cache): bump asset version to ${{ steps.version.outputs.ASSET_VERSION }}"
+          git push
+          echo "Committed and pushed cache busting changes"
+        fi
+    
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./
+        publish_branch: main
+        cname: nebulacreative.org
