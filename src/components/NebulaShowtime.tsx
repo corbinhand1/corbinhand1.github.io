@@ -592,19 +592,19 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
       transition={{ delay: 0.5 }}
       style={{ 
         position: "fixed", 
-        top: "20px", 
-        right: "20px", 
+        top: "16px", 
+        right: "16px", 
         zIndex: 50,
-        width: '420px',
+        width: '320px',
         padding: '0',
-        fontSize: '24px',
+        fontSize: '18px',
         lineHeight: '1.2',
         background: 'rgba(255,255,255,0.08)',
         border: '1px solid rgba(255,255,255,0.15)',
-        borderRadius: '20px',
+        borderRadius: '16px',
         backdropFilter: 'blur(20px)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
-        maxHeight: '75vh',
+        maxHeight: '60vh',
         height: 'auto',
         overflow: 'hidden'
       }}
@@ -613,11 +613,11 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
         style={{
           background: 'rgba(255,255,255,0.05)',
           border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '16px',
-          padding: '24px',
+          borderRadius: '12px',
+          padding: '16px',
           backdropFilter: 'blur(16px)',
           height: 'auto',
-          maxHeight: '70vh',
+          maxHeight: '55vh',
           minHeight: 'auto',
           overflow: 'hidden',
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 0 rgba(0,0,0,0.1)'
@@ -627,29 +627,29 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
           style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            gap: '12px', 
-            marginBottom: '20px',
-            paddingBottom: '16px',
+            gap: '8px', 
+            marginBottom: '12px',
+            paddingBottom: '12px',
             borderBottom: '1px solid rgba(255,255,255,0.1)'
           }}
-          initial={{ fontSize: '32px', lineHeight: '1.1', fontWeight: '900' }}
-          animate={{ fontSize: '32px', lineHeight: '1.1', fontWeight: '900' }}
+          initial={{ fontSize: '24px', lineHeight: '1.1', fontWeight: '900' }}
+          animate={{ fontSize: '24px', lineHeight: '1.1', fontWeight: '900' }}
         >
           <div style={{ 
-            width: '12px', 
-            height: '12px', 
+            width: '8px', 
+            height: '8px', 
             backgroundColor: '#00ff88', 
             borderRadius: '50%',
-            boxShadow: '0 0 20px rgba(0,255,136,0.5), inset 0 1px 0 rgba(255,255,255,0.3)',
+            boxShadow: '0 0 12px rgba(0,255,136,0.5), inset 0 1px 0 rgba(255,255,255,0.3)',
             animation: 'pulse 2s infinite'
           }} />
           <h3 style={{ 
-            fontSize: '28px', 
+            fontSize: '20px', 
             lineHeight: '1.1', 
             fontWeight: '700',
             color: 'rgba(255,255,255,0.95)',
             textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-            letterSpacing: '-0.5px',
+            letterSpacing: '-0.3px',
             margin: 0
           }}>Stage Manager</h3>
         </motion.div>
@@ -657,17 +657,17 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
         <div 
           ref={scrollContainerRef}
           style={{
-            height: '320px',
-            maxHeight: '320px',
+            height: '240px',
+            maxHeight: '240px',
             overflowY: 'auto',
             overflowX: 'hidden',
             scrollBehavior: 'smooth',
-            paddingRight: '8px',
+            paddingRight: '6px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            gap: '8px',
             background: 'rgba(255,255,255,0.02)',
-            borderRadius: '12px',
+            borderRadius: '8px',
             border: '1px solid rgba(255,255,255,0.05)',
             backdropFilter: 'blur(8px)'
           }}
@@ -678,16 +678,16 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
           </div>
           
           {/* FORCE SCROLL TO BOTTOM BUTTON */}
-          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '12px' }}>
             <button 
               onClick={scrollToBottom}
               style={{
                 background: 'rgba(255,255,255,0.1)',
                 border: '1px solid rgba(255,255,255,0.2)',
                 color: 'rgba(255,255,255,0.8)',
-                padding: '8px 16px',
-                fontSize: '12px',
-                borderRadius: '20px',
+                padding: '6px 12px',
+                fontSize: '11px',
+                borderRadius: '16px',
                 cursor: 'pointer',
                 backdropFilter: 'blur(10px)',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
@@ -703,7 +703,7 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              ↓ Latest Cue
+              ↓ Latest
             </button>
           </div>
           {/* ALWAYS SHOW LAST 10 LOGS - FORCE VISIBILITY */}
@@ -726,28 +726,28 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
               }}
               transition={{ duration: 0.3 }}
               style={{ 
-                fontSize: '16px', 
-                lineHeight: '1.4', 
+                fontSize: '14px', 
+                lineHeight: '1.3', 
                 fontWeight: '500',
                 color: 'rgba(255,255,255,0.9)',
                 textShadow: '0 1px 2px rgba(0,0,0,0.3)',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                padding: '12px 16px',
+                padding: '8px 12px',
                 background: i === allLogs.slice(-10).length - 1 
                   ? 'rgba(0,255,136,0.15)' 
                   : 'rgba(255,255,255,0.05)',
                 border: i === allLogs.slice(-10).length - 1 
                   ? '1px solid rgba(0,255,136,0.3)' 
                   : '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '12px',
+                borderRadius: '8px',
                 transition: 'all 0.3s ease',
                 boxShadow: i === allLogs.slice(-10).length - 1 
-                  ? '0 4px 16px rgba(0,255,136,0.2), inset 0 1px 0 rgba(255,255,255,0.1)' 
-                  : '0 2px 8px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
+                  ? '0 2px 8px rgba(0,255,136,0.2), inset 0 1px 0 rgba(255,255,255,0.1)' 
+                  : '0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
                 backdropFilter: 'blur(8px)',
                 borderLeft: i === allLogs.slice(-10).length - 1 
-                  ? '3px solid rgba(0,255,136,0.6)' 
-                  : '3px solid rgba(255,255,255,0.1)'
+                  ? '2px solid rgba(0,255,136,0.6)' 
+                  : '2px solid rgba(255,255,255,0.1)'
               }}
             >
               {log}
