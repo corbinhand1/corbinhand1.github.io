@@ -12,30 +12,17 @@
     <!-- MOBILE-ONLY CSS -->
     <link rel="stylesheet" href="./assets/mobile-baseline.css?v=20241004-0435">
     
-    <!-- Service Worker Registration -->
+    <!-- Service Worker Registration - COMPLETELY DISABLED TO FIX WHITE SCREEN -->
     <script>
+      console.log('Service Worker completely disabled to fix white screen issue');
+      
+      // Unregister any existing service workers
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js?v=20241004-0436')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-              
-              // Force update if there's a waiting service worker
-              if (registration.waiting) {
-                console.log('Forcing service worker update...');
-                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-                window.location.reload();
-              }
-              
-              // Check for updates
-              registration.addEventListener('updatefound', () => {
-                console.log('Service worker update found, reloading...');
-                window.location.reload();
-              });
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
-            });
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            console.log('Unregistering old service worker:', registration.scope);
+            registration.unregister();
+          }
         });
       }
     </script>
