@@ -12,16 +12,22 @@
     <!-- MOBILE-ONLY CSS -->
     <link rel="stylesheet" href="./assets/mobile-baseline.css?v=20241004-0435">
     
-    <!-- Service Worker Registration - COMPLETELY DISABLED TO FIX WHITE SCREEN -->
+    <!-- Service Worker COMPLETELY REMOVED -->
     <script>
-      console.log('Service Worker completely disabled to fix white screen issue');
+      console.log('Service Worker file deleted from server - forcing fresh content');
       
-      // Unregister any existing service workers
+      // Aggressively unregister any existing service workers
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
           for(let registration of registrations) {
-            console.log('Unregistering old service worker:', registration.scope);
-            registration.unregister();
+            console.log('Force unregistering service worker:', registration.scope);
+            registration.unregister().then(function(success) {
+              console.log('Unregister success:', success);
+              if (success) {
+                console.log('Service worker unregistered, reloading page...');
+                window.location.reload();
+              }
+            });
           }
         });
       }
