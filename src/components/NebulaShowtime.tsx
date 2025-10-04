@@ -726,20 +726,20 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
               }}
               transition={{ duration: 0.3 }}
               style={{ 
-                fontSize: '14px', 
-                lineHeight: '1.3', 
+                fontSize: '12px', 
+                lineHeight: '1.2', 
                 fontWeight: '500',
                 color: 'rgba(255,255,255,0.9)',
                 textShadow: '0 1px 2px rgba(0,0,0,0.3)',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                padding: '8px 12px',
+                padding: '6px 10px',
                 background: i === allLogs.slice(-10).length - 1 
                   ? 'rgba(0,255,136,0.15)' 
                   : 'rgba(255,255,255,0.05)',
                 border: i === allLogs.slice(-10).length - 1 
                   ? '1px solid rgba(0,255,136,0.3)' 
                   : '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '8px',
+                borderRadius: '6px',
                 transition: 'all 0.3s ease',
                 boxShadow: i === allLogs.slice(-10).length - 1 
                   ? '0 2px 8px rgba(0,255,136,0.2), inset 0 1px 0 rgba(255,255,255,0.1)' 
@@ -747,7 +747,10 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
                 backdropFilter: 'blur(8px)',
                 borderLeft: i === allLogs.slice(-10).length - 1 
                   ? '2px solid rgba(0,255,136,0.6)' 
-                  : '2px solid rgba(255,255,255,0.1)'
+                  : '2px solid rgba(255,255,255,0.1)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
               }}
             >
               {log}
