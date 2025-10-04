@@ -468,6 +468,55 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
   const [allLogs, setAllLogs] = useState<string[]>([]);
   const [currentCueText, setCurrentCueText] = useState("");
   const [showCues, setShowCues] = useState(true);
+  // No scrolling - let the box grow naturally
+  // Remove log limits to show all cues
+
+  // Safari-specific fix: Force font sizes immediately and repeatedly
+  useEffect(() => {
+    const forceFontSizes = () => {
+      const stageManager = document.querySelector('.stage-manager-mobile');
+      if (stageManager) {
+        const title = stageManager.querySelector('h3');
+        const logs = stageManager.querySelectorAll('.text-slate-300');
+        
+        if (title) {
+          title.style.fontSize = '32px';
+          title.style.lineHeight = '1.1';
+          title.style.fontWeight = '900';
+          title.style.color = 'white';
+          title.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)';
+          title.style.setProperty('font-size', '32px', 'important');
+        }
+        
+        logs.forEach(log => {
+          log.style.fontSize = '24px';
+          log.style.lineHeight = '1.2';
+          log.style.fontWeight = '600';
+          log.style.color = 'white';
+          log.style.textShadow = '1px 1px 2px rgba(0,0,0,0.8)';
+          log.style.setProperty('font-size', '24px', 'important');
+        });
+      }
+    };
+
+    // Force immediately
+    forceFontSizes();
+    
+    // Force after short delay
+    const timer1 = setTimeout(forceFontSizes, 100);
+    
+    // Force after animation completes
+    const timer2 = setTimeout(forceFontSizes, 1000);
+    
+    // Force repeatedly to override Safari's caching
+    const interval = setInterval(forceFontSizes, 2000);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowCues(false), 12000);
@@ -502,10 +551,33 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
 
   return (
         <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{ 
+        opacity: 0, 
+        x: 20,
+        // Start with large, readable font sizes
+        fontSize: '20px',
+        lineHeight: '1.3'
+      }}
+      animate={{ 
+        opacity: 1, 
+        x: 0,
+        // Maintain large, readable font sizes
+        fontSize: '20px',
+        lineHeight: '1.3'
+      }}
       transition={{ delay: 0.5 }}
-      className="fixed top-1 right-1 z-50 w-24 stage-manager-mobile"
+      className="fixed top-1 right-1 z-50 stage-manager-mobile"
+      style={{ 
+        width: '400px',
+        padding: '20px',
+        fontSize: '24px',
+        lineHeight: '1.2',
+        background: 'rgba(0,0,0,0.8)',
+        border: '2px solid white',
+        maxHeight: 'none',
+        height: 'auto',
+        overflow: 'visible'
+      }}
     >
       <div
         style={{
@@ -514,25 +586,61 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
           borderRadius: 6,
           padding: 4,
           backdropFilter: "blur(12px)",
+          height: 'auto',
+          maxHeight: 'none',
+          minHeight: 'auto',
+          overflow: 'visible'
         }}
       >
-        <div className="flex items-center gap-0.5 mb-0.5">
-          <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse" />
-          <h3 className="font-semibold text-slate-200 text-[12px]">Stage Manager</h3>
-        </div>
+        <motion.div 
+          className="flex items-center gap-3 mb-4"
+          initial={{ fontSize: '32px', lineHeight: '1.1', fontWeight: '900' }}
+          animate={{ fontSize: '32px', lineHeight: '1.1', fontWeight: '900' }}
+        >
+          <div className="w-4 h-4 bg-green-400 rounded-full animate-pulse" />
+          <h3 className="font-black text-white" style={{ 
+            fontSize: '32px', 
+            lineHeight: '1.1', 
+            fontWeight: '900',
+            textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+          }}>Stage Manager</h3>
+        </motion.div>
 
-        <div className="space-y-0 max-h-16 overflow-y-auto">
+        <div className="space-y-2" style={{ minHeight: 'auto', height: 'auto', maxHeight: 'none', overflow: 'visible' }}>
+          {/* Debug: Show log count */}
+          <div style={{ fontSize: '12px', color: 'yellow', marginBottom: '10px' }}>
+            Debug: {allLogs.length} logs
+          </div>
           {allLogs.map((log, i) => (
             <motion.div
               key={`${log}-${i}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ 
+                opacity: 0, 
+                y: 10,
+                fontSize: '24px',
+                lineHeight: '1.2',
+                fontWeight: '600'
+              }}
+              animate={{ 
+                opacity: 1, 
+                y: 0,
+                fontSize: '24px',
+                lineHeight: '1.2',
+                fontWeight: '600'
+              }}
               transition={{ duration: 0.3 }}
-              className="text-slate-300 font-mono leading-tight text-[10px]"
+              className="text-slate-300 font-mono leading-tight"
+              style={{ 
+                fontSize: '24px', 
+                lineHeight: '1.2', 
+                fontWeight: '600',
+                color: 'white',
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+              }}
             >
               {log}
             </motion.div>
-          ))}
+            ))}
         </div>
       </div>
     </motion.div>
