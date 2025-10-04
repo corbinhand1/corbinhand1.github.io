@@ -27,15 +27,40 @@
       }
     </script>
     <script type="module" crossorigin src="./assets/index-cc3a18c3.js?v=20241004-0435"></script>
+    
+    <!-- FALLBACK: Simple test if main JS fails -->
+    <script>
+      setTimeout(function() {
+        const root = document.getElementById('root');
+        if (!root.innerHTML || root.innerHTML.trim() === '') {
+          console.error('React app failed to load, showing fallback');
+          root.innerHTML = '<div style="text-align: center; padding: 50px; color: white;"><h1>Nebula Creative</h1><p>We make the show happen — on time, on budget, on brand.</p><p style="color: red;">JavaScript loading issue detected. Please check console for errors.</p></div>';
+        }
+      }, 3000);
+    </script>
     <link rel="stylesheet" href="./assets/index-9cba4db6.css?v=20241004-0435">
     
     <!-- DEBUG: Check if JavaScript is loading -->
     <script>
       console.log('HTML loaded, checking for React...');
+      
+      // Global error handler
+      window.addEventListener('error', function(e) {
+        console.error('JavaScript Error:', e.error);
+        console.error('Error details:', e.message, 'at', e.filename, 'line', e.lineno);
+      });
+      
+      // Unhandled promise rejection handler
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled Promise Rejection:', e.reason);
+      });
+      
       window.addEventListener('load', function() {
         console.log('Page loaded, root element:', document.getElementById('root'));
         setTimeout(function() {
           console.log('After 2 seconds, root content:', document.getElementById('root').innerHTML);
+          console.log('React object available:', typeof React !== 'undefined' ? 'YES' : 'NO');
+          console.log('ReactDOM object available:', typeof ReactDOM !== 'undefined' ? 'YES' : 'NO');
         }, 2000);
       });
     </script>
