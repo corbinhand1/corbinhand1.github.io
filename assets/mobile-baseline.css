@@ -164,8 +164,14 @@ button, a.button, .btn {
     min-width: 120px !important;
   }
 
-  /* Sticky Notes - ensure only one shows on mobile */
+  /* Hide desktop sticky note on mobile */
+  .sticky-note-desktop {
+    display: none !important;
+  }
+  
+  /* Show and style mobile sticky note */
   .sticky-note-mobile {
+    display: block !important;
     position: fixed !important;
     bottom: 120px !important;
     right: 10px !important;
@@ -224,6 +230,11 @@ button, a.button, .btn {
   .stage-manager-desktop {
     width: 320px !important;
     font-size: 12px !important;
+  }
+  
+  /* Show desktop sticky note on desktop */
+  .sticky-note-desktop {
+    display: block !important;
   }
 }
 

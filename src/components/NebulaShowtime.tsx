@@ -797,25 +797,17 @@ const NebulaShowtime: React.FC = () => {
 
         <ConfettiPile pieces={pilePieces} heightPx={pileHeight} />
         
-        {/* Mobile: Show only cleanup note, Desktop: Show both */}
-        {isMobile ? (
-          <Sticky 
-            text={randomCleanup} 
-            pos={{ right: 8, bottom: 8, rot: -3 }} 
-            className="sticky-note-mobile"
-          />
-        ) : (
-          <>
-            <Sticky 
-              text={randomMishap} 
-              pos={{ right: 20, bottom: 20, rot: -4 }} 
-            />
-            <Sticky 
-              text={randomCleanup} 
-              pos={{ right: 12, bottom: 160, rot: -3 }} 
-            />
-          </>
-        )}
+        {/* Always render both, CSS will hide second one on mobile */}
+        <Sticky 
+          text={randomMishap} 
+          pos={{ right: 20, bottom: 20, rot: -4 }} 
+          className="sticky-note-desktop"
+        />
+        <Sticky 
+          text={randomCleanup} 
+          pos={{ right: 12, bottom: 160, rot: -3 }} 
+          className="sticky-note-mobile"
+        />
       </div>
 
       <StageManager clockMs={clockMs} announce={() => {}} isMobile={isMobile} />
