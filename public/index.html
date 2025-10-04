@@ -4,101 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nebula Creative - Showtime</title>
-    <!-- Mobile CSS for development -->
-    <link rel="stylesheet" href="/assets/mobile-baseline.css?v=20241220-debug-fix">
-    
-    <!-- ULTRA NUCLEAR Safari fix - force massive text -->
-    <style>
-      /* Force Stage Manager to be huge and readable - FIXED HEIGHT */
-      .stage-manager-mobile {
-        width: 400px !important;
-        padding: 20px !important;
-        font-size: 24px !important;
-        background: rgba(0,0,0,0.8) !important;
-        border: 2px solid white !important;
-        max-height: 70vh !important;
-        height: auto !important;
-        overflow: visible !important;
-        /* Fixed height container with scrollable content */
-      }
-      
-      .stage-manager-mobile h3 {
-        font-size: 32px !important;
-        font-weight: 900 !important;
-        line-height: 1.1 !important;
-        color: white !important;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.8) !important;
-      }
-      
-      .stage-manager-mobile .text-slate-300 {
-        font-size: 24px !important;
-        line-height: 1.2 !important;
-        font-weight: 600 !important;
-        color: #ffffff !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-      }
-      
-      /* Force ALL text in stage manager to be massive */
-      .stage-manager-mobile * {
-        font-size: 24px !important;
-        -webkit-text-size-adjust: none !important;
-        text-size-adjust: none !important;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      }
-      
-      .stage-manager-mobile h3 {
-        font-size: 32px !important;
-      }
-      
-      /* Override any Tailwind classes */
-      .stage-manager-mobile .font-mono {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        font-size: 24px !important;
-      }
-      
-      /* NUCLEAR DEBUG: Force scrollable container to be visible */
-      .stage-manager-scroll-container {
-        height: 300px !important;
-        max-height: 300px !important;
-        min-height: 300px !important;
-        overflow-y: scroll !important;
-        overflow-x: hidden !important;
-        border: 3px solid red !important;
-        background: rgba(255,0,0,0.3) !important;
-        position: relative !important;
-        z-index: 9999 !important;
-      }
-      
-      /* FORCE DEBUG: Target any div inside stage manager */
-      .stage-manager-mobile div {
-        border: 2px solid blue !important;
-        background: rgba(0,0,255,0.1) !important;
-      }
-      
-      /* FORCE DEBUG: Target the stage manager itself */
-      .stage-manager-mobile {
-        border: 4px solid green !important;
-        background: rgba(0,255,0,0.1) !important;
-      }
-    </style>
+    <!-- Mobile CSS for production -->
+    <link rel="stylesheet" href="/assets/mobile-baseline.css">
   </head>
   <body class="bg-gray-900 text-white min-h-screen">
-    <div id="root">
-      <div style="color: red; font-size: 24px; padding: 20px;">
-        REACT NOT LOADING - DEBUG MODE
-      </div>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      // Test if React loads
-      setTimeout(() => {
-        const root = document.getElementById('root');
-        if (root.innerHTML.includes('REACT NOT LOADING')) {
-          console.error('REACT FAILED TO LOAD');
-        } else {
-          console.log('REACT LOADED SUCCESSFULLY');
-        }
-      }, 2000);
-    </script>
   </body>
 </html>

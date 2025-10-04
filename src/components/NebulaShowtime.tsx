@@ -105,8 +105,8 @@ function StageBeams({ level }: { level: number }) {
           initial={{ x: -200, y: -240, opacity: 0 }}
           animate={{ x: 0, y: 0, opacity: 1 }}
           transition={{ duration: 2.5, ease: "easeOut", delay: b.delay }}
-          style={{ position: "absolute" }}
           style={{
+            position: "absolute",
             left: b.left,
             top: b.top,
             width: b.w,
@@ -215,8 +215,14 @@ function Sticky({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 220, damping: 18 }}
-      style={{ position: "fixed", zIndex: 40, pointerEvents: "none" }}
-      style={{ right: pos.right, bottom: pos.bottom, transform: `rotate(${pos.rot ?? -2}deg)` }}
+      style={{ 
+        position: "fixed", 
+        zIndex: 40, 
+        pointerEvents: "none",
+        right: pos.right, 
+        bottom: pos.bottom, 
+        transform: `rotate(${pos.rot ?? -2}deg)` 
+      }}
     >
       <div
         style={{
