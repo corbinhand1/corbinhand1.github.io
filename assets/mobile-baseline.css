@@ -159,9 +159,7 @@ button, a.button, .btn {
 }
 
 /* NUCLEAR: Force Stage Manager content container - FIXED HEIGHT */
-.stage-manager-mobile .space-y-2,
-.fixed.top-1.right-1 .space-y-2,
-[class*="stage-manager"] .space-y-2 {
+.stage-manager-scroll-container {
   height: 300px !important;
   max-height: 300px !important;
   min-height: 300px !important;
@@ -241,9 +239,7 @@ button, a.button, .btn {
   }
 
   /* Mobile Stage Manager content container - NUCLEAR FIXED HEIGHT */
-  .fixed.top-1.right-1 .space-y-2,
-  .stage-manager-mobile .space-y-2,
-  [class*="stage-manager"] .space-y-2 {
+  .stage-manager-scroll-container {
     height: 250px !important;
     max-height: 250px !important;
     min-height: 250px !important;

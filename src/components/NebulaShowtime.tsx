@@ -632,6 +632,7 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
 
         <div 
           ref={scrollContainerRef}
+          className="stage-manager-scroll-container"
           style={{ 
             height: '300px', 
             maxHeight: '300px',
