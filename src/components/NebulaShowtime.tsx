@@ -633,17 +633,6 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
         <div 
           ref={scrollContainerRef}
           className="stage-manager-scroll-container"
-          style={{ 
-            height: '300px', 
-            maxHeight: '300px',
-            overflowY: 'scroll',
-            overflowX: 'hidden',
-            scrollBehavior: 'auto',
-            border: '1px solid red', // DEBUG: Make container visible
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}
         >
           {/* Debug: Show log count */}
           <div style={{ fontSize: '12px', color: 'yellow', marginBottom: '10px' }}>
