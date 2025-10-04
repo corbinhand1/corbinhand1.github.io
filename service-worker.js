@@ -1,7 +1,7 @@
 // Service Worker for Nebula Creative
 // Provides intelligent caching for better performance
 
-const CACHE_VERSION = '20241004-0435';
+const CACHE_VERSION = '20241004-0436';
 const CACHE_NAME = `nebula-creative-cache-v${CACHE_VERSION}`;
 
 // Assets to cache immediately
