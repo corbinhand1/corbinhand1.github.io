@@ -592,50 +592,85 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
       transition={{ delay: 0.5 }}
       style={{ 
         position: "fixed", 
-        top: "4px", 
-        right: "4px", 
+        top: "20px", 
+        right: "20px", 
         zIndex: 50,
-        width: '400px',
-        padding: '20px',
+        width: '420px',
+        padding: '0',
         fontSize: '24px',
         lineHeight: '1.2',
-        background: 'rgba(0,0,0,0.8)',
-        border: '2px solid white',
-        maxHeight: '70vh',
+        background: 'rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.15)',
+        borderRadius: '20px',
+        backdropFilter: 'blur(20px)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+        maxHeight: '75vh',
         height: 'auto',
         overflow: 'hidden'
       }}
     >
       <div
         style={{
-          background: BRAND.glass,
-          border: `1px solid ${BRAND.border}`,
-          borderRadius: 6,
-          padding: 4,
-          backdropFilter: "blur(12px)",
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '16px',
+          padding: '24px',
+          backdropFilter: 'blur(16px)',
           height: 'auto',
-          maxHeight: '65vh',
+          maxHeight: '70vh',
           minHeight: 'auto',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 0 rgba(0,0,0,0.1)'
         }}
       >
         <motion.div 
-          className="flex items-center gap-3 mb-4"
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            marginBottom: '20px',
+            paddingBottom: '16px',
+            borderBottom: '1px solid rgba(255,255,255,0.1)'
+          }}
           initial={{ fontSize: '32px', lineHeight: '1.1', fontWeight: '900' }}
           animate={{ fontSize: '32px', lineHeight: '1.1', fontWeight: '900' }}
         >
-          <div className="w-4 h-4 bg-green-400 rounded-full animate-pulse" />
-          <h3 className="font-black text-white" style={{ 
-            fontSize: '32px', 
+          <div style={{ 
+            width: '12px', 
+            height: '12px', 
+            backgroundColor: '#00ff88', 
+            borderRadius: '50%',
+            boxShadow: '0 0 20px rgba(0,255,136,0.5), inset 0 1px 0 rgba(255,255,255,0.3)',
+            animation: 'pulse 2s infinite'
+          }} />
+          <h3 style={{ 
+            fontSize: '28px', 
             lineHeight: '1.1', 
-            fontWeight: '900',
-            textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+            fontWeight: '700',
+            color: 'rgba(255,255,255,0.95)',
+            textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+            letterSpacing: '-0.5px',
+            margin: 0
           }}>Stage Manager</h3>
         </motion.div>
 
         <div 
           ref={scrollContainerRef}
-          className="stage-manager-scroll-container"
+          style={{
+            height: '320px',
+            maxHeight: '320px',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            scrollBehavior: 'smooth',
+            paddingRight: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            background: 'rgba(255,255,255,0.02)',
+            borderRadius: '12px',
+            border: '1px solid rgba(255,255,255,0.05)',
+            backdropFilter: 'blur(8px)'
+          }}
         >
           {/* Debug: Show log count */}
           <div style={{ fontSize: '12px', color: 'yellow', marginBottom: '10px' }}>
@@ -643,17 +678,29 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
           </div>
           
           {/* FORCE SCROLL TO BOTTOM BUTTON */}
-          <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
             <button 
               onClick={scrollToBottom}
               style={{
-                background: 'rgba(255,255,255,0.2)',
-                border: '1px solid white',
-                color: 'white',
-                padding: '4px 8px',
-                fontSize: '10px',
-                borderRadius: '4px',
-                cursor: 'pointer'
+                background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: 'rgba(255,255,255,0.8)',
+                padding: '8px 16px',
+                fontSize: '12px',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
+                transition: 'all 0.2s ease',
+                fontWeight: '500'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               ↓ Latest Cue
@@ -678,18 +725,29 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
                 fontWeight: '600'
               }}
               transition={{ duration: 0.3 }}
-              className="text-slate-300 font-mono leading-tight"
               style={{ 
-                fontSize: '24px', 
-                lineHeight: '1.2', 
-                fontWeight: '600',
-                color: 'white',
-                textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-                // FORCE latest cue to be visible
-                backgroundColor: i === allLogs.slice(-10).length - 1 ? 'rgba(255,255,255,0.1)' : 'transparent',
-                border: i === allLogs.slice(-10).length - 1 ? '1px solid rgba(255,255,255,0.3)' : 'none',
-                borderRadius: i === allLogs.slice(-10).length - 1 ? '4px' : '0',
-                padding: i === allLogs.slice(-10).length - 1 ? '4px' : '0'
+                fontSize: '16px', 
+                lineHeight: '1.4', 
+                fontWeight: '500',
+                color: 'rgba(255,255,255,0.9)',
+                textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                padding: '12px 16px',
+                background: i === allLogs.slice(-10).length - 1 
+                  ? 'rgba(0,255,136,0.15)' 
+                  : 'rgba(255,255,255,0.05)',
+                border: i === allLogs.slice(-10).length - 1 
+                  ? '1px solid rgba(0,255,136,0.3)' 
+                  : '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '12px',
+                transition: 'all 0.3s ease',
+                boxShadow: i === allLogs.slice(-10).length - 1 
+                  ? '0 4px 16px rgba(0,255,136,0.2), inset 0 1px 0 rgba(255,255,255,0.1)' 
+                  : '0 2px 8px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
+                backdropFilter: 'blur(8px)',
+                borderLeft: i === allLogs.slice(-10).length - 1 
+                  ? '3px solid rgba(0,255,136,0.6)' 
+                  : '3px solid rgba(255,255,255,0.1)'
               }}
             >
               {log}
