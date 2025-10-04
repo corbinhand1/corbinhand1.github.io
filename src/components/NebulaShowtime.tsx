@@ -788,12 +788,12 @@ const NebulaShowtime: React.FC = () => {
 
         <ConfettiPile pieces={pilePieces} heightPx={pileHeight} />
         
-        {/* MOBILE ONLY - Single sticky note */}
-        <Sticky 
-          text={randomCleanup} 
-          pos={{ right: 12, bottom: 160, rot: -3 }} 
-          className="sticky-note-mobile"
-        />
+              {/* MOBILE ONLY - Single sticky note - bottom right */}
+              <Sticky 
+                text={randomCleanup} 
+                pos={{ right: 20, bottom: 20, rot: -5 }} 
+                className="sticky-note-mobile"
+              />
       </div>
 
       <StageManager clockMs={clockMs} announce={() => {}} isMobile={isMobile} />

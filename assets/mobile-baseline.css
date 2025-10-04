@@ -91,20 +91,44 @@ button, a.button, .btn {
     min-height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
   }
 
-  /* Stage Manager Panel - readable and compact */
-  .fixed.top-1.right-1,
-  .stage-manager-mobile,
-  [class*="stage-manager"] {
-    position: fixed !important;
-    top: 70px !important;
-    right: 10px !important;
-    left: auto !important;
-    width: 280px !important;
-    max-width: calc(100vw - 20px) !important;
-    font-size: 11px !important;
-    line-height: 1.3 !important;
-    padding: 12px !important;
-  }
+          /* Stage Manager Panel - readable and right-justified */
+          .fixed.top-1.right-1,
+          .stage-manager-mobile,
+          [class*="stage-manager"] {
+            position: fixed !important;
+            top: 20px !important;
+            right: 10px !important;
+            left: auto !important;
+            width: 200px !important;
+            max-width: calc(100vw - 20px) !important;
+            font-size: 12px !important;
+            line-height: 1.4 !important;
+            padding: 16px !important;
+            text-align: right !important;
+            background: rgba(0, 0, 0, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            border-radius: 8px !important;
+            backdrop-filter: blur(10px) !important;
+          }
+          
+          /* Stage Manager text - make it readable */
+          .stage-manager-mobile h3,
+          .stage-manager-mobile [class*="text-slate"] {
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            color: #10b981 !important;
+            text-align: right !important;
+            margin-bottom: 8px !important;
+          }
+          
+          /* Stage Manager log entries */
+          .stage-manager-mobile div[class*="text-slate"] {
+            font-size: 11px !important;
+            color: #e5e7eb !important;
+            text-align: right !important;
+            margin-bottom: 4px !important;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace !important;
+          }
 
   /* Main heading - proper mobile size */
   h1 {
@@ -138,18 +162,19 @@ button, a.button, .btn {
     min-width: 120px !important;
   }
 
-  /* MOBILE ONLY - Single sticky note */
-  .sticky-note-mobile {
-    display: block !important;
-    position: fixed !important;
-    bottom: 120px !important;
-    right: 10px !important;
-    width: 120px !important;
-    height: 120px !important;
-    font-size: 12px !important;
-    padding: 10px !important;
-    z-index: 30 !important;
-  }
+          /* MOBILE ONLY - Single sticky note - bottom right */
+          .sticky-note-mobile {
+            display: block !important;
+            position: fixed !important;
+            bottom: 20px !important;
+            right: 20px !important;
+            width: 100px !important;
+            height: 100px !important;
+            font-size: 11px !important;
+            padding: 8px !important;
+            z-index: 30 !important;
+            transform: rotate(-5deg) !important;
+          }
 
   /* Container padding */
   .max-w-7xl,
