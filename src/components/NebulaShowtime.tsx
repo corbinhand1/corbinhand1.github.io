@@ -471,17 +471,60 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
   // Add ref for scrollable container
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom function
+  // AGGRESSIVE auto-scroll to bottom function - MULTIPLE METHODS
   const scrollToBottom = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      const container = scrollContainerRef.current;
+      
+      // Method 1: Direct scrollTop
+      container.scrollTop = container.scrollHeight;
+      
+      // Method 2: Force with requestAnimationFrame
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+      });
+      
+      // Method 3: Force with setTimeout
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 0);
+      
+      // Method 4: Force with longer timeout
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 100);
     }
   };
 
-  // Auto-scroll when new logs are added
+  // AGGRESSIVE auto-scroll when new logs are added - MULTIPLE TRIGGERS
+  useEffect(() => {
+    // Immediate scroll
+    scrollToBottom();
+    
+    // Delayed scroll after animation
+    setTimeout(scrollToBottom, 50);
+    setTimeout(scrollToBottom, 100);
+    setTimeout(scrollToBottom, 200);
+    setTimeout(scrollToBottom, 500);
+  }, [allLogs]);
+
+  // FORCE scroll on every render - AGGRESSIVE
+  useEffect(() => {
+    const interval = setInterval(scrollToBottom, 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // FORCE scroll when component mounts
   useEffect(() => {
     scrollToBottom();
-  }, [allLogs]);
+  }, []);
+
+  // FORCE scroll on window resize
+  useEffect(() => {
+    const handleResize = () => scrollToBottom();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Safari-specific fix: Force font sizes immediately and repeatedly
   useEffect(() => {
@@ -634,7 +677,26 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
           <div style={{ fontSize: '12px', color: 'yellow', marginBottom: '10px' }}>
             Debug: {allLogs.length} logs
           </div>
-          {allLogs.map((log, i) => (
+          
+          {/* FORCE SCROLL TO BOTTOM BUTTON */}
+          <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+            <button 
+              onClick={scrollToBottom}
+              style={{
+                background: 'rgba(255,255,255,0.2)',
+                border: '1px solid white',
+                color: 'white',
+                padding: '4px 8px',
+                fontSize: '10px',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              ↓ Latest Cue
+            </button>
+          </div>
+          {/* ALWAYS SHOW LAST 10 LOGS - FORCE VISIBILITY */}
+          {allLogs.slice(-10).map((log, i) => (
             <motion.div
               key={`${log}-${i}`}
               initial={{ 
@@ -658,7 +720,12 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
                 lineHeight: '1.2', 
                 fontWeight: '600',
                 color: 'white',
-                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                // FORCE latest cue to be visible
+                backgroundColor: i === allLogs.slice(-10).length - 1 ? 'rgba(255,255,255,0.1)' : 'transparent',
+                border: i === allLogs.slice(-10).length - 1 ? '1px solid rgba(255,255,255,0.3)' : 'none',
+                borderRadius: i === allLogs.slice(-10).length - 1 ? '4px' : '0',
+                padding: i === allLogs.slice(-10).length - 1 ? '4px' : '0'
               }}
             >
               {log}

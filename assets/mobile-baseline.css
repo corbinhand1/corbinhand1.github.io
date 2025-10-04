@@ -159,7 +159,7 @@ button, a.button, .btn {
   max-height: none !important;
 }
 
-/* Force Stage Manager content container to be scrollable */
+/* Force Stage Manager content container to be scrollable - AGGRESSIVE */
 .stage-manager-mobile .space-y-2,
 .fixed.top-1.right-1 .space-y-2,
 [class*="stage-manager"] .space-y-2 {
@@ -168,9 +168,13 @@ button, a.button, .btn {
   min-height: auto !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  scroll-behavior: smooth !important;
+  scroll-behavior: auto !important; /* INSTANT scroll, not smooth */
   /* Add padding for better scroll experience */
   padding-right: 8px !important;
+  /* FORCE scroll to bottom */
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
 }
 
 /* Ensure Stage Manager can extend beyond viewport */
