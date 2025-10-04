@@ -271,7 +271,7 @@ button, a.button, .btn {
   .sticky-note-mobile {
     display: block !important;
     position: fixed !important;
-    bottom: 120px !important;
+    bottom: 40px !important;
     right: 10px !important;
     width: 120px !important;
     height: 120px !important;

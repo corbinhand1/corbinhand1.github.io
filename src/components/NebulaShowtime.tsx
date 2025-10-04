@@ -899,7 +899,7 @@ const NebulaShowtime: React.FC = () => {
         {/* MOBILE ONLY - Single sticky note */}
         <Sticky 
           text={randomCleanup} 
-          pos={{ right: 12, bottom: 160, rot: -3 }} 
+          pos={{ right: 12, bottom: 40, rot: -3 }} 
           className="sticky-note-mobile"
         />
       </div>
