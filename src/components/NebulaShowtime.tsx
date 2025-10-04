@@ -598,9 +598,9 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
         lineHeight: '1.2',
         background: 'rgba(0,0,0,0.8)',
         border: '2px solid white',
-        maxHeight: 'none',
+        maxHeight: '70vh',
         height: 'auto',
-        overflow: 'visible'
+        overflow: 'hidden'
       }}
     >
       <div
@@ -611,9 +611,9 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
           padding: 4,
           backdropFilter: "blur(12px)",
           height: 'auto',
-          maxHeight: 'none',
+          maxHeight: '60vh',
           minHeight: 'auto',
-          overflow: 'visible'
+          overflow: 'hidden'
         }}
       >
         <motion.div 
