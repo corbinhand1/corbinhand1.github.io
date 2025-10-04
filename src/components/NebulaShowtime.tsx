@@ -458,11 +458,16 @@ function ConfettiButton({
           ease: "easeInOut" 
         } 
       } : {}}
-      className={`px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-semibold transition-all duration-200 shadow-lg min-h-[44px] button-mobile ${
+      className={`px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-semibold transition-all duration-200 shadow-lg min-h-[44px] button-mobile ${
         isActive 
           ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-purple-500/50 cursor-pointer" 
           : "bg-gray-600 text-gray-400 cursor-not-allowed"
       }`}
+      style={{
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
+        fontWeight: '600',
+        letterSpacing: '-0.01em'
+      }}
     >
       Trigger Confetti
     </motion.button>
@@ -601,10 +606,10 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
           top: "16px", 
           right: "16px", 
           zIndex: 50,
-          width: '400px',
+          width: '320px',
           padding: '0',
-          fontSize: '18px',
-          lineHeight: '1.2',
+          fontSize: '16px',
+          lineHeight: '1.5',
           background: 'rgba(255,255,255,0.08)',
           border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: '16px',
@@ -612,7 +617,8 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
           boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
           maxHeight: '60vh',
           height: 'auto',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif'
         }}
     >
       <div
@@ -626,7 +632,8 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
           maxHeight: '55vh',
           minHeight: 'auto',
           overflow: 'hidden',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 0 rgba(0,0,0,0.1)'
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 0 rgba(0,0,0,0.1)',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif'
         }}
       >
         <motion.div 
@@ -656,7 +663,8 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
             color: 'rgba(255,255,255,0.95)',
             textShadow: '0 1px 2px rgba(0,0,0,0.3)',
             letterSpacing: '-0.3px',
-            margin: 0
+            margin: 0,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif'
           }}>Stage Manager</h3>
         </motion.div>
 
@@ -668,15 +676,17 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
             overflowY: 'auto',
             overflowX: 'hidden',
             scrollBehavior: 'smooth',
-            paddingRight: '6px',
+            paddingRight: '8px',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',
             background: 'rgba(255,255,255,0.02)',
-            borderRadius: '8px',
+            borderRadius: '12px',
             border: '1px solid rgba(255,255,255,0.05)',
-            backdropFilter: 'blur(8px)'
+            backdropFilter: 'blur(8px)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif'
           }}
+          className="stage-manager-scroll-container"
         >
           
           {/* ALWAYS SHOW LAST 10 LOGS - FORCE VISIBILITY */}
@@ -698,30 +708,33 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
                 fontWeight: '600'
               }}
               transition={{ duration: 0.3 }}
-              style={{ 
-                fontSize: '11px', 
-                lineHeight: '1.1', 
-                fontWeight: '500',
-                color: 'rgba(255,255,255,0.9)',
-                textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                padding: '4px 8px',
-                background: i === allLogs.slice(-10).length - 1 
-                  ? 'rgba(0,255,136,0.15)' 
-                  : 'rgba(255,255,255,0.05)',
-                border: i === allLogs.slice(-10).length - 1 
-                  ? '1px solid rgba(0,255,136,0.3)' 
-                  : '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '4px',
-                transition: 'all 0.3s ease',
-                boxShadow: i === allLogs.slice(-10).length - 1 
-                  ? '0 2px 8px rgba(0,255,136,0.2), inset 0 1px 0 rgba(255,255,255,0.1)' 
-                  : '0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
-                backdropFilter: 'blur(8px)',
-                borderLeft: i === allLogs.slice(-10).length - 1 
-                  ? '2px solid rgba(0,255,136,0.6)' 
-                  : '2px solid rgba(255,255,255,0.1)'
-              }}
+          style={{ 
+            fontSize: '12px',
+            lineHeight: '1.3',
+            fontWeight: '500',
+            color: 'rgba(255,255,255,0.9)',
+            textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
+            padding: '6px 10px',
+            background: i === allLogs.slice(-10).length - 1 
+              ? 'rgba(0,255,136,0.15)' 
+              : 'rgba(255,255,255,0.05)',
+            border: i === allLogs.slice(-10).length - 1 
+              ? '1px solid rgba(0,255,136,0.3)' 
+              : '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '6px',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: i === allLogs.slice(-10).length - 1 
+              ? '0 2px 8px rgba(0,255,136,0.2), inset 0 1px 0 rgba(255,255,255,0.1)' 
+              : '0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
+            backdropFilter: 'blur(8px)',
+            borderLeft: i === allLogs.slice(-10).length - 1 
+              ? '2px solid rgba(0,255,136,0.6)' 
+              : '2px solid rgba(255,255,255,0.1)',
+            minHeight: '44px',
+            display: 'flex',
+            alignItems: 'center'
+          }}
             >
               {log}
             </motion.div>
@@ -836,6 +849,11 @@ function ContactButton({ show }: { show: boolean }) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="inline-block px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-medium bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/50 transition-all duration-200 shadow-lg text-white min-h-[44px] button-mobile"
+            style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
+              fontWeight: '600',
+              letterSpacing: '-0.01em'
+            }}
           >
             Contact Us
           </motion.a>
@@ -969,7 +987,15 @@ const NebulaShowtime: React.FC = () => {
               className="h-32 sm:h-40 md:h-48 lg:h-64 w-auto mx-auto relative z-30 logo-mobile"
             />
         </div>
-          <p className="text-lg sm:text-xl md:text-2xl text-slate-300 mb-8 sm:mb-12 max-w-2xl mx-auto px-2 relative z-20">
+          <p 
+            className="text-lg sm:text-xl md:text-2xl text-slate-300 mb-8 sm:mb-12 max-w-2xl mx-auto px-2 relative z-20"
+            style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
+              fontWeight: '400',
+              lineHeight: '1.5',
+              letterSpacing: '-0.01em'
+            }}
+          >
             We make the show happen — on time, on budget, on brand.
           </p>
           

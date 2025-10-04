@@ -1,189 +1,192 @@
-/* Mobile-First Baseline Styles for Nebula Creative */
+/* Apple Design System - Mobile-First Baseline Styles */
 
 :root {
-  /* Fluid typography scale - improved for better readability */
-  --step-0: clamp(14px, 1.6vw, 16px);
-  --step-1: clamp(18px, 2vw, 22px);
-  --step-2: clamp(22px, 3vw, 28px);
-  --step-3: clamp(28px, 4vw, 36px);
+  /* Apple Color System */
+  --primary-blue: rgba(0, 122, 255, 1);
+  --primary-purple: rgba(88, 86, 214, 1);
+  --success-green: rgba(52, 199, 89, 1);
+  --warning-orange: rgba(255, 149, 0, 1);
+  --error-red: rgba(255, 59, 48, 1);
   
-  /* Spacing scale */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
+  /* Apple Gray Scale */
+  --gray-50: rgba(248, 249, 250, 1);
+  --gray-100: rgba(241, 243, 244, 1);
+  --gray-200: rgba(232, 234, 237, 1);
+  --gray-300: rgba(218, 220, 224, 1);
+  --gray-400: rgba(154, 160, 166, 1);
+  --gray-500: rgba(95, 99, 104, 1);
+  --gray-600: rgba(60, 64, 67, 1);
+  --gray-700: rgba(32, 33, 36, 1);
+  --gray-800: rgba(23, 23, 26, 1);
+  --gray-900: rgba(15, 15, 18, 1);
   
-  /* Mobile-only breakpoints */
-  --mobile: 375px;
+  /* Apple Typography Scale */
+  --text-xs: 12px;    /* 0.75rem - Caption */
+  --text-sm: 14px;    /* 0.875rem - Subheadline */
+  --text-base: 16px;  /* 1rem - Body */
+  --text-lg: 18px;    /* 1.125rem - Callout */
+  --text-xl: 20px;    /* 1.25rem - Headline */
+  --text-2xl: 24px;   /* 1.5rem - Title 3 */
+  --text-3xl: 28px;   /* 1.75rem - Title 2 */
+  --text-4xl: 32px;   /* 2rem - Title 1 */
   
-  /* Safe area insets for modern devices */
+  /* Apple Spacing Scale */
+  --space-1: 4px;     /* 0.25rem */
+  --space-2: 8px;     /* 0.5rem */
+  --space-3: 12px;    /* 0.75rem */
+  --space-4: 16px;    /* 1rem */
+  --space-5: 20px;    /* 1.25rem */
+  --space-6: 24px;    /* 1.5rem */
+  --space-8: 32px;    /* 2rem */
+  --space-10: 40px;   /* 2.5rem */
+  --space-12: 48px;   /* 3rem */
+  
+  /* Apple Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  
+  /* Safe Area Insets */
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  
+  /* Breakpoints */
+  --mobile-xs: 320px;   /* iPhone SE */
+  --mobile-sm: 375px;   /* iPhone 12/13/14 */
+  --mobile-md: 414px;   /* iPhone 12/13/14 Pro Max */
+  --tablet: 768px;      /* iPad */
+  --desktop: 1024px;    /* iPad Pro */
 }
 
-/* Reset and base styles */
-html, body { 
-  overflow-x: hidden; 
+/* Reset and Base Styles */
+* {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-body { 
-  font-size: var(--step-0); 
-  line-height: 1.5; 
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+html {
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
-/* Container system */
-.container { 
-  width: min(100%, 1200px); 
-  margin-inline: auto; 
-  padding-inline: max(var(--space-md), var(--safe-area-inset-left), var(--safe-area-inset-right)); 
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--gray-900);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
 }
 
-/* Responsive media */
-img, video, iframe { 
-  max-width: 100%; 
-  height: auto; 
-  display: block; 
+/* Typography System */
+h1, h2, h3, h4, h5, h6 {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0;
 }
 
-/* Grid system - Mobile only */
-.grid { 
-  display: grid; 
-  gap: var(--space-md); 
-  grid-template-columns: 1fr; 
+h1 { font-size: var(--text-4xl); }
+h2 { font-size: var(--text-3xl); }
+h3 { font-size: var(--text-2xl); }
+h4 { font-size: var(--text-xl); }
+h5 { font-size: var(--text-lg); }
+h6 { font-size: var(--text-base); }
+
+p {
+  font-size: var(--text-base);
+  line-height: 1.5;
+  margin: 0;
 }
 
-/* Touch-friendly buttons */
-button, a.button, .btn { 
-  min-height: 44px; 
-  padding: 12px 16px; 
+/* Touch Targets - Apple HIG Compliance */
+button, 
+a.button, 
+.btn, 
+[role="button"],
+input[type="button"],
+input[type="submit"] {
+  min-height: 44px;
+  min-width: 44px;
+  padding: var(--space-3) var(--space-4);
   border: none;
-  border-radius: 8px;
-  font-size: var(--step-0);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: 500;
+  font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Mobile-only utilities */
-.mobile-only { display: block; }
-
-/* Stage Manager fixes - apply to ALL screen sizes */
-.fixed.top-1.right-1 h3,
-.stage-manager-mobile h3,
-[class*="stage-manager"] h3 {
-  font-size: 32px !important;
-  line-height: 1.1 !important;
-  font-weight: 900 !important;
-  /* Safari-specific: Force font size to persist after animations */
-  -webkit-text-size-adjust: none !important;
-  text-size-adjust: none !important;
+button:active,
+a.button:active,
+.btn:active {
+  transform: scale(0.98);
 }
 
-.fixed.top-1.right-1 .text-slate-300,
-.stage-manager-mobile .text-slate-300,
-[class*="stage-manager"] .text-slate-300 {
-  font-size: 24px !important;
-  line-height: 1.2 !important;
-  /* Safari-specific: Force font size to persist after animations */
-  -webkit-text-size-adjust: none !important;
-  text-size-adjust: none !important;
+/* Focus Management */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 2px;
 }
 
-.fixed.top-1.right-1,
-.stage-manager-mobile,
-[class*="stage-manager"] {
-  width: 400px !important;
-  padding: 20px !important;
-  font-size: 24px !important;
-  max-height: none !important;
-  height: auto !important;
-  overflow: visible !important;
-  min-height: auto !important;
-  /* Let it grow naturally to show all cues */
-  -webkit-text-size-adjust: none !important;
-  text-size-adjust: none !important;
-}
-
-/* Safari-specific: Force Stage Manager text to be readable after page load */
-@supports (-webkit-appearance: none) {
-  .fixed.top-1.right-1 h3,
-  .stage-manager-mobile h3,
-  [class*="stage-manager"] h3 {
-    font-size: 18px !important;
-    line-height: 1.3 !important;
-    font-weight: 600 !important;
-    -webkit-text-size-adjust: none !important;
-    text-size-adjust: none !important;
-  }
-  
-  .fixed.top-1.right-1 .text-slate-300,
-  .stage-manager-mobile .text-slate-300,
-  [class*="stage-manager"] .text-slate-300 {
-    font-size: 14px !important;
-    line-height: 1.4 !important;
-    -webkit-text-size-adjust: none !important;
-    text-size-adjust: none !important;
-  }
-}
-
-/* Nuclear option: Force all Stage Manager text to be mobile-optimized */
-.fixed.top-1.right-1 *,
-.stage-manager-mobile *,
-[class*="stage-manager"] * {
-  font-size: 14px !important;
-  -webkit-text-size-adjust: none !important;
-  text-size-adjust: none !important;
-}
-
-.fixed.top-1.right-1 h3,
-.stage-manager-mobile h3,
-[class*="stage-manager"] h3 {
-  font-size: 18px !important;
-  font-weight: 600 !important;
-}
-
-/* Stage Manager - Mobile Responsive Design */
+/* Stage Manager - Apple Design Standards */
 .stage-manager-mobile,
 .fixed.top-1.right-1,
 [class*="stage-manager"] {
-  height: auto !important;
+  position: fixed !important;
+  top: var(--space-4) !important;
+  right: var(--space-4) !important;
+  z-index: 50 !important;
+  width: 320px !important;
+  max-width: calc(100vw - var(--space-8)) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: var(--radius-xl) !important;
+  backdrop-filter: blur(20px) !important;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
   max-height: 60vh !important;
-  min-height: auto !important;
+  height: auto !important;
   overflow: hidden !important;
-  /* Fixed height container with scrollable content */
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif !important;
 }
 
-/* Mobile Stage Manager - Compact & Beautiful */
-@media (max-width: 768px) {
-  .stage-manager-mobile,
-  .fixed.top-1.right-1,
-  [class*="stage-manager"] {
-    width: 350px !important;
-    top: 12px !important;
-    right: 12px !important;
-    max-height: 50vh !important;
-    border-radius: 12px !important;
-    backdrop-filter: blur(16px) !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15) !important;
-  }
-  
-  .stage-manager-mobile h3 {
-    font-size: 18px !important;
-    font-weight: 700 !important;
-  }
-  
-  .stage-manager-mobile .text-slate-300 {
-    font-size: 13px !important;
-    line-height: 1.2 !important;
-  }
+.stage-manager-mobile h3,
+.fixed.top-1.right-1 h3,
+[class*="stage-manager"] h3 {
+  font-size: var(--text-xl) !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  letter-spacing: -0.3px !important;
+  margin: 0 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif !important;
 }
 
-/* Beautiful Stage Manager content container - FIXED HEIGHT */
 .stage-manager-scroll-container {
   height: 240px !important;
   max-height: 240px !important;
@@ -191,43 +194,70 @@ button, a.button, .btn {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   scroll-behavior: smooth !important;
-  padding-right: 6px !important;
-  /* Beautiful styling */
+  padding-right: var(--space-2) !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 8px !important;
+  gap: var(--space-2) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(8px) !important;
 }
 
-/* Mobile Stage Manager scroll container */
-@media (max-width: 768px) {
+/* Mobile Breakpoints */
+@media (max-width: 767px) {
+  /* Safe area handling */
+  body {
+    padding-top: var(--safe-area-inset-top);
+    padding-bottom: var(--safe-area-inset-bottom);
+    padding-left: var(--safe-area-inset-left);
+    padding-right: var(--safe-area-inset-right);
+  }
+  
+  /* Stage Manager - Mobile Optimized */
+  .stage-manager-mobile,
+  .fixed.top-1.right-1,
+  [class*="stage-manager"] {
+    width: 280px !important;
+    top: var(--space-3) !important;
+    right: var(--space-3) !important;
+    max-height: 50vh !important;
+    border-radius: var(--radius-lg) !important;
+    backdrop-filter: blur(16px) !important;
+    box-shadow: 
+      0 4px 20px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  }
+  
+  .stage-manager-mobile h3,
+  .fixed.top-1.right-1 h3,
+  [class*="stage-manager"] h3 {
+    font-size: var(--text-lg) !important;
+    font-weight: 700 !important;
+  }
+  
   .stage-manager-scroll-container {
     height: 180px !important;
     max-height: 180px !important;
     min-height: 180px !important;
-    padding-right: 4px !important;
-    gap: 6px !important;
-  }
-  
-  /* Mobile Stage Manager buttons */
-  .stage-manager-mobile button {
-    padding: 4px 8px !important;
-    font-size: 10px !important;
-    border-radius: 12px !important;
+    padding-right: var(--space-1) !important;
+    gap: var(--space-1) !important;
   }
   
   /* Mobile Stage Manager log entries */
   .stage-manager-mobile [class*="motion"] {
-    padding: 3px 6px !important;
-    font-size: 9px !important;
-    border-radius: 4px !important;
+    padding: var(--space-1) var(--space-2) !important;
+    font-size: var(--text-xs) !important;
+    border-radius: var(--radius-sm) !important;
     line-height: 1.1 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif !important;
   }
   
   /* Mobile Stage Manager header */
   .stage-manager-mobile .flex {
-    gap: 6px !important;
-    margin-bottom: 8px !important;
-    padding-bottom: 8px !important;
+    gap: var(--space-2) !important;
+    margin-bottom: var(--space-2) !important;
+    padding-bottom: var(--space-2) !important;
   }
   
   /* Mobile Stage Manager status indicator */
@@ -235,183 +265,77 @@ button, a.button, .btn {
     width: 6px !important;
     height: 6px !important;
   }
-}
-
-/* Ensure Stage Manager has proper height constraints */
-.stage-manager-mobile,
-.fixed.top-1.right-1,
-[class*="stage-manager"] {
-  /* Fixed height container */
-  max-height: 70vh !important;
-  /* Ensure it can grow as tall as needed */
-  height: auto !important;
-  /* Prevent content overflow */
-  overflow: hidden !important;
-}
-
-/* Mobile-specific fixes for Nebula Creative */
-@media (max-width: 767px) {
-  /* Prevent horizontal scroll - CRITICAL */
-  html, body {
-    overflow-x: hidden !important;
-    max-width: 100vw !important;
-    width: 100% !important;
-    /* Respect safe areas on modern devices */
-    padding-top: var(--safe-area-inset-top);
-    padding-bottom: var(--safe-area-inset-bottom);
+  
+  /* Main content typography */
+  h1 {
+    font-size: clamp(28px, 8vw, 48px) !important;
+    line-height: 1.1 !important;
+    margin-bottom: var(--space-4) !important;
   }
   
-  #root {
-    overflow-x: hidden !important;
-    max-width: 100vw !important;
-    /* Ensure content doesn't get cut off by safe areas */
-    min-height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
-  }
-
-  /* Stage Manager Panel - readable and compact */
-  .fixed.top-1.right-1,
-  .stage-manager-mobile,
-  [class*="stage-manager"] {
-    position: fixed !important;
-    top: 70px !important;
-    right: 10px !important;
-    left: auto !important;
-    width: 320px !important;
-    max-width: calc(100vw - 20px) !important;
-    font-size: 14px !important;
-    line-height: 1.4 !important;
-    padding: 14px !important;
-    /* CRITICAL: Allow box to grow with content but limit height */
-    height: auto !important;
-    max-height: 70vh !important;
-    overflow: visible !important;
-    min-height: auto !important;
-  }
-
-  /* Force Stage Manager text to be readable */
-  .fixed.top-1.right-1 h3,
-  .stage-manager-mobile h3,
-  [class*="stage-manager"] h3 {
-    font-size: 16px !important;
-    line-height: 1.2 !important;
-  }
-
-  .fixed.top-1.right-1 .text-slate-300,
-  .stage-manager-mobile .text-slate-300,
-  [class*="stage-manager"] .text-slate-300 {
-    font-size: 14px !important;
-    line-height: 1.3 !important;
-  }
-
-  /* Mobile Stage Manager content container - BEAUTIFUL FIXED HEIGHT */
-  .stage-manager-scroll-container {
-    height: 250px !important;
-    max-height: 250px !important;
-    min-height: 250px !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    scroll-behavior: smooth !important;
-    padding-right: 6px !important;
-    /* Beautiful styling */
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-  }
-
-  /* Main heading - proper mobile size */
-  h1 {
-    font-size: clamp(36px, 12vw, 56px) !important;
-    line-height: 1.1 !important;
-    margin-bottom: 16px !important;
-  }
-
-  /* Paragraph text - readable */
   p {
-    font-size: 16px !important;
+    font-size: var(--text-base) !important;
     line-height: 1.5 !important;
-    max-width: 100% !important;
   }
-
-  /* Button container - center and make touch-friendly */
-  .relative.z-20 {
-    position: relative !important;
-    margin: 20px auto !important;
-    text-align: center !important;
-  }
-
-  /* All buttons - touch-friendly */
+  
+  /* Touch-friendly buttons */
   button {
-    min-height: 56px !important;
-    padding: 14px 24px !important;
-    font-size: 15px !important;
-    margin: 8px !important;
-    border-radius: 8px !important;
-    width: auto !important;
+    min-height: 48px !important;
+    padding: var(--space-3) var(--space-5) !important;
+    font-size: var(--text-base) !important;
+    margin: var(--space-2) !important;
+    border-radius: var(--radius-md) !important;
     min-width: 120px !important;
   }
+}
 
-  /* MOBILE ONLY - Single sticky note */
-  .sticky-note-mobile {
-    display: block !important;
-    position: fixed !important;
-    bottom: 40px !important;
-    right: 10px !important;
-    width: 120px !important;
-    height: 120px !important;
-    font-size: 12px !important;
-    padding: 10px !important;
-    z-index: 30 !important;
+/* iPhone SE and smaller */
+@media (max-width: 374px) {
+  .stage-manager-mobile,
+  .fixed.top-1.right-1,
+  [class*="stage-manager"] {
+    width: 260px !important;
+    top: var(--space-2) !important;
+    right: var(--space-2) !important;
   }
-
-  /* Container padding */
-  .max-w-7xl,
-  .max-w-6xl {
-    padding-left: 20px !important;
-    padding-right: 20px !important;
+  
+  .stage-manager-mobile h3,
+  .fixed.top-1.right-1 h3,
+  [class*="stage-manager"] h3 {
+    font-size: var(--text-base) !important;
   }
-
-  /* Any element with px-5 class */
-  .px-5 {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-  }
-
-  /* Confetti canvas - ensure it fits */
-  canvas {
-    max-width: 100vw !important;
-  }
-
-  /* Video player modal */
-  .fixed.inset-0 > div {
-    width: 95vw !important;
-    margin: 0 auto !important;
+  
+  .stage-manager-scroll-container {
+    height: 160px !important;
+    max-height: 160px !important;
+    min-height: 160px !important;
   }
 }
 
-/* MOBILE ONLY - No tablet or desktop styles */
-
-/* Performance optimizations */
-* {
-  box-sizing: border-box;
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Focus management for accessibility */
-button:focus,
-a:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-/* Reduce motion for users who prefer it */
+/* Accessibility */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .stage-manager-mobile,
+  .fixed.top-1.right-1,
+  [class*="stage-manager"] {
+    background: rgba(0, 0, 0, 0.9) !important;
+    border: 2px solid rgba(255, 255, 255, 0.8) !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gray-900: rgba(255, 255, 255, 0.95);
+    --gray-800: rgba(255, 255, 255, 0.8);
+    --gray-700: rgba(255, 255, 255, 0.6);
   }
 }
