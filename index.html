@@ -32,7 +32,18 @@
         });
       }
     </script>
-    <script type="module" crossorigin src="./assets/index-cc3a18c3.js?v=20241004-0435"></script>
+    <script type="module" crossorigin src="./assets/index-2f3919c7.js?v=20241004-0437"></script>
+    
+    <!-- FALLBACK: Simple test if main JS fails -->
+    <script>
+      setTimeout(function() {
+        const root = document.getElementById('root');
+        if (!root.innerHTML || root.innerHTML.trim() === '') {
+          console.error('React app failed to load, showing fallback');
+          root.innerHTML = '<div style="text-align: center; padding: 50px; color: white;"><h1>Nebula Creative</h1><p>We make the show happen — on time, on budget, on brand.</p><p style="color: red;">JavaScript loading issue detected. Please check console for errors.</p></div>';
+        }
+      }, 3000);
+    </script>
     <link rel="stylesheet" href="./assets/index-9cba4db6.css?v=20241004-0435">
     
     <!-- DEBUG: Check if JavaScript is loading -->

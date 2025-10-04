@@ -518,7 +518,7 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
       >
         <div className="flex items-center gap-0.5 mb-0.5">
           <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse" />
-          <h3 className="font-semibold text-slate-200 text-[4px]">Stage Manager</h3>
+          <h3 className="font-semibold text-slate-200 text-[10px]">Stage Manager</h3>
         </div>
 
         <div className="space-y-0 max-h-16 overflow-y-auto">
@@ -528,7 +528,7 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="text-slate-300 font-mono leading-tight text-[3px]"
+              className="text-slate-300 font-mono leading-tight text-[8px]"
             >
               {log}
             </motion.div>
@@ -788,12 +788,12 @@ const NebulaShowtime: React.FC = () => {
 
         <ConfettiPile pieces={pilePieces} heightPx={pileHeight} />
         
-              {/* MOBILE ONLY - Single sticky note - bottom right */}
-              <Sticky 
-                text={randomCleanup} 
-                pos={{ right: 20, bottom: 20, rot: -5 }} 
-                className="sticky-note-mobile"
-              />
+        {/* MOBILE ONLY - Single sticky note */}
+        <Sticky 
+          text={randomCleanup} 
+          pos={{ right: 12, bottom: 160, rot: -3 }} 
+          className="sticky-note-mobile"
+        />
       </div>
 
       <StageManager clockMs={clockMs} announce={() => {}} isMobile={isMobile} />
