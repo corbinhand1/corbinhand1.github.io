@@ -12,7 +12,7 @@
         }
 
         body {
-            font-family: 'Comic Sans MS', cursive, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
             background-size: 400% 400%;
             animation: gradientShift 8s ease infinite;
@@ -51,6 +51,7 @@
             text-shadow: 3px 3px 0px #feca57, 6px 6px 0px #48dbfb;
             margin-bottom: 10px;
             animation: bounce 2s infinite;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
 
         @keyframes bounce {
@@ -340,11 +341,21 @@
         }
 
         @media (max-width: 768px) {
-            .logo { font-size: 2.5rem; }
-            .hero-title { font-size: 2rem; }
+            .logo { 
+                font-size: 2.5rem; 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                text-shadow: 2px 2px 0px #feca57, 4px 4px 0px #48dbfb;
+            }
+            .hero-title { 
+                font-size: 2rem; 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            }
             .courses-grid { grid-template-columns: 1fr; }
             .pricing-grid { grid-template-columns: 1fr; }
             .container { padding: 10px; }
+            .tagline, .subtitle, .hero-text, .course-description, .testimonial-text, .footer-text {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            }
         }
     </style>
 </head>
