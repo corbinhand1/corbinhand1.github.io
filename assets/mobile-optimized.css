@@ -1,0 +1,332 @@
+/* =======================================================================
+   NEBULA CREATIVE - CONSOLIDATED MOBILE-FIRST CSS
+   This file contains all styles for the Nebula Creative website
+   ======================================================================= */
+
+/* Tailwind CSS Base */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Handwritten font stack for sticky notes */
+.font-handwritten {
+  font-family: "Caveat", "Patrick Hand", "Marker Felt", cursive;
+}
+
+/* Global body styles */
+body {
+  background-color: #111827;
+  color: white;
+}
+
+/* Utility classes */
+.button-mobile {
+  min-height: 44px;
+  padding: 12px 16px;
+  font-size: 14px;
+  border-radius: 8px;
+  touch-action: manipulation;
+}
+
+.logo-mobile {
+  max-width: 100%;
+  height: auto;
+}
+
+.sticky-note-mobile {
+  max-width: 120px;
+  max-height: 120px;
+  font-size: 10px;
+  padding: 8px;
+}
+
+/* Mobile Typography Scale - Fluid and Readable */
+:root {
+  /* Mobile-first font sizes */
+  --mobile-xs: 10px;      /* Stage Manager logs */
+  --mobile-sm: 12px;      /* Stage Manager title */
+  --mobile-base: 14px;    /* Body text, buttons */
+  --mobile-lg: 16px;      /* Subheadings */
+  --mobile-xl: 18px;      /* Main headings */
+  --mobile-2xl: 22px;     /* Large headings */
+  
+  /* Fluid scaling for different viewports */
+  --mobile-xs-fluid: clamp(9px, 2.5vw, 10px);
+  --mobile-sm-fluid: clamp(10px, 3vw, 12px);
+  --mobile-base-fluid: clamp(12px, 3.5vw, 14px);
+  --mobile-lg-fluid: clamp(14px, 4vw, 16px);
+  --mobile-xl-fluid: clamp(16px, 4.5vw, 18px);
+  --mobile-2xl-fluid: clamp(18px, 5vw, 22px);
+  
+  /* Mobile spacing */
+  --mobile-space-xs: 4px;
+  --mobile-space-sm: 8px;
+  --mobile-space-md: 12px;
+  --mobile-space-lg: 16px;
+  --mobile-space-xl: 20px;
+  
+  /* Safe area support */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+}
+
+/* Reset problematic font sizes with maximum specificity */
+html {
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
+/* NUCLEAR OVERRIDE - Fix Stage Manager font sizes and positioning */
+html body .stage-manager-mobile,
+html body .fixed.top-1.right-1,
+html body [class*="stage-manager"],
+html body div[style*="position: fixed"][style*="top: 70px"] {
+  font-size: var(--mobile-xs-fluid) !important;
+  line-height: 1.3 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif !important;
+  position: fixed !important;
+  top: 60px !important;
+  right: 8px !important;
+  left: auto !important;
+  z-index: 50 !important;
+}
+
+/* Stage Manager title */
+html body .stage-manager-mobile h3,
+html body .fixed.top-1.right-1 h3,
+html body [class*="stage-manager"] h3,
+html body div[style*="position: fixed"][style*="top: 70px"] h3 {
+  font-size: var(--mobile-sm-fluid) !important;
+  line-height: 1.2 !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+  margin: 0 !important;
+}
+
+/* Stage Manager log entries */
+html body .stage-manager-mobile .text-slate-300,
+html body .fixed.top-1.right-1 .text-slate-300,
+html body [class*="stage-manager"] .text-slate-300,
+html body div[style*="position: fixed"][style*="top: 70px"] .text-slate-300 {
+  font-size: var(--mobile-xs-fluid) !important;
+  line-height: 1.2 !important;
+  font-weight: 500 !important;
+  color: #cbd5e1 !important;
+}
+
+/* Mobile-specific Stage Manager positioning */
+@media (max-width: 767px) {
+  html body .stage-manager-mobile,
+  html body .fixed.top-1.right-1,
+  html body [class*="stage-manager"],
+  html body div[style*="position: fixed"][style*="top: 70px"] {
+    position: fixed !important;
+    top: 60px !important;
+    right: 8px !important;
+    left: auto !important;
+    width: 160px !important;
+    max-width: calc(100vw - 16px) !important;
+    font-size: var(--mobile-xs-fluid) !important;
+    line-height: 1.3 !important;
+    padding: 8px !important;
+    z-index: 50 !important;
+    background: rgba(30, 30, 40, 0.95) !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    backdrop-filter: blur(20px) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+  }
+  
+  /* Override speech bubble positioning for Stage Manager specifically - FIXED */
+  html body .stage-manager-mobile.fixed.top-16 {
+    left: auto !important;
+    right: 8px !important;
+  }
+  
+  /* Stage Manager title on mobile */
+  html body .stage-manager-mobile h3,
+  html body .fixed.top-1.right-1 h3,
+  html body [class*="stage-manager"] h3,
+  html body div[style*="position: fixed"][style*="top: 70px"] h3 {
+    font-size: var(--mobile-sm-fluid) !important;
+    line-height: 1.1 !important;
+    font-weight: 600 !important;
+    color: #fff !important;
+    margin: 0 !important;
+  }
+  
+  /* Stage Manager logs on mobile */
+  html body .stage-manager-mobile .text-slate-300,
+  html body .fixed.top-1.right-1 .text-slate-300,
+  html body [class*="stage-manager"] .text-slate-300,
+  html body div[style*="position: fixed"][style*="top: 70px"] .text-slate-300 {
+    font-size: var(--mobile-xs-fluid) !important;
+    line-height: 1.2 !important;
+    font-weight: 500 !important;
+    color: #cbd5e1 !important;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  html body .stage-manager-mobile,
+  html body .fixed.top-1.right-1,
+  html body [class*="stage-manager"],
+  html body div[style*="position: fixed"][style*="top: 70px"] {
+    width: 200px !important;
+    font-size: var(--mobile-sm-fluid) !important;
+    right: 12px !important;
+  }
+  
+  /* Override speech bubble positioning for Stage Manager specifically */
+  html body .stage-manager-mobile.fixed.top-16 {
+    left: auto !important;
+    right: 12px !important;
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 1024px) {
+  html body .stage-manager-mobile,
+  html body .fixed.top-1.right-1,
+  html body [class*="stage-manager"],
+  html body div[style*="position: fixed"][style*="top: 70px"] {
+    width: 240px !important;
+    font-size: var(--mobile-base-fluid) !important;
+    right: 16px !important;
+  }
+  
+  /* Override speech bubble positioning for Stage Manager specifically */
+  html body .stage-manager-mobile.fixed.top-16 {
+    left: auto !important;
+    right: 16px !important;
+  }
+}
+
+/* Mobile button optimizations */
+@media (max-width: 767px) {
+  button,
+  .button,
+  .btn {
+    min-height: 44px !important;
+    padding: 12px 16px !important;
+    font-size: var(--mobile-base-fluid) !important;
+    border-radius: 8px !important;
+    touch-action: manipulation !important;
+  }
+  
+  /* Confetti button mobile optimization */
+  button[class*="px-6"],
+  button[class*="py-3"] {
+    min-height: 48px !important;
+    padding: 14px 20px !important;
+    font-size: var(--mobile-base-fluid) !important;
+    font-weight: 600 !important;
+  }
+}
+
+/* Mobile typography improvements */
+@media (max-width: 767px) {
+  body {
+    font-size: var(--mobile-base-fluid) !important;
+    line-height: 1.5 !important;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-size: var(--mobile-xl-fluid) !important;
+    line-height: 1.2 !important;
+  }
+  
+  p {
+    font-size: var(--mobile-base-fluid) !important;
+    line-height: 1.5 !important;
+  }
+}
+
+/* Sticky note mobile optimization */
+@media (max-width: 767px) {
+  .sticky-note-mobile,
+  div[style*="position: fixed"][style*="bottom: 40px"] {
+    width: 100px !important;
+    height: 100px !important;
+    font-size: 10px !important;
+    padding: 8px !important;
+    bottom: 80px !important;
+    right: 8px !important;
+  }
+}
+
+/* Ensure no horizontal scroll on mobile */
+@media (max-width: 767px) {
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+  }
+  
+  #root {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+  
+  * {
+    max-width: 100% !important;
+  }
+}
+
+/* Safe area handling for modern devices */
+@supports (padding: max(0px)) {
+  body {
+    padding-top: max(var(--mobile-space-md), var(--safe-area-top)) !important;
+    padding-bottom: max(var(--mobile-space-md), var(--safe-area-bottom)) !important;
+    padding-left: max(var(--mobile-space-md), var(--safe-area-left)) !important;
+    padding-right: max(var(--mobile-space-md), var(--safe-area-right)) !important;
+  }
+}
+
+/* Additional mobile optimizations */
+@media (max-width: 767px) {
+  /* Improve touch targets */
+  button, .button, .btn, a[role="button"] {
+    min-height: 48px !important;
+    min-width: 48px !important;
+    padding: 12px 16px !important;
+    font-size: var(--mobile-base-fluid) !important;
+    touch-action: manipulation !important;
+  }
+  
+  /* Optimize main content spacing */
+  .min-h-screen {
+    min-height: 100vh !important;
+    min-height: calc(100vh - var(--safe-area-top) - var(--safe-area-bottom)) !important;
+  }
+  
+  /* Ensure proper text scaling */
+  .text-base {
+    font-size: var(--mobile-base-fluid) !important;
+  }
+  
+  .text-lg {
+    font-size: var(--mobile-lg-fluid) !important;
+  }
+  
+  .text-xl {
+    font-size: var(--mobile-xl-fluid) !important;
+  }
+  
+  /* Logo optimization */
+  .logo-mobile {
+    max-width: 90vw !important;
+    height: auto !important;
+  }
+  
+  /* Speech bubbles mobile optimization */
+  .fixed.top-16,
+  .fixed.top-4 {
+    max-width: calc(100vw - 32px) !important;
+    left: 16px !important;
+    right: auto !important;
+  }
+}

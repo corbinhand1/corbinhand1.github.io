@@ -209,7 +209,7 @@ function Sticky({
   pos: { right: number; bottom: number; rot?: number };
   className?: string;
 }) {
-  const size = "clamp(80px, 8vw, 120px)";
+  const size = "clamp(80px, 6vw, 100px)";
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -241,7 +241,7 @@ function Sticky({
           borderRadius: 4,
           padding: 8,
           fontFamily: HAND_FONT_STACK,
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: 400,
           lineHeight: 1.1,
           letterSpacing: 0.2,
@@ -434,7 +434,7 @@ function ConfettiButton({
   ];
 
   return (
-    <motion.button
+    <button
       onClick={() => {
         if (isActive) {
           effects[count % effects.length]();
@@ -442,35 +442,27 @@ function ConfettiButton({
           onConfettiPressed();
         }
       }}
-      whileHover={isActive ? { scale: 1.05 } : {}}
-      whileTap={isActive ? { scale: 0.95 } : {}}
-      animate={isActive ? { 
-        boxShadow: [
-          "0 0 0 0 rgba(147, 51, 234, 0.7)",
-          "0 0 0 10px rgba(147, 51, 234, 0)",
-          "0 0 0 0 rgba(147, 51, 234, 0)"
-        ]
-      } : {}}
-      transition={isActive ? { 
-        boxShadow: { 
-          duration: 1.5, 
-          repeat: Infinity, 
-          ease: "easeInOut" 
-        } 
-      } : {}}
-      className={`px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-semibold transition-all duration-200 shadow-lg min-h-[44px] button-mobile ${
-        isActive 
-          ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-purple-500/50 cursor-pointer" 
-          : "bg-gray-600 text-gray-400 cursor-not-allowed"
-      }`}
       style={{
-        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
+        padding: '12px 24px',
+        borderRadius: '8px',
+        fontSize: '14px',
         fontWeight: '600',
-        letterSpacing: '-0.01em'
+        minHeight: '48px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
+        letterSpacing: '-0.01em',
+        background: isActive 
+          ? 'linear-gradient(to right, #9333ea, #2563eb)' 
+          : '#4b5563',
+        color: isActive ? 'white' : '#9ca3af',
+        cursor: isActive ? 'pointer' : 'not-allowed',
+        border: 'none',
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+        transition: 'all 0.2s',
+        touchAction: 'manipulation'
       }}
     >
       Trigger Confetti
-    </motion.button>
+    </button>
   );
 }
 
@@ -478,87 +470,16 @@ function ConfettiButton({
 function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announce: (msg: string) => void; isMobile: boolean }) {
   const [allLogs, setAllLogs] = useState<string[]>([]);
   const [currentCueText, setCurrentCueText] = useState("");
-  const [showCues, setShowCues] = useState(true);
-  // Add ref for scrollable container
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // NUCLEAR OPTION: Force scroll to bottom - SIMPLE AND BRUTAL
   const scrollToBottom = () => {
     if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      // FORCE scroll to absolute bottom
-      container.scrollTop = container.scrollHeight;
-      // FORCE it again immediately
-      setTimeout(() => {
-        container.scrollTop = container.scrollHeight;
-      }, 0);
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   };
 
-  // NUCLEAR: Force scroll on EVERY log change
-  useEffect(() => {
-    scrollToBottom();
-  }, [allLogs]);
+  useEffect(() => scrollToBottom(), [allLogs]);
 
-  // NUCLEAR: Force scroll every 100ms
-  useEffect(() => {
-    const interval = setInterval(scrollToBottom, 100);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Safari-specific fix: Force font sizes immediately and repeatedly
-  useEffect(() => {
-    const forceFontSizes = () => {
-      const stageManager = document.querySelector('.stage-manager-mobile');
-      if (stageManager) {
-        const title = stageManager.querySelector('h3');
-        const logs = stageManager.querySelectorAll('.text-slate-300');
-        
-        if (title) {
-          title.style.fontSize = '32px';
-          title.style.lineHeight = '1.1';
-          title.style.fontWeight = '900';
-          title.style.color = 'white';
-          title.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)';
-          title.style.setProperty('font-size', '32px', 'important');
-        }
-        
-        logs.forEach(log => {
-          log.style.fontSize = '24px';
-          log.style.lineHeight = '1.2';
-          log.style.fontWeight = '600';
-          log.style.color = 'white';
-          log.style.textShadow = '1px 1px 2px rgba(0,0,0,0.8)';
-          log.style.setProperty('font-size', '24px', 'important');
-        });
-      }
-    };
-
-    // Force immediately
-    forceFontSizes();
-    
-    // Force after short delay
-    const timer1 = setTimeout(forceFontSizes, 100);
-    
-    // Force after animation completes
-    const timer2 = setTimeout(forceFontSizes, 1000);
-    
-    // Force repeatedly to override Safari's caching
-    const interval = setInterval(forceFontSizes, 2000);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearInterval(interval);
-    };
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setShowCues(false), 12000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Add announce function to global scope so ConfettiButton can use it
   useEffect(() => {
     (window as any).stageManagerAnnounce = (msg: string) => {
       const timestamp = new Date().toLocaleTimeString();
@@ -566,165 +487,49 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
     };
   }, []);
 
-  // Handle cue progression
   useEffect(() => {
     const currentCue = cueLines.find((c) => c.t <= clockMs && clockMs < c.t + 2000);
-    if (currentCue && currentCue.text !== currentCueText) {
+    if (currentCue && currentCueText !== currentCue.text) {
       setCurrentCueText(currentCue.text);
-      // Add cue to logs when it first appears
       const timestamp = new Date().toLocaleTimeString();
       setAllLogs((prev) => {
-        // Check if this cue is already in the logs to prevent duplicates
         const alreadyLogged = prev.some(log => log.includes(currentCue.text));
-        if (!alreadyLogged) {
-          return [...prev, `${timestamp}: ${currentCue.text}`];
-        }
-        return prev;
+        return alreadyLogged ? prev : [...prev, `${timestamp}: ${currentCue.text}`];
       });
     }
   }, [clockMs, currentCueText]);
 
-  return (
-        <motion.div
-      initial={{ 
-        opacity: 0, 
-        x: 20,
-        // Start with large, readable font sizes
-        fontSize: '20px',
-        lineHeight: '1.3'
-      }}
-      animate={{ 
-        opacity: 1, 
-        x: 0,
-        // Maintain large, readable font sizes
-        fontSize: '20px',
-        lineHeight: '1.3'
-      }}
-      transition={{ delay: 0.5 }}
-        className="stage-manager-responsive"
-        style={{ 
-          position: "fixed", 
-          zIndex: 50,
-          padding: '0',
-          background: 'rgba(255,255,255,0.08)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
-          height: 'auto',
-          overflow: 'hidden',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif'
-        }}
-    >
-      <div
-        className="stage-manager-content"
-        style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(16px)',
-          height: 'auto',
-          minHeight: 'auto',
-          overflow: 'hidden',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 0 rgba(0,0,0,0.1)',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif'
-        }}
-      >
-        <motion.div 
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px', 
-            marginBottom: '12px',
-            paddingBottom: '12px',
-            borderBottom: '1px solid rgba(255,255,255,0.1)'
-          }}
-          initial={{ fontSize: '24px', lineHeight: '1.1', fontWeight: '900' }}
-          animate={{ fontSize: '24px', lineHeight: '1.1', fontWeight: '900' }}
-        >
-          <div style={{ 
-            width: '8px', 
-            height: '8px', 
-            backgroundColor: '#00ff88', 
-            borderRadius: '50%',
-            boxShadow: '0 0 12px rgba(0,255,136,0.5), inset 0 1px 0 rgba(255,255,255,0.3)',
-            animation: 'pulse 2s infinite'
-          }} />
-          <h3 className="stage-manager-title" style={{ 
-            lineHeight: '1.1', 
-            fontWeight: '700',
-            color: 'rgba(255,255,255,0.95)',
-            textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-            letterSpacing: '-0.1px',
-            margin: 0,
-            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif'
-          }}>Stage Manager</h3>
-        </motion.div>
+  // Mobile-optimized styles using CSS classes
+  const containerClass = "stage-manager-mobile fixed top-16 right-2 w-40 sm:w-48 md:w-60 max-w-[calc(100vw-16px)] z-50 bg-gray-800/95 border border-white/20 backdrop-blur-lg rounded-lg p-2 shadow-xl";
+  const titleClass = "text-xs font-semibold text-white m-0 leading-tight";
+  const logClass = "text-xs leading-snug p-1 rounded text-slate-300 break-words";
+  const scrollClass = "h-32 sm:h-36 md:h-40 overflow-y-auto overflow-x-hidden flex flex-col gap-1 bg-black/30 rounded p-1";
 
-        <div 
-          ref={scrollContainerRef}
-          className="stage-manager-scroll-container"
-          style={{
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            scrollBehavior: 'smooth',
-            display: 'flex',
-            flexDirection: 'column',
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.05)',
-            backdropFilter: 'blur(8px)',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif'
-          }}
-        >
-          
-          {/* ALWAYS SHOW LAST 10 LOGS - FORCE VISIBILITY */}
-          {allLogs.slice(-10).map((log, i) => (
-            <motion.div
+  return (
+    <div className={containerClass}>
+      <div className="flex items-center gap-1 mb-1.5 pb-1.5 border-b border-white/15">
+        <div className="w-1 h-1 bg-green-400 rounded-full flex-shrink-0" />
+        <div className={titleClass}>Stage Manager</div>
+      </div>
+
+      <div ref={scrollContainerRef} className={scrollClass}>
+        {allLogs.slice(-10).map((log, i) => {
+          const isLatest = i === allLogs.slice(-10).length - 1;
+          return (
+            <div
               key={`${log}-${i}`}
-              initial={{ 
-                opacity: 0, 
-                y: 10,
-                fontSize: '24px',
-                lineHeight: '1.2',
-                fontWeight: '600'
-              }}
-              animate={{ 
-                opacity: 1, 
-                y: 0,
-                fontSize: '24px',
-                lineHeight: '1.2',
-                fontWeight: '600'
-              }}
-              transition={{ duration: 0.3 }}
-          className="stage-manager-log-entry"
-          style={{ 
-            lineHeight: '1.1',
-            fontWeight: '500',
-            color: 'rgba(255,255,255,0.9)',
-            textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
-            background: i === allLogs.slice(-10).length - 1 
-              ? 'rgba(0,255,136,0.15)' 
-              : 'rgba(255,255,255,0.05)',
-            border: i === allLogs.slice(-10).length - 1 
-              ? '1px solid rgba(0,255,136,0.3)' 
-              : '1px solid rgba(255,255,255,0.08)',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: i === allLogs.slice(-10).length - 1 
-              ? '0 2px 8px rgba(0,255,136,0.2), inset 0 1px 0 rgba(255,255,255,0.1)' 
-              : '0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
-            backdropFilter: 'blur(8px)',
-            borderLeft: i === allLogs.slice(-10).length - 1 
-              ? '2px solid rgba(0,255,136,0.6)' 
-              : '2px solid rgba(255,255,255,0.1)',
-            display: 'flex',
-            alignItems: 'center'
-          }}
+              className={`${logClass} ${
+                isLatest 
+                  ? 'text-green-400 bg-green-400/15 border border-green-400/30' 
+                  : 'text-slate-300 bg-white/5 border border-white/10'
+              }`}
             >
               {log}
-            </motion.div>
-            ))}
-        </div>
+            </div>
+          );
+        })}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -738,7 +543,12 @@ function MicrophoneCheck({ show }: { show: boolean }) {
           animate={{ opacity: 1, scale: 1, x: 0 }}
           exit={{ opacity: 0, scale: 0.8, x: -20 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="fixed top-16 sm:top-20 left-4 sm:left-6 z-50"
+          style={{ 
+            position: 'fixed',
+            top: '4rem',
+            left: '1rem',
+            zIndex: 50
+          }}
         >
           <div className="relative">
             {/* Speech bubble */}
@@ -780,7 +590,12 @@ function RollingBubble({ show }: { show: boolean }) {
           animate={{ opacity: 1, scale: 1, x: 0 }}
           exit={{ opacity: 0, scale: 0.8, x: -20 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="fixed top-4 sm:top-6 left-4 sm:left-6 z-50"
+          style={{ 
+            position: 'fixed',
+            top: '1rem',
+            left: '1rem',
+            zIndex: 50
+          }}
         >
           <div className="relative">
             {/* Speech bubble */}
@@ -825,21 +640,30 @@ function ContactButton({ show }: { show: boolean }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="mt-6 sm:mt-8"
+          style={{ marginTop: '1.5rem' }}
         >
-          <motion.a
+          <a
             href="mailto:corbin@nebulacreative.org"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="inline-block px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-medium bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/50 transition-all duration-200 shadow-lg text-white min-h-[44px] button-mobile"
             style={{
+              display: 'inline-block',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              background: 'linear-gradient(to right, #059669, #0d9488)',
+              color: 'white',
+              textDecoration: 'none',
+              minHeight: '48px',
               fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
-              fontWeight: '600',
-              letterSpacing: '-0.01em'
+              letterSpacing: '-0.01em',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.2s',
+              border: 'none',
+              cursor: 'pointer'
             }}
           >
             Contact Us
-          </motion.a>
+          </a>
         </motion.div>
       )}
     </AnimatePresence>
@@ -961,7 +785,13 @@ const NebulaShowtime: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-center max-w-4xl w-full relative z-10"
+          style={{ 
+            textAlign: 'center',
+            maxWidth: '56rem',
+            width: '100%',
+            position: 'relative',
+            zIndex: 10
+          }}
         >
           <div className="mb-4 sm:mb-6 relative z-20">
             <img 
@@ -971,11 +801,10 @@ const NebulaShowtime: React.FC = () => {
             />
         </div>
           <p 
-            className="text-lg sm:text-xl md:text-2xl text-slate-300 mb-8 sm:mb-12 max-w-2xl mx-auto px-2 relative z-20"
+            className="text-base sm:text-lg md:text-xl text-slate-300 mb-6 sm:mb-8 md:mb-12 max-w-2xl mx-auto px-2 relative z-20 leading-relaxed"
             style={{
               fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
               fontWeight: '400',
-              lineHeight: '1.5',
               letterSpacing: '-0.01em'
             }}
           >
@@ -993,7 +822,7 @@ const NebulaShowtime: React.FC = () => {
         {/* MOBILE ONLY - Single sticky note */}
         <Sticky 
           text={randomCleanup} 
-          pos={{ right: 12, bottom: 40, rot: -3 }} 
+          pos={{ right: 8, bottom: 60, rot: -3 }} 
           className="sticky-note-mobile"
         />
       </div>
