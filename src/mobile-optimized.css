@@ -14,14 +14,6 @@ body {
   color: white;
 }
 
-/* Industry-standard logo centering with CSS Custom Properties */
-:root {
-  --logo-max-width: min(90vw, 600px);
-  --logo-margin: clamp(1rem, 4vw, 2rem);
-  --safe-area-left: env(safe-area-inset-left, 0px);
-  --safe-area-right: env(safe-area-inset-right, 0px);
-}
-
 /* Utility classes */
 .button-mobile {
   min-height: 44px;
@@ -31,51 +23,11 @@ body {
   touch-action: manipulation;
 }
 
-/* Industry-standard logo centering - robust multi-method approach */
+/* Simple logo centering */
 .logo-mobile {
-  /* Primary: Text-based centering (most reliable) */
   display: block;
-  text-align: center;
-  max-width: var(--logo-max-width);
-  margin: var(--logo-margin) auto;
-  height: auto;
-  
-  /* WebKit optimizations for iOS */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  
-  /* Performance optimization */
-  will-change: transform;
-  transform: translateZ(0);
-}
-
-/* Progressive enhancement: Flexbox support */
-@supports (display: flex) {
-  .logo-mobile {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-inline: auto;
-  }
-}
-
-/* Progressive enhancement: Grid support */
-@supports (display: grid) {
-  .logo-mobile {
-    display: grid;
-    place-items: center;
-  }
-}
-
-/* Container-based responsive design */
-@supports (container-type: inline-size) {
-  .logo-container {
-    container-type: inline-size;
-    width: 100%;
-    padding-left: var(--safe-area-left);
-    padding-right: var(--safe-area-right);
-  }
+  margin: 0 auto;
+  max-width: 90vw;
 }
 
 .sticky-note-mobile {
@@ -385,19 +337,6 @@ html body .sticky-note-content {
     font-size: var(--mobile-xl-fluid);
   }
   
-  /* Logo optimization - mobile-specific enhancements */
-  .logo-mobile {
-    /* Ensure proper centering on all mobile devices */
-    margin-left: auto;
-    margin-right: auto;
-    max-width: min(90vw, 400px);
-    
-    /* Fallback for older browsers */
-    @supports not (margin-inline: auto) {
-      margin-left: auto;
-      margin-right: auto;
-    }
-  }
   
   /* Speech bubbles mobile optimization */
   .fixed.top-16,

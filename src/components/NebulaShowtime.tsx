@@ -474,11 +474,11 @@ const NebulaShowtime: React.FC = () => {
             zIndex: 10
           }}
         >
-          <div className="mb-4 sm:mb-6 relative z-20 logo-container">
+          <div className="mb-4 sm:mb-6 relative z-20">
             <img 
               src="/assets/Nebula Logo Color Text.png" 
               alt="Nebula Creative" 
-              className="h-32 sm:h-40 md:h-48 lg:h-64 w-auto mx-auto relative z-30 logo-mobile"
+              className="h-32 sm:h-40 md:h-48 lg:h-64 w-auto relative z-30 logo-mobile"
             />
         </div>
           <p 
