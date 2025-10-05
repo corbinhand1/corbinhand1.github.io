@@ -8,10 +8,6 @@ yarn-error.log*
 # dist/ - Commented out for GitHub Pages deployment
 build/
 
-# Old build artifacts (Vite handles these automatically now)
-assets/index-*.css
-assets/index-*.js
-
 # Environment variables
 .env
 .env.local
