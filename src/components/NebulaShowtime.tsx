@@ -342,6 +342,7 @@ function ContactButton({ show }: { show: boolean }) {
               border: 'none',
               cursor: 'pointer'
             }}
+            aria-label="Contact Nebula Creative for stage management and show calling services"
           >
             Contact Us
           </a>
@@ -474,23 +475,28 @@ const NebulaShowtime: React.FC = () => {
             zIndex: 10
           }}
         >
-          <div className="mb-4 sm:mb-6 relative z-20 text-center">
+          <header className="mb-4 sm:mb-6 relative z-20 text-center">
             <img 
               src="/assets/Nebula Logo Color Text.png" 
-              alt="Nebula Creative" 
+              alt="Nebula Creative - Stage Management and Show Calling Services" 
               className="h-32 sm:h-40 md:h-48 lg:h-64 w-auto relative z-30 logo-mobile"
             />
-        </div>
-          <p 
-            className="text-base sm:text-lg md:text-xl text-slate-300 mb-6 sm:mb-8 md:mb-12 max-w-2xl mx-auto px-2 relative z-20 leading-relaxed"
-            style={{
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
-              fontWeight: '400',
-              letterSpacing: '-0.01em'
-            }}
-          >
-            We make the show happen — on time, on budget, on brand.
-          </p>
+        </header>
+          <main>
+            <h1 className="sr-only">Nebula Creative - Stage Management and Show Calling</h1>
+            <p 
+              className="text-base sm:text-lg md:text-xl text-slate-300 mb-6 sm:mb-8 md:mb-12 max-w-2xl mx-auto px-2 relative z-20 leading-relaxed"
+              style={{
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
+                fontWeight: '400',
+                letterSpacing: '-0.01em'
+              }}
+              role="banner"
+              aria-label="Company tagline: We make the show happen — on time, on budget, on brand"
+            >
+              We make the show happen — on time, on budget, on brand.
+            </p>
+          </main>
           
           <div className="relative z-20">
             <ConfettiButton scheduleLandings={scheduleLandings} clockMs={clockMs} onConfettiPressed={handleConfettiPressed} />

@@ -164,8 +164,13 @@ export const ConfettiButton: React.FC<{
           : CONFETTI_BUTTON.inactive
       }`}
       disabled={!isActive}
+      aria-label={isActive ? "Trigger confetti celebration effect" : "Confetti button - waiting for cue"}
+      aria-describedby="confetti-description"
     >
       Trigger Confetti
+      <span id="confetti-description" className="sr-only">
+        Interactive demonstration of event production capabilities. Click to trigger confetti effects after the production cue sequence completes.
+      </span>
     </button>
   );
 };

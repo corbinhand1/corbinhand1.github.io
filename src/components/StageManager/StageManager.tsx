@@ -51,15 +51,29 @@ export const StageManager: React.FC<StageManagerProps> = ({
   }, [clockMs, currentCueText]);
 
   return (
-    <div className={`${STAGE_MANAGER.container} ${STAGE_MANAGER.mobile.width} sm:${STAGE_MANAGER.tablet.width} md:${STAGE_MANAGER.desktop.width} max-w-[calc(100vw-16px)] ${STAGE_MANAGER.mobile.padding} ${STAGE_MANAGER.mobile.fontSize}`}>
+    <aside 
+      className={`${STAGE_MANAGER.container} ${STAGE_MANAGER.mobile.width} sm:${STAGE_MANAGER.tablet.width} md:${STAGE_MANAGER.desktop.width} max-w-[calc(100vw-16px)] ${STAGE_MANAGER.mobile.padding} ${STAGE_MANAGER.mobile.fontSize}`}
+      role="complementary"
+      aria-label="Stage Manager - Live Event Production Log"
+    >
       {/* Header with status indicator */}
-      <div className="flex items-center gap-1 mb-1.5 pb-1.5 border-b border-white/15">
-        <div className="w-1 h-1 bg-green-400 rounded-full flex-shrink-0" />
-        <div className={STAGE_MANAGER.title}>Stage Manager</div>
-      </div>
+      <header className="flex items-center gap-1 mb-1.5 pb-1.5 border-b border-white/15">
+        <div 
+          className="w-1 h-1 bg-green-400 rounded-full flex-shrink-0" 
+          aria-label="System online"
+          role="status"
+        />
+        <h2 className={STAGE_MANAGER.title}>Stage Manager</h2>
+      </header>
 
       {/* Logs container */}
-      <div ref={scrollContainerRef} className={STAGE_MANAGER.scroll}>
+      <div 
+        ref={scrollContainerRef} 
+        className={STAGE_MANAGER.scroll}
+        role="log"
+        aria-live="polite"
+        aria-label="Production cues and stage management logs"
+      >
         {allLogs.slice(-10).map((log, i) => {
           const isLatest = i === allLogs.slice(-10).length - 1;
           return (
@@ -70,13 +84,15 @@ export const StageManager: React.FC<StageManagerProps> = ({
                   ? 'text-green-400 bg-green-400/15 border border-green-400/30' 
                   : 'text-slate-300 bg-white/5 border border-white/10'
               }`}
+              role="listitem"
+              aria-label={isLatest ? `Latest cue: ${log}` : `Previous cue: ${log}`}
             >
               {log}
             </div>
           );
         })}
       </div>
-    </div>
+    </aside>
   );
 };
 

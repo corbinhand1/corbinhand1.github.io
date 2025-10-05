@@ -41,16 +41,16 @@ body {
 /* Mobile Typography Scale - Fluid and Readable */
 :root {
   /* Mobile-first font sizes */
-  --mobile-xs: 10px;      /* Stage Manager logs */
-  --mobile-sm: 12px;      /* Stage Manager title */
+  --mobile-xs: 12px;      /* Stage Manager logs - 12pt equivalent */
+  --mobile-sm: 14px;      /* Stage Manager title */
   --mobile-base: 14px;    /* Body text, buttons */
   --mobile-lg: 16px;      /* Subheadings */
   --mobile-xl: 18px;      /* Main headings */
   --mobile-2xl: 22px;     /* Large headings */
   
   /* Fluid scaling for different viewports */
-  --mobile-xs-fluid: clamp(9px, 2.5vw, 10px);
-  --mobile-sm-fluid: clamp(10px, 3vw, 12px);
+  --mobile-xs-fluid: clamp(12px, 3vw, 14px);  /* Stage Manager - 12pt equivalent */
+  --mobile-sm-fluid: clamp(14px, 3.5vw, 16px);
   --mobile-base-fluid: clamp(12px, 3.5vw, 14px);
   --mobile-lg-fluid: clamp(14px, 4vw, 16px);
   --mobile-xl-fluid: clamp(16px, 4.5vw, 18px);
