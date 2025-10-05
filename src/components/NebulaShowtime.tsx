@@ -32,7 +32,6 @@ const cueLines = [
   { t: 5800, text: "Go Video!" },
   { t: 7600, text: "Go Audio!" },
   { t: 9000, text: "GO Confetti!" },
-  { t: 11000, text: "GO Nebula Creative." },
 ];
 
 /* -------------------- UTILS -------------------- */
