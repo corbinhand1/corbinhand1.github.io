@@ -500,10 +500,10 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
   }, [clockMs, currentCueText]);
 
   // Mobile-optimized styles using CSS classes
-  const containerClass = "stage-manager-mobile fixed top-16 right-2 w-40 sm:w-48 md:w-60 max-w-[calc(100vw-16px)] z-50 bg-gray-800/95 border border-white/20 backdrop-blur-lg rounded-lg p-2 shadow-xl";
+  const containerClass = "stage-manager-mobile fixed top-16 right-2 w-40 sm:w-48 md:w-60 max-w-[calc(100vw-16px)] z-50 bg-white/10 border border-white/30 backdrop-blur-2xl rounded-2xl p-3 shadow-2xl";
   const titleClass = "text-xs font-semibold text-white m-0 leading-tight";
   const logClass = "text-xs leading-snug p-1 rounded text-slate-300 break-words";
-  const scrollClass = "h-32 sm:h-36 md:h-40 overflow-y-auto overflow-x-hidden flex flex-col gap-1 bg-black/30 rounded p-1";
+  const scrollClass = "h-32 sm:h-36 md:h-40 overflow-y-auto overflow-x-hidden flex flex-col gap-1 bg-white/5 backdrop-blur-sm rounded-xl p-2";
 
   return (
     <div className={containerClass}>
