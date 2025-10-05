@@ -224,6 +224,7 @@ function Sticky({
       }}
     >
       <div
+        className="font-handwritten"
         style={{
           width: size,
           height: size,
@@ -239,7 +240,6 @@ function Sticky({
           `,
           borderRadius: 4,
           padding: 8,
-          fontFamily: HAND_FONT_STACK,
           fontSize: 10,
           fontWeight: 400,
           lineHeight: 1.1,
