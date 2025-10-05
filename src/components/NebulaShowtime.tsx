@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { StageManager } from './StageManager';
 import { ConfettiButton } from './ConfettiButton';
 import { StickyNote } from './StickyNote';
+import { AboutEthosOverlay } from './AboutEthosOverlay';
 
 // Import design system
 import { BRAND } from '../config/design';
@@ -517,6 +518,9 @@ const NebulaShowtime: React.FC = () => {
       <StageManager clockMs={clockMs} announce={() => {}} isMobile={isMobile} />
       <MicrophoneCheck show={showMicCheck} />
       <RollingBubble show={showRolling} />
+      
+      {/* About/Ethos overlay */}
+      <AboutEthosOverlay />
     </>
   );
 };
