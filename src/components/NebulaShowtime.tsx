@@ -601,21 +601,22 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
         lineHeight: '1.3'
       }}
       transition={{ delay: 0.5 }}
+        className="stage-manager-responsive"
         style={{ 
           position: "fixed", 
-          top: "80px", 
-          right: "12px", 
+          top: "clamp(60px, 8vw, 80px)", 
+          right: "clamp(8px, 2vw, 16px)", 
           zIndex: 50,
-          width: '240px',
+          width: 'clamp(220px, 25vw, 280px)',
           padding: '0',
-          fontSize: '12px',
+          fontSize: 'clamp(10px, 1.2vw, 14px)',
           lineHeight: '1.3',
           background: 'rgba(255,255,255,0.08)',
           border: '1px solid rgba(255,255,255,0.15)',
-          borderRadius: '10px',
+          borderRadius: 'clamp(8px, 1vw, 12px)',
           backdropFilter: 'blur(20px)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
-          maxHeight: '40vh',
+          maxHeight: 'clamp(30vh, 40vw, 50vh)',
           height: 'auto',
           overflow: 'hidden',
           fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif'
@@ -625,11 +626,11 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
         style={{
           background: 'rgba(255,255,255,0.05)',
           border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '8px',
-          padding: '10px',
+          borderRadius: 'clamp(6px, 0.8vw, 10px)',
+          padding: 'clamp(8px, 1.5vw, 12px)',
           backdropFilter: 'blur(16px)',
           height: 'auto',
-          maxHeight: '35vh',
+          maxHeight: 'clamp(25vh, 35vw, 45vh)',
           minHeight: 'auto',
           overflow: 'hidden',
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 0 rgba(0,0,0,0.1)',
@@ -657,7 +658,7 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
             animation: 'pulse 2s infinite'
           }} />
           <h3 style={{ 
-            fontSize: '14px', 
+            fontSize: 'clamp(12px, 1.4vw, 16px)', 
             lineHeight: '1.1', 
             fontWeight: '700',
             color: 'rgba(255,255,255,0.95)',
@@ -671,17 +672,17 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
         <div 
           ref={scrollContainerRef}
           style={{
-            height: '140px',
-            maxHeight: '140px',
+            height: 'clamp(100px, 15vw, 180px)',
+            maxHeight: 'clamp(100px, 15vw, 180px)',
             overflowY: 'auto',
             overflowX: 'hidden',
             scrollBehavior: 'smooth',
-            paddingRight: '4px',
+            paddingRight: 'clamp(4px, 0.5vw, 8px)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '4px',
+            gap: 'clamp(4px, 0.5vw, 8px)',
             background: 'rgba(255,255,255,0.02)',
-            borderRadius: '6px',
+            borderRadius: 'clamp(4px, 0.6vw, 8px)',
             border: '1px solid rgba(255,255,255,0.05)',
             backdropFilter: 'blur(8px)',
             fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif'
@@ -709,20 +710,20 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
               }}
               transition={{ duration: 0.3 }}
           style={{ 
-            fontSize: '10px',
+            fontSize: 'clamp(9px, 1vw, 12px)',
             lineHeight: '1.1',
             fontWeight: '500',
             color: 'rgba(255,255,255,0.9)',
             textShadow: '0 1px 2px rgba(0,0,0,0.3)',
             fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
-            padding: '3px 6px',
+            padding: 'clamp(2px, 0.4vw, 6px) clamp(4px, 0.8vw, 8px)',
             background: i === allLogs.slice(-10).length - 1 
               ? 'rgba(0,255,136,0.15)' 
               : 'rgba(255,255,255,0.05)',
             border: i === allLogs.slice(-10).length - 1 
               ? '1px solid rgba(0,255,136,0.3)' 
               : '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '3px',
+            borderRadius: 'clamp(2px, 0.3vw, 4px)',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             boxShadow: i === allLogs.slice(-10).length - 1 
               ? '0 2px 8px rgba(0,255,136,0.2), inset 0 1px 0 rgba(255,255,255,0.1)' 
@@ -731,7 +732,7 @@ function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announ
             borderLeft: i === allLogs.slice(-10).length - 1 
               ? '2px solid rgba(0,255,136,0.6)' 
               : '2px solid rgba(255,255,255,0.1)',
-            minHeight: '28px',
+            minHeight: 'clamp(24px, 3vw, 32px)',
             display: 'flex',
             alignItems: 'center'
           }}

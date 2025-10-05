@@ -151,33 +151,35 @@ input:focus-visible {
   outline-offset: 2px;
 }
 
-/* Stage Manager - Apple Design Standards */
+/* Stage Manager - Responsive Design */
+.stage-manager-responsive,
 .stage-manager-mobile,
 .fixed.top-1.right-1,
 [class*="stage-manager"] {
   position: fixed !important;
-  top: 80px !important;
-  right: var(--space-3) !important;
+  top: clamp(60px, 8vw, 80px) !important;
+  right: clamp(8px, 2vw, 16px) !important;
   z-index: 50 !important;
-  width: 240px !important;
-  max-width: calc(100vw - var(--space-8)) !important;
+  width: clamp(220px, 25vw, 280px) !important;
+  max-width: calc(100vw - 16px) !important;
   background: rgba(255, 255, 255, 0.08) !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  border-radius: var(--radius-md) !important;
+  border-radius: clamp(8px, 1vw, 12px) !important;
   backdrop-filter: blur(20px) !important;
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-  max-height: 40vh !important;
+  max-height: clamp(30vh, 40vw, 50vh) !important;
   height: auto !important;
   overflow: hidden !important;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif !important;
 }
 
+.stage-manager-responsive h3,
 .stage-manager-mobile h3,
 .fixed.top-1.right-1 h3,
 [class*="stage-manager"] h3 {
-  font-size: var(--text-sm) !important;
+  font-size: clamp(12px, 1.4vw, 16px) !important;
   font-weight: 700 !important;
   line-height: 1.1 !important;
   color: rgba(255, 255, 255, 0.95) !important;
@@ -188,18 +190,18 @@ input:focus-visible {
 }
 
 .stage-manager-scroll-container {
-  height: 140px !important;
-  max-height: 140px !important;
-  min-height: 140px !important;
+  height: clamp(100px, 15vw, 180px) !important;
+  max-height: clamp(100px, 15vw, 180px) !important;
+  min-height: clamp(100px, 15vw, 180px) !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   scroll-behavior: smooth !important;
-  padding-right: var(--space-1) !important;
+  padding-right: clamp(4px, 0.5vw, 8px) !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: var(--space-1) !important;
+  gap: clamp(4px, 0.5vw, 8px) !important;
   background: rgba(255, 255, 255, 0.02) !important;
-  border-radius: var(--radius-sm) !important;
+  border-radius: clamp(4px, 0.6vw, 8px) !important;
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
   backdrop-filter: blur(8px) !important;
 }
@@ -214,56 +216,30 @@ input:focus-visible {
     padding-right: var(--safe-area-inset-right);
   }
   
-  /* Stage Manager - Mobile Optimized */
-  .stage-manager-mobile,
-  .fixed.top-1.right-1,
-  [class*="stage-manager"] {
-    width: 220px !important;
-    top: 60px !important;
-    right: var(--space-2) !important;
-    max-height: 35vh !important;
-    border-radius: var(--radius-sm) !important;
-    backdrop-filter: blur(16px) !important;
-    box-shadow: 
-      0 4px 20px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
-  }
-  
-  .stage-manager-mobile h3,
-  .fixed.top-1.right-1 h3,
-  [class*="stage-manager"] h3 {
-    font-size: var(--text-lg) !important;
-    font-weight: 700 !important;
-  }
-  
-  .stage-manager-scroll-container {
-    height: 100px !important;
-    max-height: 100px !important;
-    min-height: 100px !important;
-    padding-right: var(--space-1) !important;
-    gap: var(--space-1) !important;
-  }
-  
-  /* Mobile Stage Manager log entries */
+  /* Mobile Stage Manager log entries - responsive */
+  .stage-manager-responsive [class*="motion"],
   .stage-manager-mobile [class*="motion"] {
-    padding: var(--space-1) var(--space-2) !important;
-    font-size: var(--text-xs) !important;
-    border-radius: var(--radius-sm) !important;
+    padding: clamp(2px, 0.4vw, 6px) clamp(4px, 0.8vw, 8px) !important;
+    font-size: clamp(9px, 1vw, 12px) !important;
+    border-radius: clamp(2px, 0.3vw, 4px) !important;
     line-height: 1.1 !important;
+    min-height: clamp(24px, 3vw, 32px) !important;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif !important;
   }
   
-  /* Mobile Stage Manager header */
+  /* Mobile Stage Manager header - responsive */
+  .stage-manager-responsive .flex,
   .stage-manager-mobile .flex {
-    gap: var(--space-2) !important;
-    margin-bottom: var(--space-2) !important;
-    padding-bottom: var(--space-2) !important;
+    gap: clamp(4px, 0.5vw, 8px) !important;
+    margin-bottom: clamp(4px, 0.5vw, 8px) !important;
+    padding-bottom: clamp(4px, 0.5vw, 8px) !important;
   }
   
-  /* Mobile Stage Manager status indicator */
+  /* Mobile Stage Manager status indicator - responsive */
+  .stage-manager-responsive .w-4,
   .stage-manager-mobile .w-4 {
-    width: 6px !important;
-    height: 6px !important;
+    width: clamp(4px, 0.5vw, 6px) !important;
+    height: clamp(4px, 0.5vw, 6px) !important;
   }
   
   /* Main content typography */
