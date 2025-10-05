@@ -156,7 +156,7 @@ function Noise() {
 
 /* -------------------- STICKIES -------------------- */
 const HAND_FONT_STACK =
-  "Kalam, Indie Flower, Permanent Marker, Caveat, Comic Sans MS, cursive";
+  "Bradley Hand, Brush Script MT, Comic Sans MS, Marker Felt, Kalam, Indie Flower, cursive";
 
 // Funny production mishaps that rotate
 const PRODUCTION_MISHAPS = [
