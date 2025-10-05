@@ -478,12 +478,12 @@ const NebulaShowtime: React.FC = () => {
           <header className="mb-4 sm:mb-6 relative z-20 text-center">
             <img 
               src="/assets/Nebula Logo Color Text.png" 
-              alt="Nebula Creative - Stage Management and Show Calling Services" 
+              alt="Nebula Creative Logo - Professional Stage Management, Show Calling, Production Management, and Tour Management Services for Live Events, Concerts, Festivals, and Corporate Shows Worldwide" 
               className="h-32 sm:h-40 md:h-48 lg:h-64 w-auto relative z-30 logo-mobile"
             />
         </header>
           <main>
-            <h1 className="sr-only">Nebula Creative - Stage Management and Show Calling</h1>
+            <h1 className="sr-only">Nebula Creative - Professional Stage Management, Show Calling, Production Management, and Tour Management Services</h1>
             <p 
               className="text-base sm:text-lg md:text-xl text-slate-300 mb-6 sm:mb-8 md:mb-12 max-w-2xl mx-auto px-2 relative z-20 leading-relaxed"
               style={{
