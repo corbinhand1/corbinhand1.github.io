@@ -1,38 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import confetti from "canvas-confetti";
 
-/**
- * Nebula Creative — Show Preview (Realistic Confetti Landing + Logs)
- * - Lights: GO to 100%, dim to 40%, stay on
- * - Stage Manager: initial cues + logs when you change confetti effect
- * - Button centered; cycles 5 effects
- * - Realistic pile: pieces land after a fall delay (no instant pop at bottom)
- * - Height-map pile so the heap grows with a natural slope
- * - Two sticky notes bottom-right
- */
+// Import extracted components
+import { StageManager } from './StageManager';
+import { ConfettiButton } from './ConfettiButton';
+import { StickyNote } from './StickyNote';
 
-/* -------------------- THEME -------------------- */
-const BRAND = {
-  bgA: "#0a0f15",
-  bgB: "#0e1421",
-  postit: "#FFEB3B",
-  ink: "#111111",
-  glass: "rgba(255,255,255,0.06)",
-  border: "rgba(255,255,255,0.12)",
-  glow: "rgba(148, 197, 255, 0.25)",
-};
-
-const cueLines = [
-  { t: 0, text: "Standby Lights." },
-  { t: 900, text: "Standby Video." },
-  { t: 1800, text: "Standby Audio." },
-  { t: 2800, text: "Standby Confetti." },
-  { t: 4000, text: "Go Lights!" },
-  { t: 5800, text: "Go Video!" },
-  { t: 7600, text: "Go Audio!" },
-  { t: 9000, text: "GO Confetti!" },
-];
+// Import design system
+import { BRAND } from '../config/design';
+import { CUE_LINES } from '../config/timing';
 
 /* -------------------- UTILS -------------------- */
 function useClock(play: boolean) {
@@ -73,15 +49,6 @@ const TypeLine: React.FC<{ show: boolean; children: React.ReactNode }> = ({
     </div>
   );
 };
-
-function useConfettiEngine() {
-  return useMemo(() => {
-    const anyConf = confetti as any;
-    if (anyConf.create)
-      return anyConf.create(undefined, { resize: true, useWorker: true, zIndex: 1000 });
-    return confetti;
-  }, []);
-}
 
 /* -------------------- LIGHTS/FX -------------------- */
 function StageBeams({ level }: { level: number }) {
@@ -199,74 +166,6 @@ const CLEANUP_NOTES = [
   "Cleanup starts when we're done"
 ];
 
-function Sticky({
-  text,
-  pos,
-  className = "",
-}: {
-  text: string;
-  pos: { right: number; bottom: number; rot?: number };
-  className?: string;
-}) {
-  const size = "clamp(80px, 6vw, 100px)";
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 220, damping: 18 }}
-      style={{ 
-        position: "fixed", 
-        zIndex: 40, 
-        pointerEvents: "none",
-        right: pos.right, 
-        bottom: pos.bottom, 
-        transform: `rotate(${pos.rot ?? -2}deg)` 
-      }}
-    >
-      <div
-        className="font-handwritten"
-        style={{
-          width: size,
-          height: size,
-          backgroundColor: "#FFF59D", // Slightly warmer, more realistic yellow
-          color: BRAND.ink,
-          // Multiple layered shadows for realistic depth
-          boxShadow: `
-            0 1px 3px rgba(0,0,0,0.12),
-            0 1px 2px rgba(0,0,0,0.24),
-            0 4px 8px rgba(0,0,0,0.15),
-            0 8px 16px rgba(0,0,0,0.1),
-            inset 0 1px 0 rgba(255,255,255,0.3)
-          `,
-          borderRadius: 4,
-          padding: 8,
-          fontSize: 10,
-          fontWeight: 400,
-          lineHeight: 1.1,
-          letterSpacing: 0.2,
-          // Handwriting imperfections
-          textShadow: "0.5px 0.5px 0px rgba(0,0,0,0.1)",
-          // Paper texture and grain
-          backgroundImage: `
-            radial-gradient(circle at 20% 30%, rgba(255,255,255,0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 70%, rgba(255,255,255,0.05) 0%, transparent 50%),
-            radial-gradient(circle at 40% 80%, rgba(0,0,0,0.02) 0%, transparent 50%),
-            linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%)
-          `,
-          // Subtle paper texture
-          filter: "contrast(1.1) brightness(1.05)",
-          // Combined paper curl and text rotation effect
-          transform: "perspective(100px) rotateX(2deg) rotateY(1deg) rotate(0.5deg)",
-          // Natural paper feel
-          border: "1px solid rgba(255,255,255,0.2)",
-        }}
-      >
-        {text}
-      </div>
-    </motion.div>
-  );
-}
-
 /* -------------------- CONFETTI (REAL LANDING) -------------------- */
 type LandingSpec = {
   id: number;
@@ -286,18 +185,6 @@ type PilePiece = {
   color: string;
   rot: number;
 };
-
-function buildRainParticleOptions() {
-  return {
-    startVelocity: 0,
-    gravity: 0.7,
-    ticks: 2000,
-    spread: 20,
-    scalar: 0.9,
-    originY: -0.1,
-    zIndex: 1000,
-  };
-}
 
 function ConfettiPile({ pieces, heightPx }: { pieces: PilePiece[]; heightPx: number }) {
   return (
@@ -326,212 +213,7 @@ function ConfettiPile({ pieces, heightPx }: { pieces: PilePiece[]; heightPx: num
   );
 }
 
-function ConfettiButton({
-  scheduleLandings,
-  clockMs,
-  onConfettiPressed,
-}: {
-  scheduleLandings: (items: LandingSpec[]) => void;
-  clockMs: number;
-  onConfettiPressed: () => void;
-}) {
-  const [count, setCount] = useState(0);
-  const [isActive, setIsActive] = useState(false);
-  const fire = useConfettiEngine();
-  const COLORS = ["#FFD166", "#EF476F", "#06D6A0", "#118AB2", "#FF9F1C", "#9B5DE5"];
-
-  // Activate button when "GO Confetti!" cue is reached
-  useEffect(() => {
-    const goConfettiCue = cueLines.find(c => c.text === "GO Confetti!");
-    // Add 1.5 seconds delay to account for typing animation + user reading time
-    const buttonTriggerTime = goConfettiCue.t + 1500;
-    if (goConfettiCue && clockMs >= buttonTriggerTime && !isActive) {
-      setIsActive(true);
-    }
-  }, [clockMs, isActive]);
-
-  function makeSpecs(
-    total: number,
-    base: { delayMin: number; delayMax: number; xDist?: "uniform" | "sides" | "center" }
-  ) {
-    const items: LandingSpec[] = [];
-    for (let i = 0; i < total; i++) {
-      const rot = Math.random() * 60 - 30;
-      const w = 8 + Math.floor(Math.random() * 6);
-      const h = 3 + Math.floor(Math.random() * 3);
-      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-      let xPct = Math.random() * 100;
-      if (base.xDist === "sides") xPct = Math.random() < 0.5 ? Math.random() * 18 : 82 + Math.random() * 18;
-      if (base.xDist === "center") xPct = 35 + Math.random() * 30;
-      const delayMs = base.delayMin + Math.random() * (base.delayMax - base.delayMin);
-      items.push({ id: Date.now() + i + Math.random(), xPct, delayMs, w, h, color, rot });
-    }
-    return items;
-  }
-
-  function announce(msg: string) {
-    if ((window as any).stageManagerAnnounce) {
-      (window as any).stageManagerAnnounce(msg);
-    }
-  }
-
-  function startRain() {
-    const base = buildRainParticleOptions();
-    const duration = 15000;
-    const end = Date.now() + duration;
-
-    // On-screen visual
-    const interval = setInterval(() => {
-      fire({
-        particleCount: 15,
-        ...base,
-        origin: { x: Math.random(), y: -0.1 },
-      });
-      if (Date.now() > end) clearInterval(interval);
-    }, 200);
-
-    // Landing specs
-    const specs = makeSpecs(120, { delayMin: 2000, delayMax: 16000 });
-    scheduleLandings(specs);
-    announce("Rain effect started");
-  }
-
-  const effects = [
-    () => {
-      fire({ particleCount: 300, spread: 160, origin: { y: 0.6 } });
-      const specs = makeSpecs(80, { delayMin: 2000, delayMax: 4000 });
-      scheduleLandings(specs);
-      announce("Classic burst");
-    },
-    () => {
-      startRain();
-    },
-    () => {
-      fire({ particleCount: 200, angle: 60, spread: 55, origin: { x: 0, y: 0.6 } });
-      fire({ particleCount: 200, angle: 120, spread: 55, origin: { x: 1, y: 0.6 } });
-      const specs = makeSpecs(100, { delayMin: 2000, delayMax: 4000, xDist: "sides" });
-      scheduleLandings(specs);
-      announce("Side cannons");
-    },
-    () => {
-      fire({
-        particleCount: 400,
-        spread: 160,
-        colors: COLORS,
-        origin: { y: 0.6 },
-      });
-      const specs = makeSpecs(120, { delayMin: 2000, delayMax: 5000 });
-      scheduleLandings(specs);
-      announce("Color chaos");
-    },
-    () => {
-      fire({ particleCount: 1000, spread: 360, startVelocity: 40, origin: { y: 0.6 } });
-      const specs = makeSpecs(200, { delayMin: 2000, delayMax: 6000 });
-      scheduleLandings(specs);
-      announce("MEGA EXPLOSION");
-    },
-  ];
-
-  return (
-    <button
-      onClick={() => {
-        if (isActive) {
-          effects[count % effects.length]();
-          setCount((c) => c + 1);
-          onConfettiPressed();
-        }
-      }}
-      style={{
-        padding: '12px 24px',
-        borderRadius: '8px',
-        fontSize: '14px',
-        fontWeight: '600',
-        minHeight: '48px',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
-        letterSpacing: '-0.01em',
-        background: isActive 
-          ? 'linear-gradient(to right, #9333ea, #2563eb)' 
-          : '#4b5563',
-        color: isActive ? 'white' : '#9ca3af',
-        cursor: isActive ? 'pointer' : 'not-allowed',
-        border: 'none',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-        transition: 'all 0.2s',
-        touchAction: 'manipulation'
-      }}
-    >
-      Trigger Confetti
-    </button>
-  );
-}
-
 /* -------------------- STAGE MANAGER -------------------- */
-function StageManager({ clockMs, announce, isMobile }: { clockMs: number; announce: (msg: string) => void; isMobile: boolean }) {
-  const [allLogs, setAllLogs] = useState<string[]>([]);
-  const [currentCueText, setCurrentCueText] = useState("");
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-    }
-  };
-
-  useEffect(() => scrollToBottom(), [allLogs]);
-
-  useEffect(() => {
-    (window as any).stageManagerAnnounce = (msg: string) => {
-      const timestamp = new Date().toLocaleTimeString();
-      setAllLogs((prev) => [...prev, `${timestamp}: ${msg}`]);
-    };
-  }, []);
-
-  useEffect(() => {
-    const currentCue = cueLines.find((c) => c.t <= clockMs && clockMs < c.t + 2000);
-    if (currentCue && currentCueText !== currentCue.text) {
-      setCurrentCueText(currentCue.text);
-      const timestamp = new Date().toLocaleTimeString();
-      setAllLogs((prev) => {
-        const alreadyLogged = prev.some(log => log.includes(currentCue.text));
-        return alreadyLogged ? prev : [...prev, `${timestamp}: ${currentCue.text}`];
-      });
-    }
-  }, [clockMs, currentCueText]);
-
-  // Mobile-optimized styles using CSS classes
-  const containerClass = "stage-manager-mobile fixed top-16 right-2 w-40 sm:w-48 md:w-60 max-w-[calc(100vw-16px)] z-50 bg-white/10 border border-white/30 backdrop-blur-2xl rounded-2xl p-3 shadow-2xl";
-  const titleClass = "text-xs font-semibold text-white m-0 leading-tight";
-  const logClass = "text-xs leading-snug p-1 rounded text-slate-300 break-words";
-  const scrollClass = "h-32 sm:h-36 md:h-40 overflow-y-auto overflow-x-hidden flex flex-col gap-1 bg-white/5 backdrop-blur-sm rounded-xl p-2";
-
-  return (
-    <div className={containerClass}>
-      <div className="flex items-center gap-1 mb-1.5 pb-1.5 border-b border-white/15">
-        <div className="w-1 h-1 bg-green-400 rounded-full flex-shrink-0" />
-        <div className={titleClass}>Stage Manager</div>
-      </div>
-
-      <div ref={scrollContainerRef} className={scrollClass}>
-        {allLogs.slice(-10).map((log, i) => {
-          const isLatest = i === allLogs.slice(-10).length - 1;
-          return (
-            <div
-              key={`${log}-${i}`}
-              className={`${logClass} ${
-                isLatest 
-                  ? 'text-green-400 bg-green-400/15 border border-green-400/30' 
-                  : 'text-slate-300 bg-white/5 border border-white/10'
-              }`}
-            >
-              {log}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 /* -------------------- MICROPHONE CHECK BUBBLE -------------------- */
 function MicrophoneCheck({ show }: { show: boolean }) {
   return (
@@ -702,7 +384,7 @@ const NebulaShowtime: React.FC = () => {
 
   // Turn on lights when "Go Lights!" cue is reached
   useEffect(() => {
-    const goLightsCue = cueLines.find(c => c.text === "Go Lights!");
+    const goLightsCue = CUE_LINES.find(c => c.text === "Go Lights!");
     // Add 1.5 seconds delay to account for typing animation + user reading time
     const lightsTriggerTime = goLightsCue.t + 1500;
     if (goLightsCue && clockMs >= lightsTriggerTime && clockMs < lightsTriggerTime + 1000 && lightLevel === 0) {
@@ -716,7 +398,7 @@ const NebulaShowtime: React.FC = () => {
 
   // Show microphone check when "Go Audio!" cue is reached
   useEffect(() => {
-    const goAudioCue = cueLines.find(c => c.text === "Go Audio!");
+    const goAudioCue = CUE_LINES.find(c => c.text === "Go Audio!");
     // Add 1.5 seconds delay to account for typing animation + user reading time
     const micTriggerTime = goAudioCue.t + 1500;
     if (goAudioCue && clockMs >= micTriggerTime && clockMs < micTriggerTime + 1000 && !showMicCheck) {
@@ -736,7 +418,7 @@ const NebulaShowtime: React.FC = () => {
 
   // Show rolling bubble when "Go Video!" cue is reached
   useEffect(() => {
-    const goVideoCue = cueLines.find(c => c.text === "Go Video!");
+    const goVideoCue = CUE_LINES.find(c => c.text === "Go Video!");
     // Add 1.5 seconds delay to account for typing animation + user reading time
     const rollingTriggerTime = goVideoCue.t + 1500;
     if (goVideoCue && clockMs >= rollingTriggerTime && clockMs < rollingTriggerTime + 1000 && !showRolling) {
@@ -819,9 +501,9 @@ const NebulaShowtime: React.FC = () => {
         <ConfettiPile pieces={pilePieces} heightPx={pileHeight} />
         
         {/* MOBILE ONLY - Single sticky note */}
-        <Sticky 
+        <StickyNote 
           text={randomCleanup} 
-          pos={{ right: 8, bottom: 60, rot: -3 }} 
+          pos={{ right: 0, bottom: 0, rot: 8 }} 
           className="sticky-note-mobile"
         />
       </div>
