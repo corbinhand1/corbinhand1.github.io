@@ -175,6 +175,26 @@ input:focus-visible {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif !important;
 }
 
+/* Stage Manager Content */
+.stage-manager-content {
+  border-radius: clamp(6px, 0.8vw, 10px) !important;
+  padding: clamp(8px, 1.5vw, 12px) !important;
+  max-height: clamp(25vh, 35vw, 45vh) !important;
+}
+
+/* Stage Manager Title */
+.stage-manager-title {
+  font-size: clamp(12px, 1.4vw, 16px) !important;
+}
+
+/* Stage Manager Log Entries */
+.stage-manager-log-entry {
+  font-size: clamp(9px, 1vw, 12px) !important;
+  padding: clamp(2px, 0.4vw, 6px) clamp(4px, 0.8vw, 8px) !important;
+  border-radius: clamp(2px, 0.3vw, 4px) !important;
+  min-height: clamp(24px, 3vw, 32px) !important;
+}
+
 .stage-manager-responsive h3,
 .stage-manager-mobile h3,
 .fixed.top-1.right-1 h3,
