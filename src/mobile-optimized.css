@@ -100,16 +100,7 @@ html {
   color: #cbd5e1;
 }
 
-/* NUCLEAR OVERRIDE - Stage Manager positioning */
-html body .stage-manager-mobile,
-html body .fixed.top-16.right-2,
-html body [class*="stage-manager"] {
-  position: fixed !important;
-  top: 60px !important;
-  right: 8px !important;
-  left: auto !important;
-  z-index: 50 !important;
-}
+/* Stage Manager positioning - now handled by design system */
 
 /* NUCLEAR OVERRIDE - Sticky Note scaling with fixed bottom-right corner */
 html body .sticky-note-mobile {
@@ -186,17 +177,6 @@ html body .sticky-note-content {
     width: 160px;
     max-width: calc(100vw - 16px);
     padding: 8px;
-    position: fixed !important;
-    top: 60px !important;
-    right: 8px !important;
-    left: auto !important;
-    z-index: 50 !important;
-  }
-  
-  /* Override speech bubble positioning for Stage Manager specifically */
-  .stage-manager-mobile.fixed.top-16 {
-    left: auto !important;
-    right: 8px !important;
   }
 }
 
@@ -205,17 +185,6 @@ html body .sticky-note-content {
   .stage-manager-mobile {
     width: 200px;
     font-size: var(--mobile-sm-fluid);
-    position: fixed !important;
-    top: 60px !important;
-    right: 12px !important;
-    left: auto !important;
-    z-index: 50 !important;
-  }
-  
-  /* Override speech bubble positioning for Stage Manager specifically */
-  .stage-manager-mobile.fixed.top-16 {
-    left: auto !important;
-    right: 12px !important;
   }
 }
 
@@ -224,17 +193,6 @@ html body .sticky-note-content {
   .stage-manager-mobile {
     width: 240px;
     font-size: var(--mobile-base-fluid);
-    position: fixed !important;
-    top: 60px !important;
-    right: 16px !important;
-    left: auto !important;
-    z-index: 50 !important;
-  }
-  
-  /* Override speech bubble positioning for Stage Manager specifically */
-  .stage-manager-mobile.fixed.top-16 {
-    left: auto !important;
-    right: 16px !important;
   }
 }
 

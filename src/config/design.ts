@@ -29,7 +29,7 @@ export const STAGE_MANAGER = {
     fontSize: 'text-mobile-base', 
     padding: 'p-mobile-lg',
   },
-  container: 'stage-manager-mobile fixed top-16 right-2 z-50 bg-glass border border-glass backdrop-blur-glass rounded-2xl shadow-2xl font-system',
+  container: 'stage-manager-mobile fixed top-[60px] right-2 z-50 bg-glass border border-glass backdrop-blur-glass rounded-2xl shadow-2xl font-system',
   title: 'text-mobile-sm font-semibold text-white m-0 leading-tight',
   log: 'text-mobile-xs leading-snug p-1 rounded text-slate-300 break-words',
   scroll: 'h-32 sm:h-36 md:h-40 overflow-y-auto overflow-x-hidden flex flex-col gap-1 bg-glass-light backdrop-blur-sm rounded-xl p-2',

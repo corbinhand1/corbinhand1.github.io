@@ -56,8 +56,9 @@ export const StageManager: React.FC<StageManagerProps> = ({
       role="complementary"
       aria-label="Stage Manager - Live Event Production Log"
     >
-      {/* Header with status indicator */}
-      <header className="flex items-center gap-1 mb-1.5 pb-1.5 border-b border-white/15">
+      {/* Content Layer */}
+        {/* Header with status indicator */}
+        <header className="flex items-center gap-1 mb-1.5 pb-1.5 border-b border-white/15">
         <div 
           className="w-1 h-1 bg-green-400 rounded-full flex-shrink-0" 
           aria-label="System online"

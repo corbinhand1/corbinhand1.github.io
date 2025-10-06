@@ -518,8 +518,6 @@ const NebulaShowtime: React.FC = () => {
       <StageManager clockMs={clockMs} announce={() => {}} isMobile={isMobile} />
       <MicrophoneCheck show={showMicCheck} />
       <RollingBubble show={showRolling} />
-      
-      {/* About/Ethos overlay */}
       <AboutEthosOverlay />
     </>
   );

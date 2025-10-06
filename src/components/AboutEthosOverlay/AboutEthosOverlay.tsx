@@ -1,182 +1,252 @@
-/* 
-  About/Ethos overlay — visually minimal, mobile-first, and accessible.
-  - Desktop: gently fades in after 1.2s; sits bottom-left; hover/focus raises opacity.
-  - Mobile: starts as a compact pill; tap/press expands to show the full blurb; tap close (×) returns to pill.
-  - Remembers the user's choice (expanded/collapsed) for the session.
-  - Respects reduced motion users.
-  - No layout shift to your hero; it's an overlay with pointer-events isolated.
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-  Requirements:
-    - React (Vite + React is fine)
-    - TailwindCSS (recommended). If you're not using Tailwind, a plain CSS fallback is included below.
+/**
+ * AboutEthosOverlay Component
+ * $1M Design - Small floating window in bottom-left corner
+ * 
+ * Design Philosophy:
+ * - Luxury floating window (not full-screen)
+ * - Stays in bottom-left corner
+ * - Unobtrusive but stunning
+ * - Cinematic micro-interactions
+ * - Premium materials and finishes
+ */
+export const AboutEthosOverlay: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
 
-  Usage:
-    1) Drop <AboutEthosOverlay /> near the end of your page (inside your app root so it can overlay the hero).
-    2) Ensure the parent container has position: relative (Tailwind: "relative") OR rely on fixed positioning here.
-    3) If you already have a very high z-index element, you can adjust z-[value] below.
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
 
-  Text content is FINAL (no placeholders).
-*/
-
-import React from "react";
-
-/** Small hook to respect reduced motion */
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = React.useState(false);
-  React.useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = () => setReduced(mq.matches);
-    onChange();
-    mq.addEventListener?.("change", onChange);
-    return () => mq.removeEventListener?.("change", onChange);
-  }, []);
-  return reduced;
-}
-
-export default function AboutEthosOverlay() {
-  const prefersReducedMotion = usePrefersReducedMotion();
-
-  // Session-persisted expand/collapse state
-  const [expanded, setExpanded] = React.useState<boolean>(() => {
-    const v = sessionStorage.getItem("about_ethos_expanded");
-    return v === "1";
-  });
-
-  React.useEffect(() => {
-    sessionStorage.setItem("about_ethos_expanded", expanded ? "1" : "0");
-  }, [expanded]);
-
-  // Delay initial reveal on first mount (desktop-like polish)
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => {
-    if (prefersReducedMotion) {
-      setMounted(true);
-      return;
-    }
-    const t = setTimeout(() => setMounted(true), 1200);
-    return () => clearTimeout(t);
-  }, [prefersReducedMotion]);
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
 
   return (
-    <div
-      className={[
-        // position & stacking
-        "fixed left-4 bottom-4 z-[60]",
-        // constrain width on larger screens
-        "max-w-sm md:max-w-md",
-        // initial appearance (fade-in)
-        mounted ? "opacity-100" : "opacity-0",
-        prefersReducedMotion ? "" : "transition-opacity duration-500 ease-out",
-        // pointer handling (let only the card receive interactions)
-        "pointer-events-none",
-      ].join(" ")}
-      aria-live="polite"
-    >
-      {/* Container that can accept pointer events */}
-      <div className="pointer-events-auto">
-        {/* Collapsed pill (mobile-first). Hidden when expanded */}
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          aria-expanded={expanded}
-          aria-controls="about-ethos-panel"
-          className={[
-            expanded ? "hidden" : "flex",
-            // layout
-            "items-center gap-2",
-            // visuals
-            "rounded-full px-3 py-2",
-            // Background with subtle glass effect, respects dark/light
-            "backdrop-blur-md bg-black/35 dark:bg-black/40 text-white",
-            "ring-1 ring-white/15 hover:ring-white/25",
-            // typography
-            "text-sm md:text-[0.95rem] leading-tight",
-            // motion
-            prefersReducedMotion ? "" : "transition-all duration-200",
-            // subtle shadow
-            "shadow-lg",
-          ].join(" ")}
-        >
-          <span className="inline-block w-2 h-2 rounded-full bg-white/80" aria-hidden="true" />
-          <span className="font-medium">About Nebula Creative</span>
-        </button>
+    <>
+      {/* About Button - Fixed Bottom Left */}
+      <motion.button
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ 
+          delay: 1.2, 
+          duration: 0.8, 
+          ease: [0.4, 0, 0.2, 1] 
+        }}
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 left-6 z-[9998] group sm:bottom-6 sm:left-6 md:bottom-8 md:left-8"
+        aria-label="About Nebula Creative"
+        aria-expanded={isOpen}
+        aria-controls="about-overlay"
+      >
+        {/* Subtle Glow Ring */}
+        <motion.div
+          className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/30 to-purple-400/30 blur-md"
+          animate={{
+            scale: [1, 1.05, 1],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        
+        {/* Main Button */}
+        <div className="relative w-14 h-14 rounded-full bg-black/20 backdrop-blur-xl border border-white/10 group-hover:border-white/30 transition-all duration-500 flex items-center justify-center">
+          {/* About Icon */}
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            className="text-white/70 group-hover:text-white transition-colors duration-300"
+          >
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.2" />
+            <path d="M12 16v-4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            <circle cx="12" cy="8" r="1" fill="currentColor" />
+          </svg>
+        </div>
+      </motion.button>
 
-        {/* Expanded card */}
-        <section
-          id="about-ethos-panel"
-          aria-label="About Nebula Creative"
-          className={[
-            expanded ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 translate-y-2",
-            // position & sizing
-            "mt-0",
-            // card visuals
-            "rounded-2xl p-4 md:p-5",
-            "backdrop-blur-md bg-black/45 dark:bg-black/55 text-white",
-            "ring-1 ring-white/15 hover:ring-white/25",
-            "shadow-2xl",
-            // motion
-            prefersReducedMotion ? "" : "transition-all duration-250 ease-out",
-          ].join(" ")}
-        >
-          {/* Header row */}
-          <div className="flex items-start justify-between gap-4">
-            <h2 className="text-base md:text-lg font-semibold tracking-wide">
-              Nebula Creative
-            </h2>
-            <button
-              type="button"
-              onClick={() => setExpanded(false)}
-              className={[
-                "rounded-full p-1 -m-1",
-                "hover:bg-white/10 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30",
-                prefersReducedMotion ? "" : "transition-colors",
-              ].join(" ")}
-              aria-label="Close about panel"
-              title="Close"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                role="img"
-                aria-hidden="true"
-                className="block"
-              >
-                <path
-                  d="M18.3 5.7a1 1 0 0 0-1.4-1.4L12 9.17 7.1 4.3A1 1 0 1 0 5.7 5.7l4.88 4.9-4.88 4.88a1 1 0 1 0 1.4 1.42L12 12.99l4.9 4.91a1 1 0 0 0 1.4-1.42L13.41 10.6l4.89-4.9Z"
-                  fill="currentColor"
+      {/* Floating Window Overlay */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            id="about-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="about-title"
+            className="fixed bottom-6 left-6 z-[9999] sm:bottom-6 sm:left-6 md:bottom-8 md:left-8"
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+          >
+            {/* Luxury Floating Window */}
+            <div className="relative w-80 sm:w-96 md:w-[420px] max-h-[500px] overflow-hidden">
+              {/* Subtle Backdrop Glow */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-br from-blue-400/10 via-purple-400/5 to-transparent rounded-3xl blur-xl"
+                animate={{
+                  opacity: [0.3, 0.6, 0.3],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+
+              {/* Main Window */}
+              <div className="relative backdrop-blur-md bg-white/3 border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+                {/* Liquid Glass Texture Layers - Reduced Opacity */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/8 via-white/4 to-transparent rounded-3xl" />
+                <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/3 to-white/6 rounded-3xl" />
+                <div className="absolute inset-0 bg-gradient-radial from-white/6 via-transparent to-transparent rounded-3xl" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/2 to-transparent rounded-3xl" />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/2 to-transparent rounded-3xl" />
+                
+                {/* Animated Shimmer Effect */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/4 to-transparent rounded-3xl"
+                  animate={{
+                    x: ['-100%', '100%'],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    repeatDelay: 2,
+                    ease: "easeInOut"
+                  }}
                 />
-              </svg>
-            </button>
-          </div>
+                
+                {/* Content Layer */}
+                <div className="relative z-10">
+                {/* Window Header */}
+                <div className="flex items-center justify-between p-4 border-b border-white/10">
+                  <h2 id="about-title" className="text-lg font-light text-white tracking-wide">
+                    About Nebula Creative
+                  </h2>
+                  <motion.button
+                    onClick={() => setIsOpen(false)}
+                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 transition-all duration-300 flex items-center justify-center group"
+                    aria-label="Close about window"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="text-white/60 group-hover:text-white transition-colors duration-200"
+                    >
+                      <path
+                        d="M18 6L6 18M6 6l12 12"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </motion.button>
+                </div>
 
-          {/* Ethos text — concise, cinematic, final */}
-          <p className="mt-2 text-sm md:text-[0.95rem] leading-relaxed text-white/90">
-            Led by <strong>Corbin Hand</strong>, Nebula Creative provides{" "}
-            <strong>stage management</strong>, <strong>show calling</strong>,{" "}
-            <strong>production management</strong>, and <strong>tour management</strong> for
-            live <strong>music</strong> and <strong>corporate events</strong> worldwide. Two decades
-            producing concerts, tours, and large-scale shows — delivered with calm precision, tight cueing,
-            and on-brand execution.
-          </p>
+                {/* Window Content */}
+                <div className="p-6 space-y-6 max-h-[400px] overflow-y-auto">
+                  {/* Main Content */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1, duration: 0.4 }}
+                  >
+                    <p className="text-sm leading-relaxed text-neutral-300 font-light">
+                      Nebula Creative is led by <span className="text-white font-medium">Corbin Hand</span> — 
+                      a world-traveled stage manager, show caller, and production manager with over two decades 
+                      in live entertainment.
+                    </p>
+                  </motion.div>
 
-          {/* Micro footer actions (optional) */}
-          <div className="mt-3 flex items-center gap-3">
-            <a
-              href="mailto:corbin@nebulacreative.org"
-              className={[
-                "inline-flex items-center rounded-full px-3 py-1.5",
-                "bg-white/90 text-black hover:bg-white",
-                "text-sm font-medium",
-                prefersReducedMotion ? "" : "transition-colors",
-              ].join(" ")}
-            >
-              Contact
-            </a>
-            <span className="text-xs text-white/60 select-none">Worldwide • Music & Corporate</span>
-          </div>
-        </section>
-      </div>
-    </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.4 }}
+                  >
+                    <p className="text-sm leading-relaxed text-neutral-300 font-light">
+                      From global concert tours to high-end corporate experiences, 
+                      Nebula Creative delivers flawless execution where precision and timing define success.
+                    </p>
+                  </motion.div>
+
+                  {/* Accent Line */}
+                  <motion.div
+                    className="h-px bg-gradient-to-r from-transparent via-blue-400/30 to-transparent"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ delay: 0.3, duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+                  />
+
+                  {/* Location */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4, duration: 0.4 }}
+                  >
+                    <p className="text-xs text-neutral-400 font-light tracking-wide uppercase">
+                      Based in Nashville — Operating Worldwide
+                    </p>
+                  </motion.div>
+
+                  {/* Contact CTA */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5, duration: 0.4 }}
+                  >
+                    <a
+                      href="mailto:corbin@nebulacreative.org"
+                      className="inline-flex items-center px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/40 rounded-full text-white transition-all duration-300 group backdrop-blur-sm"
+                    >
+                      <span className="text-xs font-medium tracking-wide">Contact</span>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        className="ml-2 text-white/70 group-hover:text-white transition-colors duration-200"
+                      >
+                        <path
+                          d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          fill="none"
+                        />
+                        <path
+                          d="M22 6l-10 7L2 6"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </a>
+                  </motion.div>
+                </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
-}
+};
+
+export default AboutEthosOverlay;
