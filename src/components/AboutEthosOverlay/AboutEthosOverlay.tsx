@@ -84,69 +84,75 @@ export const AboutEthosOverlay: React.FC = () => {
             aria-modal="true"
             aria-labelledby="about-title"
             className="fixed bottom-6 left-6 z-[9999] sm:bottom-6 sm:left-6 md:bottom-8 md:left-8"
-            initial={{ opacity: 0, scale: 0.8, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+            initial={{ opacity: 0, scale: 0.85, y: 30, rotateX: -15 }}
+            animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20, rotateX: 5 }}
+            transition={{ 
+              duration: 0.8, 
+              ease: [0.16, 1, 0.3, 1],
+              scale: { duration: 0.6, ease: [0.16, 1, 0.3, 1] },
+              rotateX: { duration: 0.7, ease: [0.16, 1, 0.3, 1] }
+            }}
+            whileHover={{ 
+              scale: 1.02, 
+              y: -2,
+              transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] }
+            }}
           >
-            {/* Luxury Floating Window */}
+            {/* Liquid Glass Floating Window */}
             <div className="relative w-80 sm:w-96 md:w-[420px] max-h-[500px] overflow-hidden">
-              {/* Subtle Backdrop Glow */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-blue-400/10 via-purple-400/5 to-transparent rounded-3xl blur-xl"
-                animate={{
-                  opacity: [0.3, 0.6, 0.3],
+              {/* Premium Glass Morphism Background */}
+              <div 
+                className="relative rounded-3xl shadow-2xl overflow-hidden"
+                style={{
+                  background: `
+                    linear-gradient(135deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.25) 100%),
+                    rgba(255,255,255,0.02)
+                  `,
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  boxShadow: `
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                    0 0 0 1px rgba(255, 255, 255, 0.05),
+                    0 25px 50px -12px rgba(0, 0, 0, 0.25)
+                  `
                 }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-
-              {/* Main Window */}
-              <div className="relative backdrop-blur-md bg-white/3 border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
-                {/* Liquid Glass Texture Layers - Reduced Opacity */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/8 via-white/4 to-transparent rounded-3xl" />
-                <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/3 to-white/6 rounded-3xl" />
-                <div className="absolute inset-0 bg-gradient-radial from-white/6 via-transparent to-transparent rounded-3xl" />
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/2 to-transparent rounded-3xl" />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/2 to-transparent rounded-3xl" />
-                
-                {/* Animated Shimmer Effect */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/4 to-transparent rounded-3xl"
-                  animate={{
-                    x: ['-100%', '100%'],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    repeatDelay: 2,
-                    ease: "easeInOut"
-                  }}
-                />
-                
+              >
+                {/* Multi-layer Glass Shimmer */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 rounded-3xl"></div>
+                <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/3 to-transparent rounded-3xl"></div>
                 {/* Content Layer */}
                 <div className="relative z-10">
                 {/* Window Header */}
-                <div className="flex items-center justify-between p-4 border-b border-white/10">
-                  <h2 id="about-title" className="text-lg font-light text-white tracking-wide">
+                <motion.div 
+                  className="flex items-center justify-between p-4 border-b border-white/10"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <h2 id="about-title" className="text-xl font-light text-white tracking-wide">
                     About Nebula Creative
                   </h2>
                   <motion.button
                     onClick={() => setIsOpen(false)}
-                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 transition-all duration-300 flex items-center justify-center group"
+                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all duration-300 flex items-center justify-center group"
                     aria-label="Close about window"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                    whileHover={{ 
+                      scale: 1.1, 
+                      rotate: 90,
+                      transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] }
+                    }}
+                    whileTap={{ scale: 0.9 }}
                   >
                     <svg
                       width="14"
                       height="14"
                       viewBox="0 0 24 24"
                       fill="none"
-                      className="text-white/60 group-hover:text-white transition-colors duration-200"
+                      className="text-white group-hover:text-white/80 transition-colors duration-200"
                     >
                       <path
                         d="M18 6L6 18M6 6l12 12"
@@ -157,29 +163,34 @@ export const AboutEthosOverlay: React.FC = () => {
                       />
                     </svg>
                   </motion.button>
-                </div>
+                </motion.div>
 
                 {/* Window Content */}
                 <div className="p-6 space-y-6 max-h-[400px] overflow-y-auto">
                   {/* Main Content */}
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1, duration: 0.4 }}
+                    transition={{ delay: 0.3, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <p className="text-sm leading-relaxed text-neutral-300 font-light">
-                      Nebula Creative is led by <span className="text-white font-medium">Corbin Hand</span> — 
+                    <p className="text-sm leading-relaxed text-white/95 font-light">
+                      Nebula Creative is led by <motion.span 
+                        className="text-white font-medium"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5, duration: 0.5 }}
+                      >Corbin Hand</motion.span> — 
                       a world-traveled stage manager, show caller, and production manager with over two decades 
                       in live entertainment.
                     </p>
                   </motion.div>
 
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.4 }}
+                    transition={{ delay: 0.4, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <p className="text-sm leading-relaxed text-neutral-300 font-light">
+                    <p className="text-sm leading-relaxed text-white/95 font-light">
                       From global concert tours to high-end corporate experiences, 
                       Nebula Creative delivers flawless execution where precision and timing define success.
                     </p>
@@ -187,40 +198,47 @@ export const AboutEthosOverlay: React.FC = () => {
 
                   {/* Accent Line */}
                   <motion.div
-                    className="h-px bg-gradient-to-r from-transparent via-blue-400/30 to-transparent"
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ delay: 0.3, duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+                    className="h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                    initial={{ scaleX: 0, opacity: 0 }}
+                    animate={{ scaleX: 1, opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
                   />
 
                   {/* Location */}
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4, duration: 0.4 }}
+                    transition={{ delay: 0.6, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <p className="text-xs text-neutral-400 font-light tracking-wide uppercase">
+                    <p className="text-xs text-white/80 font-light tracking-wider uppercase">
                       Based in Nashville — Operating Worldwide
                     </p>
                   </motion.div>
 
                   {/* Contact CTA */}
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5, duration: 0.4 }}
+                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: 0.7, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <a
+                    <motion.a
                       href="mailto:corbin@nebulacreative.org"
-                      className="inline-flex items-center px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/40 rounded-full text-white transition-all duration-300 group backdrop-blur-sm"
+                      className="inline-flex items-center px-5 py-3 bg-white/5 hover:bg-white/15 border border-white/20 hover:border-white/30 rounded-full text-white transition-all duration-300 group"
+                      whileHover={{ 
+                        scale: 1.05, 
+                        y: -2,
+                        transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] }
+                      }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      <span className="text-xs font-medium tracking-wide">Contact</span>
-                      <svg
-                        width="14"
-                        height="14"
+                      <span className="text-sm font-medium tracking-wide">Contact</span>
+                      <motion.svg
+                        width="16"
+                        height="16"
                         viewBox="0 0 24 24"
                         fill="none"
-                        className="ml-2 text-white/70 group-hover:text-white transition-colors duration-200"
+                        className="ml-2 text-white group-hover:text-white/90 transition-colors duration-200"
+                        whileHover={{ rotate: 15 }}
                       >
                         <path
                           d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
@@ -235,13 +253,12 @@ export const AboutEthosOverlay: React.FC = () => {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
-                      </svg>
-                    </a>
+                      </motion.svg>
+                    </motion.a>
                   </motion.div>
                 </div>
-                </div>
               </div>
-            </div>
+            </div>            </div>
           </motion.div>
         )}
       </AnimatePresence>

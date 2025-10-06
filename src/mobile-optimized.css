@@ -102,7 +102,7 @@ html {
 
 /* Stage Manager positioning - now handled by design system */
 
-/* NUCLEAR OVERRIDE - Sticky Note scaling with fixed bottom-right corner */
+/* NUCLEAR OVERRIDE - Sticky Note positioning with maximum specificity */
 html body .sticky-note-mobile {
   position: fixed !important;
   bottom: 50px !important;
@@ -110,14 +110,17 @@ html body .sticky-note-mobile {
   width: 100px !important;
   height: 100px !important;
   z-index: 40 !important;
+  transform: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
-html body .sticky-note-content {
-  width: 100px !important;
-  height: 100px !important;
-  font-size: 10px !important;
-  padding: 8px !important;
-  line-height: 1.1 !important;
+.sticky-note-content {
+  width: 100px;
+  height: 100px;
+  font-size: 10px;
+  padding: 8px;
+  line-height: 1.1;
 }
 
 @media (min-width: 768px) {
@@ -128,12 +131,12 @@ html body .sticky-note-content {
     right: 60px !important;
   }
   
-  html body .sticky-note-content {
-    width: 120px !important;
-    height: 120px !important;
-    font-size: 13px !important;
-    padding: 10px !important;
-    line-height: 1.2 !important;
+  .sticky-note-content {
+    width: 120px;
+    height: 120px;
+    font-size: 13px;
+    padding: 10px;
+    line-height: 1.2;
   }
 }
 
@@ -145,12 +148,12 @@ html body .sticky-note-content {
     right: 120px !important;
   }
   
-  html body .sticky-note-content {
-    width: 200px !important;
-    height: 200px !important;
-    font-size: 30px !important;
-    padding: 16px !important;
-    line-height: 1.3 !important;
+  .sticky-note-content {
+    width: 200px;
+    height: 200px;
+    font-size: 30px;
+    padding: 16px;
+    line-height: 1.3;
   }
 }
 
@@ -162,12 +165,12 @@ html body .sticky-note-content {
     right: 140px !important;
   }
   
-  html body .sticky-note-content {
-    width: 240px !important;
-    height: 240px !important;
-    font-size: 36px !important;
-    padding: 20px !important;
-    line-height: 1.4 !important;
+  .sticky-note-content {
+    width: 240px;
+    height: 240px;
+    font-size: 36px;
+    padding: 20px;
+    line-height: 1.4;
   }
 }
 
@@ -177,6 +180,21 @@ html body .sticky-note-content {
     width: 160px;
     max-width: calc(100vw - 16px);
     padding: 8px;
+  }
+  
+  /* NUCLEAR OVERRIDE - Mobile sticky note positioning */
+  html body .sticky-note-mobile {
+    position: fixed !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    width: 80px !important;
+    height: 80px !important;
+    z-index: 50 !important;
+    transform: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
   }
 }
 

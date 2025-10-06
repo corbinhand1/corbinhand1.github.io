@@ -1,13 +1,58 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 
-// Vite configuration with React plugin and Tailwind via PostCSS.
-export default defineConfig({
-  plugins: [react()],
-  base: './', // Essential for GitHub Pages deployment
-  css: {
-    postcss: {
-      plugins: [require('tailwindcss'), require('autoprefixer')],
+// Professional Vite configuration with proper dev/prod separation
+export default defineConfig(({ command, mode }) => {
+  const isDev = command === 'serve';
+  const isProd = command === 'build';
+  
+  return {
+    plugins: [react()],
+    
+    // Base path: root for dev, relative for production (GitHub Pages)
+    base: isDev ? '/' : './',
+    
+    // Development server configuration
+    server: {
+      port: 5173,
+      host: true,
+      open: true,
+      strictPort: false, // Allow port fallback for better UX
     },
-  },
+    
+    // Build configuration
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
+      sourcemap: false,
+      minify: 'terser',
+      rollupOptions: {
+        input: {
+          main: resolve(__dirname, 'index.html'),
+        },
+      },
+    },
+    
+    // CSS configuration
+    css: {
+      postcss: {
+        plugins: [
+          require('tailwindcss'),
+          require('autoprefixer'),
+        ],
+      },
+    },
+    
+    // Environment variables
+    define: {
+      __DEV__: isDev,
+      __PROD__: isProd,
+    },
+    
+    // Optimize dependencies
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'framer-motion', 'canvas-confetti'],
+    },
+  };
 });

@@ -221,10 +221,15 @@ function MicrophoneCheck({ show }: { show: boolean }) {
     <AnimatePresence>
       {show && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.8, x: -20 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
-          exit={{ opacity: 0, scale: 0.8, x: -20 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
+          initial={{ opacity: 0, scale: 0.85, y: 20, rotateX: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 10, rotateX: 5 }}
+          transition={{
+            duration: 0.6,
+            ease: [0.16, 1, 0.3, 1],
+            scale: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+            rotateX: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+          }}
           style={{ 
             position: 'fixed',
             top: '4rem',
@@ -233,26 +238,42 @@ function MicrophoneCheck({ show }: { show: boolean }) {
           }}
         >
           <div className="relative">
-            {/* Speech bubble */}
-            <div className="bg-white text-gray-800 px-3 sm:px-4 py-2 sm:py-3 rounded-2xl shadow-lg border-2 border-gray-300 max-w-[280px] sm:max-w-xs">
-              <div className="font-medium text-xs sm:text-sm">Microphone Check 1212</div>
-        </div>
-            {/* Speech bubble tail pointing down-left */}
+            {/* Premium Glass Morphism Bubble */}
+            <div
+              className="relative rounded-2xl shadow-2xl overflow-hidden max-w-[280px] sm:max-w-xs"
+              style={{
+                background: `
+                  linear-gradient(135deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.25) 100%),
+                  rgba(255,255,255,0.02)
+                `,
+                backdropFilter: 'blur(20px) saturate(180%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: `
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                  0 0 0 1px rgba(255, 255, 255, 0.05),
+                  0 25px 50px -12px rgba(0, 0, 0, 0.25)
+                `
+              }}
+            >
+              {/* Multi-layer Glass Shimmer */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 rounded-2xl"></div>
+              <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/3 to-transparent rounded-2xl"></div>
+              
+              {/* Content */}
+              <div className="relative z-10 px-3 sm:px-4 py-2 sm:py-3">
+                <div className="font-light text-white text-xs sm:text-sm tracking-wide">
+                  Microphone Check 1212
+                </div>
+              </div>
+            </div>
+            
+            {/* Glass Morphism Tail */}
             <div 
               className="absolute -bottom-2 left-4 w-0 h-0"
               style={{
                 borderLeft: "8px solid transparent",
                 borderRight: "8px solid transparent", 
-                borderTop: "8px solid white"
-              }}
-            />
-            {/* Speech bubble tail shadow */}
-            <div 
-              className="absolute -bottom-1 left-3 w-0 h-0"
-              style={{
-                borderLeft: "9px solid transparent",
-                borderRight: "9px solid transparent", 
-                borderTop: "9px solid #d1d5db"
+                borderTop: "8px solid rgba(255, 255, 255, 0.08)"
               }}
             />
           </div>
@@ -268,10 +289,15 @@ function RollingBubble({ show }: { show: boolean }) {
     <AnimatePresence>
       {show && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.8, x: -20 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
-          exit={{ opacity: 0, scale: 0.8, x: -20 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
+          initial={{ opacity: 0, scale: 0.85, y: 20, rotateX: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 10, rotateX: 5 }}
+          transition={{
+            duration: 0.6,
+            ease: [0.16, 1, 0.3, 1],
+            scale: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+            rotateX: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+          }}
           style={{ 
             position: 'fixed',
             top: '1rem',
@@ -280,29 +306,54 @@ function RollingBubble({ show }: { show: boolean }) {
           }}
         >
           <div className="relative">
-            {/* Speech bubble */}
-            <div className="bg-red-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-2xl shadow-lg border-2 border-red-600 max-w-[280px] sm:max-w-xs">
-              <div className="font-medium text-xs sm:text-sm flex items-center gap-2">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                Video Rolling
+            {/* Premium Glass Morphism Bubble with Red Accent */}
+            <div
+              className="relative rounded-2xl shadow-2xl overflow-hidden max-w-[280px] sm:max-w-xs"
+              style={{
+                background: `
+                  linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(220,38,38,0.25) 100%),
+                  rgba(255,255,255,0.02)
+                `,
+                backdropFilter: 'blur(20px) saturate(180%)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                boxShadow: `
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                  0 0 0 1px rgba(239, 68, 68, 0.1),
+                  0 25px 50px -12px rgba(239, 68, 68, 0.25)
+                `
+              }}
+            >
+              {/* Multi-layer Glass Shimmer with Red Tint */}
+              <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-red-500/5 rounded-2xl"></div>
+              <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/3 to-transparent rounded-2xl"></div>
+              
+              {/* Content */}
+              <div className="relative z-10 px-3 sm:px-4 py-2 sm:py-3">
+                <div className="font-light text-white text-xs sm:text-sm tracking-wide flex items-center gap-2">
+                  <motion.div 
+                    className="w-2 h-2 bg-red-400 rounded-full"
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      opacity: [0.7, 1, 0.7]
+                    }}
+                    transition={{ 
+                      duration: 1.5, 
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  />
+                  Video Rolling
+                </div>
               </div>
             </div>
-            {/* Speech bubble tail pointing down-left */}
+            
+            {/* Glass Morphism Tail with Red Accent */}
             <div 
               className="absolute -bottom-2 left-4 w-0 h-0"
               style={{
                 borderLeft: "8px solid transparent",
                 borderRight: "8px solid transparent", 
-                borderTop: "8px solid #ef4444"
-              }}
-            />
-            {/* Speech bubble tail shadow */}
-            <div 
-              className="absolute -bottom-1 left-3 w-0 h-0"
-              style={{
-                borderLeft: "9px solid transparent",
-                borderRight: "9px solid transparent", 
-                borderTop: "9px solid #dc2626"
+                borderTop: "8px solid rgba(239, 68, 68, 0.2)"
               }}
             />
           </div>
@@ -318,35 +369,49 @@ function ContactButton({ show }: { show: boolean }) {
     <AnimatePresence>
       {show && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          transition={{
+            duration: 0.6,
+            ease: [0.16, 1, 0.3, 1],
+            scale: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+          }}
           style={{ marginTop: '1.5rem' }}
         >
-          <a
+          <motion.a
             href="mailto:corbin@nebulacreative.org"
+            className="inline-block px-6 py-3 rounded-2xl text-white font-light text-sm tracking-wide no-underline min-h-[48px] cursor-pointer relative overflow-hidden"
             style={{
-              display: 'inline-block',
-              padding: '12px 24px',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              background: 'linear-gradient(to right, #059669, #0d9488)',
-              color: 'white',
-              textDecoration: 'none',
-              minHeight: '48px',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
-              letterSpacing: '-0.01em',
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-              transition: 'all 0.2s',
-              border: 'none',
-              cursor: 'pointer'
+              background: `
+                linear-gradient(135deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.25) 100%),
+                rgba(255,255,255,0.02)
+              `,
+              backdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: `
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.05),
+                0 25px 50px -12px rgba(0, 0, 0, 0.25)
+              `
             }}
             aria-label="Contact Nebula Creative for stage management and show calling services"
+            whileHover={{
+              scale: 1.05,
+              y: -2,
+              transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] }
+            }}
+            whileTap={{ scale: 0.98 }}
           >
-            Contact Us
-          </a>
+            {/* Multi-layer Glass Shimmer */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 rounded-2xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/3 to-transparent rounded-2xl"></div>
+            
+            {/* Content */}
+            <div className="relative z-10 flex items-center justify-center h-full">
+              Contact Us
+            </div>
+          </motion.a>
         </motion.div>
       )}
     </AnimatePresence>
