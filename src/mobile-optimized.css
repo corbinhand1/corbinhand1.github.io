@@ -277,6 +277,12 @@ html body .sticky-note-content {
     touch-action: manipulation;
   }
   
+  /* Ensure confetti canvas covers full viewport height */
+  canvas[style*="position: fixed"] {
+    height: 100vh !important;
+    height: calc(100vh + 100px) !important; /* Extra space to fall past search bar */
+  }
+  
   /* Optimize main content spacing */
   .min-h-screen {
     min-height: 100vh;

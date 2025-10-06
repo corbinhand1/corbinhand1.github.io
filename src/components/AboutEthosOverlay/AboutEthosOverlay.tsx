@@ -43,7 +43,6 @@ export const AboutEthosOverlay: React.FC = () => {
         aria-label="About Nebula Creative"
         aria-expanded={isOpen}
         aria-controls="about-overlay"
-        type="button"
       >
         {/* Subtle Glow Ring */}
         <motion.div
@@ -105,22 +104,18 @@ export const AboutEthosOverlay: React.FC = () => {
                 }}
               />
 
-              {/* Main Window - Dark Liquid Glass */}
-              <div className="relative backdrop-blur-xl bg-black/40 border border-white/20 rounded-3xl shadow-2xl overflow-hidden">
-                {/* Dark Liquid Glass Texture Layers */}
-                <div className="absolute inset-0 bg-gradient-to-br from-black/30 via-black/20 to-transparent rounded-3xl" />
-                <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-black/15 to-black/25 rounded-3xl" />
-                <div className="absolute inset-0 bg-gradient-radial from-black/20 via-transparent to-transparent rounded-3xl" />
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent rounded-3xl" />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-transparent rounded-3xl" />
+              {/* Main Window */}
+              <div className="relative backdrop-blur-md bg-white/3 border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+                {/* Liquid Glass Texture Layers - Reduced Opacity */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/8 via-white/4 to-transparent rounded-3xl" />
+                <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/3 to-white/6 rounded-3xl" />
+                <div className="absolute inset-0 bg-gradient-radial from-white/6 via-transparent to-transparent rounded-3xl" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/2 to-transparent rounded-3xl" />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/2 to-transparent rounded-3xl" />
                 
-                {/* Subtle White Highlights */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent rounded-3xl" />
-                <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/3 to-white/8 rounded-3xl" />
-                
-                {/* Animated Shimmer Effect - Darker */}
+                {/* Animated Shimmer Effect */}
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/8 to-transparent rounded-3xl"
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/4 to-transparent rounded-3xl"
                   animate={{
                     x: ['-100%', '100%'],
                   }}
@@ -135,13 +130,13 @@ export const AboutEthosOverlay: React.FC = () => {
                 {/* Content Layer */}
                 <div className="relative z-10">
                 {/* Window Header */}
-                <div className="flex items-center justify-between p-4 border-b border-white/20">
+                <div className="flex items-center justify-between p-4 border-b border-white/10">
                   <h2 id="about-title" className="text-lg font-light text-white tracking-wide">
                     About Nebula Creative
                   </h2>
                   <motion.button
                     onClick={() => setIsOpen(false)}
-                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 flex items-center justify-center group"
+                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 transition-all duration-300 flex items-center justify-center group"
                     aria-label="Close about window"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -151,7 +146,7 @@ export const AboutEthosOverlay: React.FC = () => {
                       height="14"
                       viewBox="0 0 24 24"
                       fill="none"
-                      className="text-white/80 group-hover:text-white transition-colors duration-200"
+                      className="text-white/60 group-hover:text-white transition-colors duration-200"
                     >
                       <path
                         d="M18 6L6 18M6 6l12 12"
@@ -172,7 +167,7 @@ export const AboutEthosOverlay: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1, duration: 0.4 }}
                   >
-                    <p className="text-sm leading-relaxed text-white/90 font-light">
+                    <p className="text-sm leading-relaxed text-neutral-300 font-light">
                       Nebula Creative is led by <span className="text-white font-medium">Corbin Hand</span> — 
                       a world-traveled stage manager, show caller, and production manager with over two decades 
                       in live entertainment.
@@ -184,7 +179,7 @@ export const AboutEthosOverlay: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2, duration: 0.4 }}
                   >
-                    <p className="text-sm leading-relaxed text-white/90 font-light">
+                    <p className="text-sm leading-relaxed text-neutral-300 font-light">
                       From global concert tours to high-end corporate experiences, 
                       Nebula Creative delivers flawless execution where precision and timing define success.
                     </p>
@@ -204,7 +199,7 @@ export const AboutEthosOverlay: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4, duration: 0.4 }}
                   >
-                    <p className="text-xs text-white/70 font-light tracking-wide uppercase">
+                    <p className="text-xs text-neutral-400 font-light tracking-wide uppercase">
                       Based in Nashville — Operating Worldwide
                     </p>
                   </motion.div>
@@ -217,7 +212,7 @@ export const AboutEthosOverlay: React.FC = () => {
                   >
                     <a
                       href="mailto:corbin@nebulacreative.org"
-                      className="inline-flex items-center px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/30 hover:border-white/50 rounded-full text-white transition-all duration-300 group backdrop-blur-sm"
+                      className="inline-flex items-center px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/40 rounded-full text-white transition-all duration-300 group backdrop-blur-sm"
                     >
                       <span className="text-xs font-medium tracking-wide">Contact</span>
                       <svg
@@ -225,7 +220,7 @@ export const AboutEthosOverlay: React.FC = () => {
                         height="14"
                         viewBox="0 0 24 24"
                         fill="none"
-                        className="ml-2 text-white/80 group-hover:text-white transition-colors duration-200"
+                        className="ml-2 text-white/70 group-hover:text-white transition-colors duration-200"
                       >
                         <path
                           d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"

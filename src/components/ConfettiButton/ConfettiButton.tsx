@@ -19,8 +19,18 @@ interface LandingSpec {
 function useConfettiEngine() {
   return useMemo(() => {
     const anyConf = confetti as any;
-    if (anyConf.create)
-      return anyConf.create(undefined, { resize: true, useWorker: true, zIndex: 1000 });
+    if (anyConf.create) {
+      // Ensure full viewport coverage on mobile
+      const canvas = anyConf.create(undefined, { 
+        resize: true, 
+        useWorker: true, 
+        zIndex: 1000,
+        // Force full viewport height on mobile
+        height: window.innerHeight,
+        width: window.innerWidth
+      });
+      return canvas;
+    }
     return confetti;
   }, []);
 }
@@ -30,11 +40,13 @@ function buildRainParticleOptions() {
   return {
     startVelocity: 0,
     gravity: 0.7,
-    ticks: 2000,
+    ticks: 3000, // Increased ticks for longer fall
     spread: 20,
     scalar: 0.9,
     originY: -0.1,
     zIndex: 1000,
+    // Ensure particles fall past the search bar area
+    drift: 0.1, // Slight drift for more natural fall
   };
 }
 
@@ -103,6 +115,11 @@ export const ConfettiButton: React.FC<{
         particleCount: 15,
         ...base,
         origin: { x: Math.random(), y: -0.1 },
+        // Ensure full viewport coverage on mobile
+        ...(window.innerWidth < 768 && {
+          ticks: 4000, // Extra long fall for mobile
+          gravity: 0.5, // Slower gravity for longer fall
+        }),
       });
       if (Date.now() > end) clearInterval(interval);
     }, 200);
@@ -115,7 +132,16 @@ export const ConfettiButton: React.FC<{
 
   const effects = [
     () => {
-      fire({ particleCount: 300, spread: 160, origin: { y: 0.6 } });
+      fire({ 
+        particleCount: 300, 
+        spread: 160, 
+        origin: { y: 0.6 },
+        // Mobile-specific adjustments
+        ...(window.innerWidth < 768 && {
+          ticks: 3000,
+          gravity: 0.6,
+        }),
+      });
       const specs = makeSpecs(80, { delayMin: 2000, delayMax: 4000 });
       scheduleLandings(specs);
       announce("Classic burst");
@@ -124,25 +150,47 @@ export const ConfettiButton: React.FC<{
       startRain();
     },
     () => {
-      fire({ particleCount: 200, angle: 60, spread: 55, origin: { x: 0, y: 0.6 } });
-      fire({ particleCount: 200, angle: 120, spread: 55, origin: { x: 1, y: 0.6 } });
+      const mobileAdjustments = window.innerWidth < 768 ? { ticks: 3000, gravity: 0.6 } : {};
+      fire({ 
+        particleCount: 200, 
+        angle: 60, 
+        spread: 55, 
+        origin: { x: 0, y: 0.6 },
+        ...mobileAdjustments,
+      });
+      fire({ 
+        particleCount: 200, 
+        angle: 120, 
+        spread: 55, 
+        origin: { x: 1, y: 0.6 },
+        ...mobileAdjustments,
+      });
       const specs = makeSpecs(100, { delayMin: 2000, delayMax: 4000, xDist: "sides" });
       scheduleLandings(specs);
       announce("Side cannons");
     },
     () => {
+      const mobileAdjustments = window.innerWidth < 768 ? { ticks: 3000, gravity: 0.6 } : {};
       fire({
         particleCount: 400,
         spread: 160,
         colors: COLORS,
         origin: { y: 0.6 },
+        ...mobileAdjustments,
       });
       const specs = makeSpecs(120, { delayMin: 2000, delayMax: 5000 });
       scheduleLandings(specs);
       announce("Color chaos");
     },
     () => {
-      fire({ particleCount: 1000, spread: 360, startVelocity: 40, origin: { y: 0.6 } });
+      const mobileAdjustments = window.innerWidth < 768 ? { ticks: 3000, gravity: 0.6 } : {};
+      fire({ 
+        particleCount: 1000, 
+        spread: 360, 
+        startVelocity: 40, 
+        origin: { y: 0.6 },
+        ...mobileAdjustments,
+      });
       const specs = makeSpecs(200, { delayMin: 2000, delayMax: 6000 });
       scheduleLandings(specs);
       announce("MEGA EXPLOSION");
