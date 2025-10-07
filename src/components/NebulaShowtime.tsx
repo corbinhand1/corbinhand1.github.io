@@ -347,9 +347,7 @@ const NebulaShowtime: React.FC = () => {
     const goVideoCue = CUE_LINES.find(c => c.text === "Go Video!");
     // Add 1.5 seconds delay to account for typing animation + user reading time
     const rollingTriggerTime = goVideoCue.t + 1500;
-    console.log('🎯 NebulaShowtime: clockMs:', clockMs, 'rollingTriggerTime:', rollingTriggerTime, 'goVideoCue:', goVideoCue);
     if (goVideoCue && clockMs >= rollingTriggerTime && clockMs < rollingTriggerTime + 1000) {
-      console.log('🎯 NebulaShowtime: TRIGGERING VIDEO SEQUENCE NOW!');
       triggerVideoSequence();
     }
   }, [clockMs, triggerVideoSequence]);
