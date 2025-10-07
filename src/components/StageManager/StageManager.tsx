@@ -53,7 +53,8 @@ export const StageManager: React.FC<StageManagerProps> = ({
 
   return (
     <motion.aside 
-      className={`w-[200px] sm:w-[250px] md:w-80 lg:w-96 xl:w-[420px] max-w-[calc(100vw-16px)] fixed top-[60px] right-2 z-50 font-system`}
+      className={`w-[200px] sm:w-[250px] md:w-80 lg:w-96 xl:w-[420px] max-w-[calc(100vw-16px)] fixed right-2 z-50 font-system`}
+      style={{ top: '8px' }}
       role="complementary"
       aria-label="Stage Manager - Live Event Production Log"
       initial={{ opacity: 0, scale: 0.9, y: -20, rotateX: -10 }}

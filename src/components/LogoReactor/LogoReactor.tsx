@@ -10,12 +10,38 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useMotionTemplate, animate } from 'framer-motion';
 import { useVideoStore } from '../../stores/videoStore';
 
 type Phase = 'standby' | 'live';
 
 const EASE_SNAPPY = [0.15, 0.9, 0.1, 1] as const;
+
+// Adobe-style Power-On constants
+const POWER_EASE = [0.22, 1, 0.23, 1] as const; // Expo-out style
+const POWER_DUR  = 0.62;                        // 620ms
+
+// Variants using CSS variables (browsers interpolate these perfectly)
+const logoVariants = {
+  standby: {
+    opacity: 0.45,
+    scale: 0.996,
+    // We animate custom properties instead of a filter string:
+    '--b': 0.35, // brightness
+    '--s': 0.60, // saturation
+    transition: { duration: 0.2 }
+  },
+  live: {
+    opacity: 1,
+    scale: 1,
+    '--b': 1,
+    '--s': 1,
+    transition: {
+      duration: POWER_DUR,
+      ease: POWER_EASE
+    }
+  }
+} as const;
 
 type Particle = {
   id: number;
@@ -127,31 +153,60 @@ export const LogoReactor: React.FC = () => {
   const speedFactor  = 1 + 0.05 * (osc - 0.5) * 2; // ≤ ±5%
   const radiusFactor = 1 + 0.005 * (osc - 0.5);    // ≤ ±0.5%
 
-  // LOGO: Premium multi-layered reveal (Adobe-inspired smooth transitions)
-  const logoAnim =
-    phase === 'standby'
-      ? { 
-          filter: 'brightness(0.15) saturate(0.3) blur(3px) contrast(0.8)', 
-          opacity: 0.4, 
-          scale: 0.98,
-          transform: 'translateY(2px)',
-          animation: 'none'
-        }
-      : {
-          filter: 'brightness(1.02) saturate(1.1) blur(0px) contrast(1.05)',
-          opacity: 1,
-          scale: 1,
-          transform: 'translateY(0px)',
-          animation: 'logo-glow-enter 1.4s cubic-bezier(0.16, 1, 0.3, 1), logo-scale-bounce 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          transition: { 
-            duration: 1.2, 
-            ease: [0.16, 1, 0.3, 1], // Adobe's signature cubic-bezier curve
-            filter: { duration: 1.4, ease: [0.25, 0.46, 0.45, 0.94] },
-            opacity: { duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] },
-            scale: { duration: 1.0, ease: [0.34, 1.56, 0.64, 1] },
-            transform: { duration: 1.1, ease: [0.25, 0.46, 0.45, 0.94] }
-          },
-        };
+  // Standby look (the gray/off state you liked)
+  const STANDBY = {
+    b: 0.28,   // brightness
+    s: 0.45,   // saturation
+    blur: 1.6, // px
+    o: 0.46,   // opacity
+    scale: 0.995
+  };
+  // Live targets
+  const LIVE = { b: 1, s: 1, blur: 0, o: 1, scale: 1 };
+  // Adobe-ish ramp
+  const RAMP_EASE: [number, number, number, number] = [0.22, 1, 0.23, 1];
+  const RAMP_DUR = 0.9; // 900ms – deliberate, non-snappy
+
+  // Motion values (start from standby so first paint is correct)
+  const mvB    = useMotionValue(STANDBY.b);
+  const mvS    = useMotionValue(STANDBY.s);
+  const mvBlur = useMotionValue(STANDBY.blur);
+  const mvO    = useMotionValue(STANDBY.o);
+  const mvSc   = useMotionValue(STANDBY.scale);
+  // Compose filter from numbers (interpolates perfectly)
+  const mvFilter = useMotionTemplate`brightness(${mvB}) saturate(${mvS}) blur(${mvBlur}px)`;
+
+  const [imgReady, setImgReady] = React.useState(false);
+  const startedRef = React.useRef(false);
+
+  // Always reset to standby values when not live
+  React.useEffect(() => {
+    if (phase !== 'live') {
+      mvB.set(STANDBY.b);
+      mvS.set(STANDBY.s);
+      mvBlur.set(STANDBY.blur);
+      mvO.set(STANDBY.o);
+      mvSc.set(STANDBY.scale);
+      startedRef.current = false;
+    }
+  }, [phase]);
+
+  // Begin the one-time ramp only when: phase === 'live' AND the image is loaded
+  React.useEffect(() => {
+    if (phase !== 'live' || !imgReady || startedRef.current) return;
+    startedRef.current = true;
+
+    const opts = { duration: RAMP_DUR, ease: RAMP_EASE };
+    const ctrls = [
+      animate(mvB,    LIVE.b,    opts),
+      animate(mvS,    LIVE.s,    opts),
+      animate(mvBlur, LIVE.blur, opts),
+      animate(mvO,    LIVE.o,    opts),
+      // give scale a hair longer so it "settles" elegantly
+      animate(mvSc,   LIVE.scale, { ...opts, duration: RAMP_DUR + 0.2 }),
+    ];
+    return () => ctrls.forEach(c => c.stop());
+  }, [phase, imgReady]);
 
   // Canvas geometry
   const CANVAS = 340;
@@ -164,7 +219,7 @@ export const LogoReactor: React.FC = () => {
 
   return (
     <>
-      {/* CSS animations for plasma system and premium logo effects */}
+      {/* CSS animations for plasma system */}
       <style>{`
         @keyframes aura-pulse {
           0%, 100% { opacity: 0.22; transform: scale(1); }
@@ -174,80 +229,42 @@ export const LogoReactor: React.FC = () => {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        @keyframes logo-glow-enter {
-          0% { 
-            filter: brightness(0.15) saturate(0.3) blur(3px) contrast(0.8) drop-shadow(0 0 0px rgba(32,164,255,0));
-            opacity: 0.4;
-          }
-          30% { 
-            filter: brightness(0.4) saturate(0.6) blur(2px) contrast(0.9) drop-shadow(0 0 8px rgba(32,164,255,0.1));
-            opacity: 0.6;
-          }
-          70% { 
-            filter: brightness(0.8) saturate(0.9) blur(1px) contrast(1.0) drop-shadow(0 0 16px rgba(32,164,255,0.15));
-            opacity: 0.9;
-          }
-          100% { 
-            filter: brightness(1.02) saturate(1.1) blur(0px) contrast(1.05) drop-shadow(0 0 24px rgba(32,164,255,0.2));
-            opacity: 1;
-          }
-        }
-        @keyframes logo-scale-bounce {
-          0% { transform: translateY(2px) scale(0.98); }
-          40% { transform: translateY(-1px) scale(1.02); }
-          60% { transform: translateY(0px) scale(0.99); }
-          80% { transform: translateY(0px) scale(1.01); }
-          100% { transform: translateY(0px) scale(1); }
-        }
       `}</style>
       
       {/* layout="position" smooths any outer positional adjustments from parent */}
       <div className="relative flex items-center justify-center">
-      {/* Logo + Tagline wrapper — transform/opacity only; no layout shifts */}
-      <div className="relative z-30 inline-flex flex-col items-center">
-        <img
-          src="/assets/Nebula Logo Color Text.png"
-          alt="Nebula Creative Logo"
-          className="h-32 sm:h-40 md:h-48 lg:h-64 w-auto"
-          style={{ 
-            willChange: 'transform, opacity, filter', 
-            transformOrigin: '50% 50%',
-            filter: logoAnim.filter,
-            opacity: logoAnim.opacity,
-            transform: logoAnim.transform ? `${logoAnim.transform} scale(${logoAnim.scale})` : `scale(${logoAnim.scale})`,
-            animation: logoAnim.animation || 'none',
-            transition: logoAnim.transition ? 
-              `filter ${logoAnim.transition.filter.duration}s ${logoAnim.transition.filter.ease.join(',')}, ` +
-              `opacity ${logoAnim.transition.opacity.duration}s ${logoAnim.transition.opacity.ease.join(',')}, ` +
-              `scale ${logoAnim.transition.scale.duration}s ${logoAnim.transition.scale.ease.join(',')}, ` +
-              `transform ${logoAnim.transition.transform.duration}s ${logoAnim.transition.transform.ease.join(',')}` 
-              : 'none'
-          }}
-        />
-
-        {/* Spacer between logo and tagline (fixed from start) */}
-        <div style={{ height: 'clamp(8px, 1.6vh, 16px)' }} />
-
-        {/* Tagline container: ALWAYS PRESENT with min-height to reserve space */}
-        <div
-          className="w-full flex items-center justify-center pointer-events-none"
-          style={{ minHeight: TAGLINE_MIN_H }}
-        >
-          <div
-            // Always mounted: animate visibility only; no reflow
-            aria-hidden={phase !== 'live'}
-            className="text-[11px] sm:text-xs font-mono uppercase tracking-[0.18em] text-slate-100 text-center"
-            style={{ 
-              willChange: 'transform, opacity',
-              opacity: phase === 'live' ? 1 : 0,
-              transform: phase === 'live' ? 'translateY(0)' : 'translateY(6px)',
-              transition: 'opacity 0.6s ease-out, transform 0.6s ease-out'
+        <div className="relative z-30 inline-flex flex-col items-center">
+          {/* LOGO: starts gray/dim/soft-blur, then ramps to live */}
+          <motion.img
+            src="/assets/Nebula Logo Color Text.png"
+            alt="Nebula Creative Logo"
+            className="h-32 sm:h-40 md:h-48 lg:h-64 w-auto relative"
+            style={{
+              filter: mvFilter,    // brightness/saturation/blur (numeric → smooth)
+              opacity: mvO,        // 0.46 → 1
+              scale: mvSc,         // 0.995 → 1
+              willChange: 'opacity, transform, filter'
             }}
-          >
-            We make the show happen — on time, on budget, on brand.
+            loading="eager"
+            decoding="async"
+            onLoad={() => setImgReady(true)}  // don't animate until we know the image is ready
+          />
+
+          {/* Spacer to keep layout stable */}
+          <div style={{ height: 'clamp(8px, 1.6vh, 16px)' }} />
+
+          {/* Tagline (always mounted, opacity/translate only) */}
+          <div className="w-full flex items-center justify-center pointer-events-none" style={{ minHeight: 'clamp(36px, 5.2vh, 48px)' }}>
+            <motion.div
+              className="text-[11px] sm:text-xs font-mono uppercase tracking-[0.18em] text-slate-100 text-center"
+              initial={false}
+              animate={phase === 'live' ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+            >
+              We make the show happen — on time, on budget, on brand.
+            </motion.div>
           </div>
         </div>
-      </div>
 
       {/* LIVE — Plasma System (absolute overlay; never affects layout) */}
       {phase === 'live' && (
