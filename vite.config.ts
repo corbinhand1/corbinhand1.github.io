@@ -31,6 +31,14 @@ export default defineConfig(({ command, mode }) => {
         input: {
           main: resolve(__dirname, 'index.html'),
         },
+        output: {
+          assetFileNames: (assetInfo) => {
+            if (assetInfo.name && assetInfo.name.endsWith('.js')) {
+              return 'assets/[name]-[hash][extname]';
+            }
+            return 'assets/[name]-[hash][extname]';
+          },
+        },
       },
     },
     
