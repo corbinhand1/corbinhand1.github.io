@@ -6,10 +6,6 @@ import { StageManager } from './StageManager';
 import { ConfettiButton } from './ConfettiButton';
 import { StickyNote } from './StickyNote';
 import { AboutEthosOverlay } from './AboutEthosOverlay';
-import { LogoReactor } from './LogoReactor';
-
-// Import state management
-import { useVideoStore } from '../stores/videoStore';
 
 // Import design system
 import { BRAND } from '../config/design';
@@ -219,77 +215,206 @@ function ConfettiPile({ pieces, heightPx }: { pieces: PilePiece[]; heightPx: num
 }
 
 /* -------------------- STAGE MANAGER -------------------- */
+/* -------------------- MICROPHONE CHECK BUBBLE -------------------- */
+function MicrophoneCheck({ show }: { show: boolean }) {
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.85, y: 20, rotateX: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 10, rotateX: 5 }}
+          transition={{
+            duration: 0.6,
+            ease: [0.16, 1, 0.3, 1],
+            scale: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+            rotateX: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+          }}
+          style={{ 
+            position: 'fixed',
+            top: '4rem',
+            left: '1rem',
+            zIndex: 50
+          }}
+        >
+          <div className="relative">
+            {/* Premium Glass Morphism Bubble */}
+            <div
+              className="relative rounded-2xl shadow-2xl overflow-hidden max-w-[280px] sm:max-w-xs"
+              style={{
+                background: `
+                  linear-gradient(135deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.25) 100%),
+                  rgba(255,255,255,0.02)
+                `,
+                backdropFilter: 'blur(20px) saturate(180%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: `
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                  0 0 0 1px rgba(255, 255, 255, 0.05),
+                  0 25px 50px -12px rgba(0, 0, 0, 0.25)
+                `
+              }}
+            >
+              {/* Multi-layer Glass Shimmer */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 rounded-2xl"></div>
+              <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/3 to-transparent rounded-2xl"></div>
+              
+              {/* Content */}
+              <div className="relative z-10 px-3 sm:px-4 py-2 sm:py-3">
+                <div className="font-light text-white text-xs sm:text-sm tracking-wide">
+                  Microphone Check 1212
+                </div>
+              </div>
+            </div>
+            
+            {/* Glass Morphism Tail */}
+            <div 
+              className="absolute -bottom-2 left-4 w-0 h-0"
+              style={{
+                borderLeft: "8px solid transparent",
+                borderRight: "8px solid transparent", 
+                borderTop: "8px solid rgba(255, 255, 255, 0.08)"
+              }}
+            />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
 
+/* -------------------- ROLLING BUBBLE -------------------- */
+function RollingBubble({ show }: { show: boolean }) {
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.85, y: 20, rotateX: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 10, rotateX: 5 }}
+          transition={{
+            duration: 0.6,
+            ease: [0.16, 1, 0.3, 1],
+            scale: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+            rotateX: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+          }}
+          style={{ 
+            position: 'fixed',
+            top: '1rem',
+            left: '1rem',
+            zIndex: 50
+          }}
+        >
+          <div className="relative">
+            {/* Premium Glass Morphism Bubble with Red Accent */}
+            <div
+              className="relative rounded-2xl shadow-2xl overflow-hidden max-w-[280px] sm:max-w-xs"
+              style={{
+                background: `
+                  linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(220,38,38,0.25) 100%),
+                  rgba(255,255,255,0.02)
+                `,
+                backdropFilter: 'blur(20px) saturate(180%)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                boxShadow: `
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                  0 0 0 1px rgba(239, 68, 68, 0.1),
+                  0 25px 50px -12px rgba(239, 68, 68, 0.25)
+                `
+              }}
+            >
+              {/* Multi-layer Glass Shimmer with Red Tint */}
+              <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-red-500/5 rounded-2xl"></div>
+              <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/3 to-transparent rounded-2xl"></div>
+              
+              {/* Content */}
+              <div className="relative z-10 px-3 sm:px-4 py-2 sm:py-3">
+                <div className="font-light text-white text-xs sm:text-sm tracking-wide flex items-center gap-2">
+                  <motion.div 
+                    className="w-2 h-2 bg-red-400 rounded-full"
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      opacity: [0.7, 1, 0.7]
+                    }}
+                    transition={{ 
+                      duration: 1.5, 
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  />
+                  Video Rolling
+                </div>
+              </div>
+            </div>
+            
+            {/* Glass Morphism Tail with Red Accent */}
+            <div 
+              className="absolute -bottom-2 left-4 w-0 h-0"
+              style={{
+                borderLeft: "8px solid transparent",
+                borderRight: "8px solid transparent", 
+                borderTop: "8px solid rgba(239, 68, 68, 0.2)"
+              }}
+            />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
 
 /* -------------------- CONTACT BUTTON -------------------- */
 function ContactButton({ show }: { show: boolean }) {
   return (
-    <div style={{ marginTop: '1.5rem', minHeight: '48px' }}>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ 
-          opacity: show ? 1 : 0, 
-          scale: show ? 1 : 0.9, 
-          y: show ? 0 : 20 
-        }}
-        transition={{
-          duration: 0.6,
-          ease: [0.16, 1, 0.3, 1],
-          scale: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
-        }}
-        style={{ 
-          pointerEvents: show ? 'auto' : 'none',
-          visibility: show ? 'visible' : 'hidden'
-        }}
-      >
-        <a
-          href="mailto:corbin@nebulacreative.org"
-          className="inline-block px-6 py-3 rounded-2xl text-white font-light text-sm tracking-wide no-underline min-h-[48px] cursor-pointer relative overflow-hidden"
-          style={{
-            background: `
-              linear-gradient(135deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.25) 100%),
-              rgba(255,255,255,0.02)
-            `,
-            backdropFilter: 'blur(20px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            boxShadow: `
-              inset 0 1px 0 rgba(255, 255, 255, 0.1),
-              0 0 0 1px rgba(255, 255, 255, 0.05),
-              0 25px 50px -12px rgba(0, 0, 0, 0.25)
-            `,
-            transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          transition={{
+            duration: 0.6,
+            ease: [0.16, 1, 0.3, 1],
+            scale: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
           }}
-          aria-label="Contact Nebula Creative for stage management and show calling services"
-          onMouseEnter={(e) => {
-            if (show) {
-              e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1) translateY(0)';
-          }}
-          onMouseDown={(e) => {
-            if (show) {
-              e.currentTarget.style.transform = 'scale(0.98) translateY(-2px)';
-            }
-          }}
-          onMouseUp={(e) => {
-            if (show) {
-              e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)';
-            }
-          }}
+          style={{ marginTop: '1.5rem' }}
         >
-          {/* Multi-layer Glass Shimmer */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 rounded-2xl"></div>
-          <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/3 to-transparent rounded-2xl"></div>
-          
-          {/* Content */}
-          <div className="relative z-10 flex items-center justify-center h-full">
-            Contact Us
-          </div>
-        </a>
-      </motion.div>
-    </div>
+          <motion.a
+            href="mailto:corbin@nebulacreative.org"
+            className="inline-block px-6 py-3 rounded-2xl text-white font-light text-sm tracking-wide no-underline min-h-[48px] cursor-pointer relative overflow-hidden"
+            style={{
+              background: `
+                linear-gradient(135deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.25) 100%),
+                rgba(255,255,255,0.02)
+              `,
+              backdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: `
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.05),
+                0 25px 50px -12px rgba(0, 0, 0, 0.25)
+              `
+            }}
+            aria-label="Contact Nebula Creative for stage management and show calling services"
+            whileHover={{
+              scale: 1.05,
+              y: -2,
+              transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] }
+            }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {/* Multi-layer Glass Shimmer */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 rounded-2xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/3 to-transparent rounded-2xl"></div>
+            
+            {/* Content */}
+            <div className="relative z-10 flex items-center justify-center h-full">
+              Contact Us
+            </div>
+          </motion.a>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -298,11 +423,8 @@ const NebulaShowtime: React.FC = () => {
   const [lightLevel, setLightLevel] = useState(0);
   const [pilePieces, setPilePieces] = useState<PilePiece[]>([]);
   const [pileHeight, setPileHeight] = useState(0);
+  const [showMicCheck, setShowMicCheck] = useState(false);
   const [showRolling, setShowRolling] = useState(false);
-  
-  
-  // Video store integration
-  const { triggerVideoSequence, resetVideoState } = useVideoStore();
 
   // Force viewport settings on mobile
   useEffect(() => {
@@ -341,19 +463,45 @@ const NebulaShowtime: React.FC = () => {
     }
   }, [clockMs, lightLevel]);
 
+  // Show microphone check when "Go Audio!" cue is reached
+  useEffect(() => {
+    const goAudioCue = CUE_LINES.find(c => c.text === "Go Audio!");
+    // Add 1.5 seconds delay to account for typing animation + user reading time
+    const micTriggerTime = goAudioCue.t + 1500;
+    if (goAudioCue && clockMs >= micTriggerTime && clockMs < micTriggerTime + 1000 && !showMicCheck) {
+      setShowMicCheck(true);
+    }
+  }, [clockMs, showMicCheck]);
 
-  // Trigger video sequence when "Go Video!" cue is reached
+  // Hide microphone check after 2.5 seconds
+  useEffect(() => {
+    if (showMicCheck) {
+      const timer = setTimeout(() => {
+        setShowMicCheck(false);
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [showMicCheck]);
+
+  // Show rolling bubble when "Go Video!" cue is reached
   useEffect(() => {
     const goVideoCue = CUE_LINES.find(c => c.text === "Go Video!");
     // Add 1.5 seconds delay to account for typing animation + user reading time
     const rollingTriggerTime = goVideoCue.t + 1500;
-    console.log('🎯 NebulaShowtime: clockMs:', clockMs, 'rollingTriggerTime:', rollingTriggerTime, 'goVideoCue:', goVideoCue);
-    if (goVideoCue && clockMs >= rollingTriggerTime && clockMs < rollingTriggerTime + 1000) {
-      console.log('🎯 NebulaShowtime: TRIGGERING VIDEO SEQUENCE NOW!');
-      triggerVideoSequence();
+    if (goVideoCue && clockMs >= rollingTriggerTime && clockMs < rollingTriggerTime + 1000 && !showRolling) {
+      setShowRolling(true);
     }
-  }, [clockMs, triggerVideoSequence]);
+  }, [clockMs, showRolling]);
 
+  // Hide rolling bubble after 2.5 seconds
+  useEffect(() => {
+    if (showRolling) {
+      const timer = setTimeout(() => {
+        setShowRolling(false);
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [showRolling]);
 
   const scheduleLandings = (specs: LandingSpec[]) => {
     specs.forEach((spec) => {
@@ -394,10 +542,26 @@ const NebulaShowtime: React.FC = () => {
           }}
         >
           <header className="mb-4 sm:mb-6 relative z-20 text-center">
-            <LogoReactor />
+            <img 
+              src="/assets/Nebula Logo Color Text.png" 
+              alt="Nebula Creative Logo - Professional Stage Management, Show Calling, Production Management, and Tour Management Services for Live Events, Concerts, Festivals, and Corporate Shows Worldwide" 
+              className="h-32 sm:h-40 md:h-48 lg:h-64 w-auto relative z-30 logo-mobile"
+            />
         </header>
           <main>
             <h1 className="sr-only">Nebula Creative - Professional Stage Management, Show Calling, Production Management, and Tour Management Services</h1>
+            <p 
+              className="text-base sm:text-lg md:text-xl text-slate-300 mb-6 sm:mb-8 md:mb-12 max-w-2xl mx-auto px-2 relative z-20 leading-relaxed"
+              style={{
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif',
+                fontWeight: '400',
+                letterSpacing: '-0.01em'
+              }}
+              role="banner"
+              aria-label="Company tagline: We make the show happen — on time, on budget, on brand"
+            >
+              We make the show happen — on time, on budget, on brand.
+            </p>
           </main>
           
           <div className="relative z-20">
@@ -417,8 +581,8 @@ const NebulaShowtime: React.FC = () => {
       </div>
 
       <StageManager clockMs={clockMs} announce={() => {}} isMobile={isMobile} />
-      
-      
+      <MicrophoneCheck show={showMicCheck} />
+      <RollingBubble show={showRolling} />
       <AboutEthosOverlay />
     </>
   );
