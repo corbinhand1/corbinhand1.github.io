@@ -127,15 +127,30 @@ export const LogoReactor: React.FC = () => {
   const speedFactor  = 1 + 0.05 * (osc - 0.5) * 2; // ≤ ±5%
   const radiusFactor = 1 + 0.005 * (osc - 0.5);    // ≤ ±0.5%
 
-  // LOGO: No-gloss reveal (only transform/filters; no layout)
+  // LOGO: Premium multi-layered reveal (Adobe-inspired smooth transitions)
   const logoAnim =
     phase === 'standby'
-      ? { filter: 'brightness(0.18) saturate(0.5) blur(2px)', opacity: 0.55, scale: 1 }
+      ? { 
+          filter: 'brightness(0.15) saturate(0.3) blur(3px) contrast(0.8)', 
+          opacity: 0.4, 
+          scale: 0.98,
+          transform: 'translateY(2px)',
+          animation: 'none'
+        }
       : {
-          filter: 'brightness(1) saturate(1) blur(0px)',
+          filter: 'brightness(1.02) saturate(1.1) blur(0px) contrast(1.05)',
           opacity: 1,
-          scale: [0.996, 1.004, 1],
-          transition: { duration: 0.52, ease: EASE_SNAPPY },
+          scale: 1,
+          transform: 'translateY(0px)',
+          animation: 'logo-glow-enter 1.4s cubic-bezier(0.16, 1, 0.3, 1), logo-scale-bounce 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          transition: { 
+            duration: 1.2, 
+            ease: [0.16, 1, 0.3, 1], // Adobe's signature cubic-bezier curve
+            filter: { duration: 1.4, ease: [0.25, 0.46, 0.45, 0.94] },
+            opacity: { duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] },
+            scale: { duration: 1.0, ease: [0.34, 1.56, 0.64, 1] },
+            transform: { duration: 1.1, ease: [0.25, 0.46, 0.45, 0.94] }
+          },
         };
 
   // Canvas geometry
@@ -149,7 +164,7 @@ export const LogoReactor: React.FC = () => {
 
   return (
     <>
-      {/* CSS animations for plasma system */}
+      {/* CSS animations for plasma system and premium logo effects */}
       <style>{`
         @keyframes aura-pulse {
           0%, 100% { opacity: 0.22; transform: scale(1); }
@@ -158,6 +173,31 @@ export const LogoReactor: React.FC = () => {
         @keyframes spin-slow {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        @keyframes logo-glow-enter {
+          0% { 
+            filter: brightness(0.15) saturate(0.3) blur(3px) contrast(0.8) drop-shadow(0 0 0px rgba(32,164,255,0));
+            opacity: 0.4;
+          }
+          30% { 
+            filter: brightness(0.4) saturate(0.6) blur(2px) contrast(0.9) drop-shadow(0 0 8px rgba(32,164,255,0.1));
+            opacity: 0.6;
+          }
+          70% { 
+            filter: brightness(0.8) saturate(0.9) blur(1px) contrast(1.0) drop-shadow(0 0 16px rgba(32,164,255,0.15));
+            opacity: 0.9;
+          }
+          100% { 
+            filter: brightness(1.02) saturate(1.1) blur(0px) contrast(1.05) drop-shadow(0 0 24px rgba(32,164,255,0.2));
+            opacity: 1;
+          }
+        }
+        @keyframes logo-scale-bounce {
+          0% { transform: translateY(2px) scale(0.98); }
+          40% { transform: translateY(-1px) scale(1.02); }
+          60% { transform: translateY(0px) scale(0.99); }
+          80% { transform: translateY(0px) scale(1.01); }
+          100% { transform: translateY(0px) scale(1); }
         }
       `}</style>
       
@@ -170,12 +210,18 @@ export const LogoReactor: React.FC = () => {
           alt="Nebula Creative Logo"
           className="h-32 sm:h-40 md:h-48 lg:h-64 w-auto"
           style={{ 
-            willChange: 'transform', 
+            willChange: 'transform, opacity, filter', 
             transformOrigin: '50% 50%',
             filter: logoAnim.filter,
             opacity: logoAnim.opacity,
-            transform: logoAnim.scale ? `scale(${logoAnim.scale})` : 'scale(1)',
-            transition: logoAnim.transition ? `${logoAnim.transition.duration}s ${logoAnim.transition.ease}` : 'none'
+            transform: logoAnim.transform ? `${logoAnim.transform} scale(${logoAnim.scale})` : `scale(${logoAnim.scale})`,
+            animation: logoAnim.animation || 'none',
+            transition: logoAnim.transition ? 
+              `filter ${logoAnim.transition.filter.duration}s ${logoAnim.transition.filter.ease.join(',')}, ` +
+              `opacity ${logoAnim.transition.opacity.duration}s ${logoAnim.transition.opacity.ease.join(',')}, ` +
+              `scale ${logoAnim.transition.scale.duration}s ${logoAnim.transition.scale.ease.join(',')}, ` +
+              `transform ${logoAnim.transition.transform.duration}s ${logoAnim.transition.transform.ease.join(',')}` 
+              : 'none'
           }}
         />
 
