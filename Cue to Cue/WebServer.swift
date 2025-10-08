@@ -25,6 +25,9 @@ class WebServer {
     private var countdownRunning: Bool = false
     private var countUpRunning: Bool = false
     
+    // Highlight colors for web client
+    private var highlightColors: [HighlightColorSetting] = []
+    
     // Serial queue for synchronizing access to shared resources
     private let connectionQueue = DispatchQueue(label: "WebServer.connectionQueue")
     
@@ -130,7 +133,8 @@ class WebServer {
             sendResponseWithCORS(CompleteHTML.content.data(using: .utf8)!, for: "text/html", on: connection, corsHeaders: corsHeaders)
             
         case ("GET", "/cues"):
-            sendResponseWithCORS(generateJsonResponse(), for: "application/json", on: connection, corsHeaders: corsHeaders)
+            let jsonData = connectionQueue.sync { generateJsonResponse() }
+            sendResponseWithCORS(jsonData, for: "application/json", on: connection, corsHeaders: corsHeaders)
             
         case ("GET", "/offline.html"):
             sendOfflineFile("offline.html", on: connection, corsHeaders: corsHeaders)
@@ -305,6 +309,13 @@ class WebServer {
         }
     }
     
+    func updateHighlightColors(_ highlightColors: [HighlightColorSetting]) {
+        connectionQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.highlightColors = highlightColors
+        }
+    }
+    
     private func formatTimeForWeb(_ seconds: Int) -> String {
         let isNegative = seconds < 0
         let absSeconds = abs(seconds)
@@ -365,7 +376,11 @@ class WebServer {
                 "countdownTime": countdownTime,
                 "countUpTime": countUpTime,
                 "countdownRunning": countdownRunning,
-                "countUpRunning": countUpRunning
+                "countUpRunning": countUpRunning,
+                "highlightColors": highlightColors.map { [
+                    "keyword": $0.keyword,
+                    "color": $0.color.toHex()
+                ]}
             ]
         }
         

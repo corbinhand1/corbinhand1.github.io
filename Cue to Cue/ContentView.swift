@@ -109,6 +109,8 @@ struct ContentView: View {
                                 currentTime: $currentTime,
                                 countdownTime: $countdownTime,
                                 countdownRunning: $countdownRunning,
+                                countUpTime: $countUpTime,
+                                countUpRunning: $countUpRunning,
                                 showSettings: $showSettings,
                                 updateWebClients: updateWebClients
                             )
@@ -199,6 +201,8 @@ struct ContentView: View {
         }
         .onAppear {
             setupAppDelegate()
+            // Auto-load last file on startup
+            loadLastFile()
             // Initialize web server with current timer values after a short delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 updateWebClients()
@@ -229,6 +233,7 @@ struct ContentView: View {
         }
         webServer?.updateCues(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex, activeCueIndex: selectedCueIndex ?? -1, selectedCueIndex: selectedCueIndex ?? -1)
         webServer?.updateClockState(currentTime: currentTime, countdownTime: countdownTime, countUpTime: countUpTime, countdownRunning: countdownRunning, countUpRunning: countUpRunning)
+        webServer?.updateHighlightColors(settingsManager.settings.highlightColors)
     }
     
     func getWebUpdateInfo() -> (cueStacks: [CueStack], selectedIndex: Int, activeIndex: Int) {
@@ -542,6 +547,36 @@ struct ContentView: View {
                     self.showOpenError(error: error)
                 }
             }
+        }
+    }
+    
+    func loadLastFile() {
+        // Check if there's a last saved URL in UserDefaults
+        if let lastURL = UserDefaults.standard.url(forKey: "LastSavedURL") {
+            // Check if the file still exists
+            if FileManager.default.fileExists(atPath: lastURL.path) {
+                do {
+                    let data = try Data(contentsOf: lastURL)
+                    let decoder = JSONDecoder()
+                    let savedData = try decoder.decode(SavedData.self, from: data)
+                    self.cueStacks = savedData.cueStacks
+                    self.settingsManager.settings.highlightColors = savedData.highlightColors
+                    self.pdfNotes = savedData.pdfNotes
+                    self.lastSavedURL = lastURL
+                    self.currentFileName = lastURL.lastPathComponent
+                    print("Auto-loaded last file: \(lastURL.path)")
+                    self.updateWebClients()
+                } catch {
+                    print("Error auto-loading last file: \(error.localizedDescription)")
+                    // If auto-load fails, continue with default state
+                }
+            } else {
+                print("Last saved file no longer exists: \(lastURL.path)")
+                // Clear the stored URL if file doesn't exist
+                UserDefaults.standard.removeObject(forKey: "LastSavedURL")
+            }
+        } else {
+            print("No last saved file found, starting with default state")
         }
     }
     

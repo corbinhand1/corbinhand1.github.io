@@ -11,11 +11,11 @@ struct TopSectionView: View {
     @Binding var currentTime: Date
     @Binding var countdownTime: Int
     @Binding var countdownRunning: Bool
+    @Binding var countUpTime: Int
+    @Binding var countUpRunning: Bool
 
-    // “Countdown to a specific time” states:
-    @State private var targetTimeString: String = ""
-    @State private var countdownToTime: Int = 0
-    @State private var countdownToTimeRunning: Bool = false
+    // "Countdown to a specific time" states:
+    @State private var targetTimeString: String = "10:00:00"
     @State private var targetDate: Date? = nil
     @State private var isEditingCountdownToTime = false
 
@@ -49,6 +49,10 @@ struct TopSectionView: View {
         .onAppear {
             if countdownRunning {
                 startCountdownTimer()
+            }
+            // Initialize countdown to time with default 10:00:00
+            if let date = parseAsTodayTime(targetTimeString) {
+                targetDate = date
             }
         }
         // Listen for the custom reset notification from ContentView.
@@ -84,18 +88,18 @@ struct TopSectionView: View {
             }
         }
         // Countdown-to-time update.
-        var newCountdownToTime = countdownToTime
-        if countdownToTimeRunning, let tDate = targetDate {
+        var newCountUpTime = countUpTime
+        if countUpRunning, let tDate = targetDate {
             let diff = tDate.timeIntervalSince(now)
             if diff <= 0 {
-                newCountdownToTime = 0
-                countdownToTimeRunning = false
+                newCountUpTime = 0
+                countUpRunning = false
             } else {
-                newCountdownToTime = Int(round(diff))
+                newCountUpTime = Int(round(diff))
             }
         }
-        if countdownToTime != newCountdownToTime {
-            countdownToTime = newCountdownToTime
+        if countUpTime != newCountUpTime {
+            countUpTime = newCountUpTime
             updateWebClients()
         }
         // Update current time display.
@@ -150,22 +154,26 @@ struct TopSectionView: View {
 
     private func startCountdownToTime() {
         guard let tDate = targetDate else { return }
-        countdownToTimeRunning = true
-        // Initialize countdownToTime immediately.
-        countdownToTime = max(0, Int(round(tDate.timeIntervalSince(Date()))))
+        countUpRunning = true
+        // Initialize countUpTime immediately.
+        countUpTime = max(0, Int(round(tDate.timeIntervalSince(Date()))))
         updateWebClients()
     }
 
     private func pauseCountdownToTime() {
-        countdownToTimeRunning = false
+        countUpRunning = false
         updateWebClients()
     }
 
     private func resetCountdownToTime() {
-        countdownToTimeRunning = false
-        countdownToTime = 0
+        countUpRunning = false
+        countUpTime = 0
         targetDate = nil
-        targetTimeString = ""
+        targetTimeString = "10:00:00"
+        // Re-initialize target date
+        if let date = parseAsTodayTime(targetTimeString) {
+            targetDate = date
+        }
         updateWebClients()
     }
 
@@ -248,7 +256,7 @@ struct TopSectionView: View {
                             targetDate = date
                         } else {
                             targetDate = nil
-                            countdownToTime = 0
+                            countUpTime = 0
                         }
                         isEditingCountdownToTime = false
                         updateWebClients()
@@ -257,11 +265,11 @@ struct TopSectionView: View {
                     .frame(width: 150)
                     .multilineTextAlignment(.center)
                 } else {
-                    Text(timeString(time: countdownToTime, isRunning: countdownToTimeRunning))
+                    Text(timeString(time: countUpTime, isRunning: countUpRunning))
                         .font(.custom("Digital-7Mono", size: settingsManager.settings.clockFontSize))
                         .foregroundColor(settingsManager.settings.countdownColor)
                         .onTapGesture {
-                            targetTimeString = targetTimeString.isEmpty ? "00:00:00" : targetTimeString
+                            targetTimeString = targetTimeString.isEmpty ? "10:00:00" : targetTimeString
                             isEditingCountdownToTime = true
                         }
                 }
