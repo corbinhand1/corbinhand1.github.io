@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Cue to Cue - Offline</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .offline-container {
+            text-align: center;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .offline-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .offline-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .offline-message {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        
+        .offline-features {
+            text-align: left;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+        }
+        
+        .offline-features h3 {
+            margin-bottom: 15px;
+            color: #ffd93d;
+            font-size: 1.2rem;
+        }
+        
+        .offline-features ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .offline-features li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .offline-features li:last-child {
+            border-bottom: none;
+        }
+        
+        .feature-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .retry-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .retry-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+        
+        .retry-button:active {
+            transform: translateY(0);
+        }
+        
+        .view-cached-button {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+        }
+        
+        .view-cached-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+        }
+        
+        .view-cached-button:active {
+            transform: translateY(0);
+        }
+        
+        .offline-status {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+        
+        .status-text {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .connection-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #ff6b6b;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        .cached-data-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            display: none;
+        }
+        
+        .cached-data-info.show {
+            display: block;
+        }
+        
+        .cached-data-info h4 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        
+        .cached-data-info p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @media (max-width: 768px) {
+            .offline-container {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+            
+            .offline-title {
+                font-size: 1.5rem;
+            }
+            
+            .offline-message {
+                font-size: 1rem;
+            }
+            
+            .offline-features {
+                padding: 15px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">📱</div>
+        <h1 class="offline-title">You're Offline</h1>
+        <p class="offline-message">
+            Don't worry! You can still view your cue sheets and settings that were previously loaded.
+            Some features may be limited while offline.
+        </p>
+        
+        <div class="offline-features">
+            <h3>✅ Available Offline:</h3>
+            <ul>
+                <li>
+                    <span class="feature-icon">📋</span>
+                    View all cue stacks and cues
+                </li>
+                <li>
+                    <span class="feature-icon">🎨</span>
+                    View highlight color settings
+                </li>
+                <li>
+                    <span class="feature-icon">⚙️</span>
+                    View column visibility settings
+                </li>
+                <li>
+                    <span class="feature-icon">⏱️</span>
+                    View timer information
+                </li>
+                <li>
+                    <span class="feature-icon">📱</span>
+                    Responsive mobile view
+                </li>
+            </ul>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="view-cached-button" onclick="viewCachedData()">
+                📋 View Cached Data
+            </button>
+            <button class="retry-button" onclick="retryConnection()">
+                🔄 Try to Reconnect
+            </button>
+        </div>
+        
+        <div class="cached-data-info" id="cachedDataInfo">
+            <h4>📊 Cached Data Available</h4>
+            <p id="cachedDataDetails">Loading cached data information...</p>
+        </div>
+        
+        <div class="offline-status">
+            <span class="connection-indicator"></span>
+            <span class="status-text">Checking connection...</span>
+        </div>
+    </div>
+    
+    <script>
+        // Check for cached data and update UI
+        async function checkCachedData() {
+            try {
+                // Check IndexedDB
+                if ('indexedDB' in window) {
+                    const dbName = 'CueToCueOffline';
+                    const request = indexedDB.open(dbName, 1);
+                    
+                    request.onsuccess = function(event) {
+                        const db = event.target.result;
+                        if (db.objectStoreNames.contains('cueStacks')) {
+                            const transaction = db.transaction(['cueStacks'], 'readonly');
+                            const store = transaction.objectStore('cueStacks');
+                            const countRequest = store.count();
+                            
+                            countRequest.onsuccess = function() {
+                                if (countRequest.result > 0) {
+                                    showCachedDataInfo(countRequest.result);
+                                }
+                            };
+                        }
+                    };
+                }
+                
+                // Check localStorage
+                const localStorageData = localStorage.getItem('cueToCueOfflineState');
+                if (localStorageData) {
+                    try {
+                        const data = JSON.parse(localStorageData);
+                        const timestamp = new Date(data.timestamp).toLocaleString();
+                        showCachedDataInfo('localStorage', timestamp);
+                    } catch (e) {
+                        // Ignore parsing errors
+                    }
+                }
+                
+            } catch (error) {
+                console.warn('Failed to check cached data:', error);
+            }
+        }
+        
+        function showCachedDataInfo(count, timestamp) {
+            const infoDiv = document.getElementById('cachedDataInfo');
+            const detailsP = document.getElementById('cachedDataDetails');
+            
+            if (typeof count === 'number') {
+                detailsP.textContent = `Found ${count} cached cue stack(s) in offline storage.`;
+            } else if (timestamp) {
+                detailsP.textContent = `Cached data available from ${timestamp}.`;
+            }
+            
+            infoDiv.classList.add('show');
+        }
+        
+        // View cached data
+        function viewCachedData() {
+            // Try to load the main app with cached data
+            window.location.href = '/';
+        }
+        
+        // Check connection status
+        function checkConnection() {
+            const statusText = document.querySelector('.status-text');
+            const indicator = document.querySelector('.connection-indicator');
+            
+            if (navigator.onLine) {
+                statusText.textContent = 'Connection restored! Redirecting...';
+                indicator.style.backgroundColor = '#4CAF50';
+                indicator.style.animation = 'none';
+                
+                // Redirect back to main app after a short delay
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                statusText.textContent = 'Still offline. Check your internet connection.';
+                indicator.style.backgroundColor = '#ff6b6b';
+            }
+        }
+        
+        // Retry connection
+        function retryConnection() {
+            const button = document.querySelector('.retry-button');
+            const statusText = document.querySelector('.status-text');
+            
+            button.textContent = '🔄 Checking...';
+            button.disabled = true;
+            
+            // Try to fetch a small resource to test connection
+            fetch('/health', { method: 'HEAD' })
+                .then(() => {
+                    statusText.textContent = 'Connection successful! Redirecting...';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                })
+                .catch(() => {
+                    statusText.textContent = 'Still offline. Please check your connection.';
+                    button.textContent = '🔄 Try Again';
+                    button.disabled = false;
+                });
+        }
+        
+        // Listen for online/offline events
+        window.addEventListener('online', () => {
+            checkConnection();
+        });
+        
+        window.addEventListener('offline', () => {
+            const statusText = document.querySelector('.status-text');
+            statusText.textContent = 'Connection lost. You are now offline.';
+        });
+        
+        // Check connection status periodically
+        setInterval(checkConnection, 5000);
+        
+        // Initial checks
+        checkConnection();
+        checkCachedData();
+        
+        // Check for service worker updates
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'CACHE_UPDATED') {
+                    // Refresh cached data info
+                    checkCachedData();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

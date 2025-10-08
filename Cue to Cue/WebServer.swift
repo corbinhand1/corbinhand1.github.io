@@ -138,6 +138,8 @@ class WebServer {
             
         case ("GET", "/offline.html"):
             sendOfflineFile("offline.html", on: connection, corsHeaders: corsHeaders)
+        case ("GET", "/test-offline.html"):
+            sendOfflineFile("test-offline.html", on: connection, corsHeaders: corsHeaders)
             
         case ("GET", "/offline-service-worker.js"):
             sendOfflineFile("offline-service-worker.js", on: connection, corsHeaders: corsHeaders)

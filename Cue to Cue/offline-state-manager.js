@@ -175,7 +175,7 @@ class OfflineStateManager {
         
         try {
             const dbName = 'CueToCueOffline';
-            const request = indexedDB.open(dbName, 1);
+            const request = indexedDB.open(dbName, 2);
             
             request.onupgradeneeded = function(event) {
                 const db = event.target.result;
@@ -232,7 +232,7 @@ class OfflineStateManager {
         
         try {
             const dbName = 'CueToCueOffline';
-            const request = indexedDB.open(dbName, 1);
+            const request = indexedDB.open(dbName, 2);
             
             return new Promise((resolve, reject) => {
                 request.onsuccess = function(event) {
@@ -449,7 +449,7 @@ class OfflineStateManager {
         
         try {
             const dbName = 'CueToCueOffline';
-            const request = indexedDB.open(dbName, 1);
+            const request = indexedDB.open(dbName, 2);
             
             request.onsuccess = function(event) {
                 const db = event.target.result;

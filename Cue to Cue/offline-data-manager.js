@@ -4,7 +4,7 @@
 class OfflineDataManager {
     constructor() {
         this.dbName = 'CueToCueOffline';
-        this.version = 1;
+        this.version = 2;
         this.db = null;
         this.isInitialized = false;
     }
@@ -55,6 +55,11 @@ class OfflineDataManager {
                         const changeStore = db.createObjectStore('offlineChanges', { keyPath: 'id', autoIncrement: true });
                         changeStore.createIndex('timestamp', 'timestamp', { unique: false });
                         changeStore.createIndex('type', 'type', { unique: false });
+                    }
+                    
+                    // Store app state
+                    if (!db.objectStoreNames.contains('appState')) {
+                        db.createObjectStore('appState', { keyPath: 'id' });
                     }
                 };
             });

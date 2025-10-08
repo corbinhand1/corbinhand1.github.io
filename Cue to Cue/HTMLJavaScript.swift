@@ -108,7 +108,7 @@ struct HTMLJavaScript {
                     updateConnectionStatus('attempting');
                 }
                 
-                const response = await fetch('/cues');
+                const response = await fetch(`${window.location.origin}/cues`);
                 if (!response.ok) throw new Error(response.statusText);
                 const data = await response.json();
                 state.data = data;
@@ -136,7 +136,7 @@ struct HTMLJavaScript {
         // Fetch clock updates more frequently for real-time countdown
         async function fetchClockUpdates() {
             try {
-                const response = await fetch('/cues');
+                const response = await fetch(`${window.location.origin}/cues`);
                 if (!response.ok) return;
                 const data = await response.json();
                 

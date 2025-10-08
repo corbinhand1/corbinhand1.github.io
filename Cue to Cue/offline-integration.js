@@ -303,7 +303,7 @@ class OfflineIntegration {
         try {
             // Test connection quality by making a small request
             const startTime = Date.now();
-            const response = await fetch('/health', { 
+            const response = await fetch(`${window.location.origin}/health`, { 
                 method: 'HEAD',
                 cache: 'no-cache'
             });
@@ -1444,7 +1444,7 @@ class OfflineIntegration {
             }
             
             // Test connection by making a small request
-            const response = await fetch('/health', { 
+            const response = await fetch(`${window.location.origin}/health`, { 
                 method: 'HEAD',
                 cache: 'no-cache',
                 signal: AbortSignal.timeout(5000) // 5 second timeout
