@@ -100,22 +100,73 @@ struct HTMLJavaScript {
             }, delay);
         }
 
-        // Data Fetching
-        async function fetchCues() {
+        // Robust fetch wrapper to handle network errors gracefully
+        async function robustFetch(url, options = {}) {
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), options.timeout || 5000);
+                
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                return response;
+            } catch (error) {
+                // Handle timeout and network errors gracefully
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timeout');
+                }
+                throw error;
+            }
+        }
+        
+        // Data Fetching
+        // Add request deduplication to prevent multiple simultaneous requests
+        let activeRequests = new Set();
+        
+        async function fetchCues() {
+            // Prevent multiple simultaneous requests
+            if (activeRequests.has('cues')) {
+                return;
+            }
+            
+            try {
+                activeRequests.add('cues');
+                
                 // Only show "attempting" if we're not already connected
                 if (state.connectionStatus !== 'connected') {
                     updateConnectionStatus('attempting');
                 }
                 
-                const response = await fetch(`${window.location.origin}/cues`);
+                const response = await robustFetch(`${window.location.origin}/cues`, { timeout: 5000 });
+                
                 if (!response.ok) throw new Error(response.statusText);
-                const data = await response.json();
+                
+                // Check if response has content before parsing
+                const text = await response.text();
+                if (!text || text.trim() === '') {
+                    throw new Error('Empty response received');
+                }
+                
+                // Additional validation - check if it looks like JSON
+                if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+                    throw new Error('Response is not JSON format');
+                }
+                
+                const data = JSON.parse(text);
                 state.data = data;
                 updateUI(data);
                 updateConnectionStatus('connected');
             } catch(err) {
-                console.error('Error fetching cues:', err);
+                // Handle different types of errors appropriately
+                if (err.name === 'AbortError') {
+                    // Request was aborted due to timeout - this is normal
+                    return;
+                }
+                
+                // Silently handle other fetch errors - this is normal when offline or server unavailable
                 state.connectionAttempts++;
                 
                 // If we've failed multiple times, show as disconnected
@@ -130,38 +181,11 @@ struct HTMLJavaScript {
                         updateConnectionStatus('attempting');
                     }
                 }
+            } finally {
+                activeRequests.delete('cues');
             }
         }
 
-        // Fetch clock updates more frequently for real-time countdown
-        async function fetchClockUpdates() {
-            try {
-                const response = await fetch(`${window.location.origin}/cues`);
-                if (!response.ok) return;
-                const data = await response.json();
-                
-                // Update countdown timer in real-time
-                if (data.countdownTime !== undefined) {
-                    const countdownElement = document.getElementById('countdown');
-                    if (countdownElement) {
-                        const formattedTime = formatTime(data.countdownTime);
-                        countdownElement.textContent = formattedTime;
-                    }
-                }
-                
-                // Update countdown to time timer in real-time
-                if (data.countUpTime !== undefined) {
-                    const countupElement = document.getElementById('countup');
-                    if (countupElement) {
-                        const formattedTime = formatTime(data.countUpTime);
-                        countupElement.textContent = formattedTime;
-                    }
-                }
-            } catch(err) {
-                // Silently fail for clock updates to avoid connection status changes
-                // console.error('Error fetching clock updates:', err);
-            }
-        }
 
         // Handle real-time clock updates from the server
         function handleClockUpdate(data) {
@@ -366,9 +390,6 @@ struct HTMLJavaScript {
                         if (shouldStrike) {
                             td.classList.add('struck');
                         }
-                        
-                        // Apply highlight colors
-                        applyHighlightColor(td, cue.values[colIndex], data.highlightColors);
                     } else {
                         // Timer column
                         td.textContent = cue.timerValue || '';
@@ -381,6 +402,9 @@ struct HTMLJavaScript {
                     
                     row.appendChild(td);
                 });
+                
+                // Apply row-level highlighting after all cells are added
+                applyRowHighlighting(row, cue, data.highlightColors);
                 
                 tbody.appendChild(row);
             });
@@ -426,10 +450,6 @@ struct HTMLJavaScript {
                         td.textContent = cue.values[colIndex] || '';
                         const shouldStrike = cue.isStruckThrough;
                         td.classList.toggle('struck', shouldStrike);
-                        
-                        // Apply highlight colors
-                        applyHighlightColor(td, cue.values[colIndex], data.highlightColors);
-
                     } else {
                         td.textContent = cue.timerValue || '';
                         td.classList.add('timer-cell');
@@ -437,6 +457,9 @@ struct HTMLJavaScript {
                     
                     td.classList.toggle('hidden', !state.columnVisibility[colId]);
                 });
+                
+                // Apply row-level highlighting after all cells are updated
+                applyRowHighlighting(row, cue, data.highlightColors);
             });
             
             // Remove extra rows
@@ -567,7 +590,43 @@ struct HTMLJavaScript {
             }
         }
         
-        // Highlight Color Application
+        // Row-level Highlight Color Application
+        function applyRowHighlighting(row, cue, highlightColors) {
+            if (!highlightColors || !Array.isArray(highlightColors)) {
+                return;
+            }
+            
+            // Reset all cell colors in the row first
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                cell.style.color = '';
+            });
+            
+            // Check each cell for highlight keywords and apply row-level highlighting
+            for (let colIndex = 0; colIndex < cue.values.length; colIndex++) {
+                const cellText = cue.values[colIndex];
+                if (!cellText) continue;
+                
+                for (const highlight of highlightColors) {
+                    if (highlight.keyword && highlight.color && 
+                        cellText.toLowerCase().includes(highlight.keyword.toLowerCase())) {
+                        
+                        // Check if user has overridden this color
+                        const overrideKey = `${highlight.keyword}_${highlight.color}`;
+                        const colorToApply = state.colorOverrides[overrideKey] || highlight.color;
+                        
+                        // Apply color to all cells in the row
+                        cells.forEach(cell => {
+                            cell.style.color = '#' + colorToApply;
+                        });
+                        
+                        return; // Exit after first match
+                    }
+                }
+            }
+        }
+        
+        // Highlight Color Application (legacy function - kept for compatibility)
         function applyHighlightColor(td, text, highlightColors) {
             if (!highlightColors || !Array.isArray(highlightColors)) {
                 return;
@@ -583,10 +642,19 @@ struct HTMLJavaScript {
                     
                     // Check if user has overridden this color
                     const overrideKey = `${highlight.keyword}_${highlight.color}`;
-                    if (state.colorOverrides[overrideKey]) {
-                        td.style.color = '#' + state.colorOverrides[overrideKey];
+                    const colorToApply = state.colorOverrides[overrideKey] || highlight.color;
+                    
+                    // Apply color to the entire row instead of just this cell
+                    const row = td.closest('tr');
+                    if (row) {
+                        // Apply color to all cells in the row
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach(cell => {
+                            cell.style.color = '#' + colorToApply;
+                        });
                     } else {
-                        td.style.color = '#' + highlight.color;
+                        // Fallback to cell-only highlighting if row not found
+                        td.style.color = '#' + colorToApply;
                     }
                     break; // Use the first matching highlight
                 }
@@ -723,11 +791,35 @@ struct HTMLJavaScript {
                 const cue = state.data.cues[rowIndex];
                 if (!cue) return;
                 
+                // Reset all cell colors in the row first
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    cell.style.color = '';
+                });
+                
+                // Check each cell for highlight keywords and apply row-level highlighting
+                let rowHighlighted = false;
                 state.columns.forEach((col, colIndex) => {
-                    if (colIndex < state.data.columns.length) {
+                    if (colIndex < state.data.columns.length && !rowHighlighted) {
                         const td = row.children[colIndex];
-                        if (td) {
-                            applyHighlightColor(td, cue.values[colIndex], state.data.highlightColors);
+                        if (td && cue.values[colIndex]) {
+                            // Check if this cell should trigger row highlighting
+                            for (const highlight of state.data.highlightColors) {
+                                if (highlight.keyword && highlight.color && 
+                                    cue.values[colIndex].toLowerCase().includes(highlight.keyword.toLowerCase())) {
+                                    
+                                    // Apply color to entire row
+                                    const overrideKey = `${highlight.keyword}_${highlight.color}`;
+                                    const colorToApply = state.colorOverrides[overrideKey] || highlight.color;
+                                    
+                                    cells.forEach(cell => {
+                                        cell.style.color = '#' + colorToApply;
+                                    });
+                                    
+                                    rowHighlighted = true;
+                                    break; // Use the first matching highlight
+                                }
+                            }
                         }
                     }
                 });
@@ -1035,10 +1127,28 @@ struct HTMLJavaScript {
             loadSettings();
             updateConnectionStatus('disconnected'); // Start with disconnected status
             fetchCues();
-            setInterval(fetchCues, 1000);
+            // Single timer for all updates to prevent conflicts
+            setInterval(fetchCues, 500); // Increased frequency for smoother countdown updates
             
-            // Also fetch clock updates more frequently for real-time countdown
-            setInterval(fetchClockUpdates, 100);
+            // Suppress fetch-related errors in console to reduce noise
+            window.addEventListener('unhandledrejection', (event) => {
+                if (event.reason && event.reason.message && 
+                    (event.reason.message.includes('fetch') || 
+                     event.reason.message.includes('Failed to load resource') ||
+                     event.reason.message.includes('Load failed') ||
+                     event.reason.message.includes('cannot parse response'))) {
+                    event.preventDefault(); // Suppress the error
+                }
+            });
+            
+            // Add global error handler for network errors
+            window.addEventListener('error', (event) => {
+                if (event.message && 
+                    (event.message.includes('Failed to load resource') ||
+                     event.message.includes('cannot parse response'))) {
+                    event.preventDefault(); // Suppress the error
+                }
+            });
         });
         
         // Offline Functionality Integration

@@ -26,6 +26,7 @@ struct ContentView: View {
     ]
     @State private var selectedCueStackIndex: Int = 0
     @State private var showSettings = false
+    @State private var showConnectionMonitor = false
     @State private var selectedCueIndex: Int?
     @State private var selectedCueTime: Int?
     @State var showSavePanel = false
@@ -112,6 +113,7 @@ struct ContentView: View {
                                 countUpTime: $countUpTime,
                                 countUpRunning: $countUpRunning,
                                 showSettings: $showSettings,
+                                showConnectionMonitor: $showConnectionMonitor,
                                 updateWebClients: updateWebClients
                             )
                             .environmentObject(settingsManager)
@@ -169,6 +171,11 @@ struct ContentView: View {
         .environmentObject(settingsManager)
         .sheet(isPresented: $showSettings) {
             SettingsView(settingsManager: settingsManager)
+        }
+        .sheet(isPresented: $showConnectionMonitor) {
+            if let webServer = webServer {
+                ConnectionMonitorView(isPresented: $showConnectionMonitor, webServer: webServer)
+            }
         }
         // Present the print settings sheet when requested.
         .sheet(isPresented: $showPrintSheet) {

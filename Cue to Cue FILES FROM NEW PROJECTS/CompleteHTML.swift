@@ -1452,9 +1452,6 @@ struct CompleteHTML {
                         if (shouldStrike) {
                             td.classList.add('struck');
                         }
-                        
-                        // Apply highlight colors
-                        applyHighlightColor(td, cue.values[colIndex], data.highlightColors);
                     } else {
                         // Timer column
                         td.textContent = cue.timerValue || '';
@@ -1467,6 +1464,9 @@ struct CompleteHTML {
                     
                     row.appendChild(td);
                 });
+                
+                // Apply row-level highlighting after all cells are added
+                applyRowHighlighting(row, cue, data.highlightColors);
                 
                 tbody.appendChild(row);
             });
@@ -1517,10 +1517,6 @@ struct CompleteHTML {
                         td.textContent = cue.values[colIndex] || '';
                         const shouldStrike = cue.struck && cue.struck[colIndex];
                         td.classList.toggle('struck', shouldStrike);
-                        
-                        // Apply highlight colors
-                        applyHighlightColor(td, cue.values[colIndex], data.highlightColors);
-
                     } else {
                         td.textContent = cue.timerValue || '';
                         td.classList.add('timer-cell');
@@ -1528,6 +1524,9 @@ struct CompleteHTML {
                     
                     td.classList.toggle('hidden', !state.columnVisibility[colId]);
                 });
+                
+                // Apply row-level highlighting after all cells are updated
+                applyRowHighlighting(row, cue, data.highlightColors);
             });
             
             // Remove extra rows
@@ -1658,7 +1657,43 @@ struct CompleteHTML {
             }
         }
         
-        // Highlight Color Application
+        // Row-level Highlight Color Application
+        function applyRowHighlighting(row, cue, highlightColors) {
+            if (!highlightColors || !Array.isArray(highlightColors)) {
+                return;
+            }
+            
+            // Reset all cell colors in the row first
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                cell.style.color = '';
+            });
+            
+            // Check each cell for highlight keywords and apply row-level highlighting
+            for (let colIndex = 0; colIndex < cue.values.length; colIndex++) {
+                const cellText = cue.values[colIndex];
+                if (!cellText) continue;
+                
+                for (const highlight of highlightColors) {
+                    if (highlight.keyword && highlight.color && 
+                        cellText.toLowerCase().includes(highlight.keyword.toLowerCase())) {
+                        
+                        // Check if user has overridden this color
+                        const overrideKey = `${highlight.keyword}_${highlight.color}`;
+                        const colorToApply = state.colorOverrides[overrideKey] || highlight.color;
+                        
+                        // Apply color to all cells in the row
+                        cells.forEach(cell => {
+                            cell.style.color = '#' + colorToApply;
+                        });
+                        
+                        return; // Exit after first match
+                    }
+                }
+            }
+        }
+        
+        // Highlight Color Application (legacy function - kept for compatibility)
         function applyHighlightColor(td, text, highlightColors) {
             if (!highlightColors || !Array.isArray(highlightColors)) {
                 return;
@@ -1674,10 +1709,19 @@ struct CompleteHTML {
                     
                     // Check if user has overridden this color
                     const overrideKey = `${highlight.keyword}_${highlight.color}`;
-                    if (state.colorOverrides[overrideKey]) {
-                        td.style.color = '#' + state.colorOverrides[overrideKey];
+                    const colorToApply = state.colorOverrides[overrideKey] || highlight.color;
+                    
+                    // Apply color to the entire row instead of just this cell
+                    const row = td.closest('tr');
+                    if (row) {
+                        // Apply color to all cells in the row
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach(cell => {
+                            cell.style.color = '#' + colorToApply;
+                        });
                     } else {
-                        td.style.color = '#' + highlight.color;
+                        // Fallback to cell-only highlighting if row not found
+                        td.style.color = '#' + colorToApply;
                     }
                     break; // Use the first matching highlight
                 }
@@ -1814,11 +1858,35 @@ struct CompleteHTML {
                 const cue = state.data.cues[rowIndex];
                 if (!cue) return;
                 
+                // Reset all cell colors in the row first
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    cell.style.color = '';
+                });
+                
+                // Check each cell for highlight keywords and apply row-level highlighting
+                let rowHighlighted = false;
                 state.columns.forEach((col, colIndex) => {
-                    if (colIndex < state.data.columns.length) {
+                    if (colIndex < state.data.columns.length && !rowHighlighted) {
                         const td = row.children[colIndex];
-                        if (td) {
-                            applyHighlightColor(td, cue.values[colIndex], state.data.highlightColors);
+                        if (td && cue.values[colIndex]) {
+                            // Check if this cell should trigger row highlighting
+                            for (const highlight of state.data.highlightColors) {
+                                if (highlight.keyword && highlight.color && 
+                                    cue.values[colIndex].toLowerCase().includes(highlight.keyword.toLowerCase())) {
+                                    
+                                    // Apply color to entire row
+                                    const overrideKey = `${highlight.keyword}_${highlight.color}`;
+                                    const colorToApply = state.colorOverrides[overrideKey] || highlight.color;
+                                    
+                                    cells.forEach(cell => {
+                                        cell.style.color = '#' + colorToApply;
+                                    });
+                                    
+                                    rowHighlighted = true;
+                                    break; // Use the first matching highlight
+                                }
+                            }
                         }
                     }
                 });

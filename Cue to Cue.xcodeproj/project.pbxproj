@@ -27,6 +27,13 @@
 		317961372C6AB64200C27D84 /* ViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 317961362C6AB64200C27D84 /* ViewExtensions.swift */; };
 		31AF370B2CF27E49008FE4BC /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31AF370A2CF27E49008FE4BC /* Metal.framework */; };
 		31CADDDB2C83ACD10072CFCE /* WebServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CADDDA2C83ACD10072CFCE /* WebServer.swift */; };
+		31WEBSERVER001 /* WebServerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER002 /* WebServerModels.swift */; };
+		31WEBSERVER003 /* NetworkUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER004 /* NetworkUtilities.swift */; };
+		31WEBSERVER005 /* DataSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER006 /* DataSyncManager.swift */; };
+		31WEBSERVER007 /* OfflineFileServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER008 /* OfflineFileServer.swift */; };
+		31WEBSERVER009 /* HTTPHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER010 /* HTTPHandler.swift */; };
+		31WEBSERVER011 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER012 /* ConnectionManager.swift */; };
+		31CONNECTION001 /* ConnectionMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CONNECTION002 /* ConnectionMonitorView.swift */; };
 		31CADDE52C856B200072CFCE /* CompleteHTML.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CADDE42C856B200072CFCE /* CompleteHTML.swift */; };
 		31D830E62D0B55D9001A8DB9 /* CueStackDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D830E52D0B55D9001A8DB9 /* CueStackDetailView.swift */; };
 		31E585762C86CB4300133E33 /* ScriptingBridge.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31E585752C86CB4300133E33 /* ScriptingBridge.framework */; platformFilters = (ios, macos, ); };
@@ -115,6 +122,13 @@
 		317961362C6AB64200C27D84 /* ViewExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewExtensions.swift; sourceTree = "<group>"; };
 		31AF370A2CF27E49008FE4BC /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.1.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		31CADDDA2C83ACD10072CFCE /* WebServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebServer.swift; sourceTree = "<group>"; };
+		31WEBSERVER002 /* WebServerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebServerModels.swift; sourceTree = "<group>"; };
+		31WEBSERVER004 /* NetworkUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkUtilities.swift; sourceTree = "<group>"; };
+		31WEBSERVER006 /* DataSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSyncManager.swift; sourceTree = "<group>"; };
+		31WEBSERVER008 /* OfflineFileServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineFileServer.swift; sourceTree = "<group>"; };
+		31WEBSERVER010 /* HTTPHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPHandler.swift; sourceTree = "<group>"; };
+		31WEBSERVER012 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
+		31CONNECTION002 /* ConnectionMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionMonitorView.swift; sourceTree = "<group>"; };
 		31CADDE12C83B0FB0072CFCE /* Cue-to-Cue-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Cue-to-Cue-Info.plist"; sourceTree = SOURCE_ROOT; };
 		31CADDE42C856B200072CFCE /* CompleteHTML.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompleteHTML.swift; sourceTree = "<group>"; };
 		31D830E52D0B55D9001A8DB9 /* CueStackDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueStackDetailView.swift; sourceTree = "<group>"; };
@@ -254,6 +268,13 @@
 				3179612A2C69C58F00C27D84 /* Utilities.swift */,
 				3179612C2C69C68900C27D84 /* Delegates.swift */,
 				31CADDDA2C83ACD10072CFCE /* WebServer.swift */,
+				31WEBSERVER002 /* WebServerModels.swift */,
+				31WEBSERVER004 /* NetworkUtilities.swift */,
+				31WEBSERVER006 /* DataSyncManager.swift */,
+				31WEBSERVER008 /* OfflineFileServer.swift */,
+				31WEBSERVER010 /* HTTPHandler.swift */,
+				31WEBSERVER012 /* ConnectionManager.swift */,
+				31CONNECTION002 /* ConnectionMonitorView.swift */,
 				31CADDE42C856B200072CFCE /* CompleteHTML.swift */,
 				31OFFLINE001 /* offline.html */,
 				31OFFLINE002 /* offline-styles.css */,
@@ -504,6 +525,13 @@
 				317961372C6AB64200C27D84 /* ViewExtensions.swift in Sources */,
 				317961292C69C4E600C27D84 /* ResizableContent.swift in Sources */,
 				31CADDDB2C83ACD10072CFCE /* WebServer.swift in Sources */,
+				31WEBSERVER001 /* WebServerModels.swift in Sources */,
+				31WEBSERVER003 /* NetworkUtilities.swift in Sources */,
+				31WEBSERVER005 /* DataSyncManager.swift in Sources */,
+				31WEBSERVER007 /* OfflineFileServer.swift in Sources */,
+				31WEBSERVER009 /* HTTPHandler.swift in Sources */,
+				31WEBSERVER011 /* ConnectionManager.swift in Sources */,
+				31CONNECTION001 /* ConnectionMonitorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -9,9 +9,12 @@ import Foundation
 
 struct HTMLStyles {
     static let content = """
+        /* Digital-7Mono font for timer displays - same as macOS app */
         @font-face {
             font-family: 'Digital-7Mono';
-            src: url('path/to/Digital-7Mono.woff2') format('woff2');
+            src: url('/digital-7-mono.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
         }
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Source+Code+Pro&display=swap');
         
@@ -132,16 +135,19 @@ struct HTMLStyles {
             letter-spacing: 0.5px;
         }
         .clock {
-            font-family: 'Digital-7Mono', monospace;
+            font-family: 'Digital-7Mono', 'Source Code Pro', monospace;
             font-size: 2rem;
             color: #ffffff;
+            letter-spacing: 1px;
         }
         .current-time { color: #4a90e2; }
         .countdown, .countup { color: #ff6b6b; } /* countdown and countdown-to-time */
         .date {
+            font-family: 'Digital-7Mono', 'Source Code Pro', monospace;
             font-size: 0.9rem;
             margin-bottom: 5px;
             color: #b0b0b0;
+            letter-spacing: 0.5px;
         }
 
         /* Column Header Controls */
@@ -313,11 +319,12 @@ struct HTMLStyles {
         }
 
         .timer-cell {
-            font-family: 'Source Code Pro', monospace;
+            font-family: 'Digital-7Mono', 'Source Code Pro', monospace;
             text-align: center;
             background-color: #555555 !important;
             border-radius: 4px;
             padding: 6px !important;
+            letter-spacing: 0.5px;
         }
 
         .struck {

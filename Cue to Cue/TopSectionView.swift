@@ -20,6 +20,7 @@ struct TopSectionView: View {
     @State private var isEditingCountdownToTime = false
 
     @Binding var showSettings: Bool
+    @Binding var showConnectionMonitor: Bool
     @EnvironmentObject var settingsManager: SettingsManager
     var updateWebClients: () -> Void
 
@@ -36,6 +37,7 @@ struct TopSectionView: View {
             currentTimeView
             countdownView(time: countdownTime, running: countdownRunning)
             countdownToTimeView()
+            networkButton
             settingsButton
         }
         .padding()
@@ -285,6 +287,15 @@ struct TopSectionView: View {
     private var settingsButton: some View {
         Button(action: { showSettings.toggle() }) {
             Image(systemName: "gear")
+                .resizable()
+                .frame(width: 24, height: 24)
+                .foregroundColor(settingsManager.settings.fontColor)
+        }
+    }
+    
+    private var networkButton: some View {
+        Button(action: { showConnectionMonitor.toggle() }) {
+            Image(systemName: "network")
                 .resizable()
                 .frame(width: 24, height: 24)
                 .foregroundColor(settingsManager.settings.fontColor)

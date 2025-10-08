@@ -303,10 +303,15 @@ class OfflineIntegration {
         try {
             // Test connection quality by making a small request
             const startTime = Date.now();
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+            
             const response = await fetch(`${window.location.origin}/health`, { 
                 method: 'HEAD',
-                cache: 'no-cache'
+                cache: 'no-cache',
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
             const endTime = Date.now();
             
             const responseTime = endTime - startTime;
@@ -322,11 +327,18 @@ class OfflineIntegration {
                     this.connectionQuality = 'poor';
                 }
                 
-                console.log(`🌐 Connection quality: ${this.connectionQuality} (${responseTime}ms)`);
+                // Connection quality determined silently to reduce console noise
             }
         } catch (error) {
             this.connectionQuality = 'unknown';
-            console.warn('⚠️ Could not determine connection quality:', error);
+            
+            // Handle timeout errors silently
+            if (error.name === 'AbortError') {
+                // Request was aborted due to timeout - this is normal
+                return;
+            }
+            
+            // Silently handle other connection quality check failures - this is normal when offline
         }
     }
     
@@ -360,7 +372,7 @@ class OfflineIntegration {
             // Update last save timestamp
             this.lastSaveTime = Date.now();
             
-            console.log('💾 Current state saved for offline use at', new Date(this.lastSaveTime).toLocaleTimeString());
+            // State saved silently - this happens frequently
             
         } catch (error) {
             console.warn('⚠️ Failed to save current state:', error);
@@ -1233,7 +1245,13 @@ class OfflineIntegration {
         try {
             this.showNotification('🔄 Restoring online page...', 'info');
             
-            const response = await fetch('/');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+            
+            const response = await fetch(`${window.location.origin}/`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
             if (response.ok) {
                 const html = await response.text();
                 document.documentElement.innerHTML = html;
@@ -1246,8 +1264,13 @@ class OfflineIntegration {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
         } catch (error) {
-            console.warn('⚠️ Failed to restore original page:', error);
-            this.showNotification('⚠️ Failed to restore online page', 'error');
+            // Handle timeout errors silently
+            if (error.name === 'AbortError') {
+                this.showNotification('⏰ Page restore timeout', 'warning');
+            } else {
+                console.warn('⚠️ Failed to restore original page:', error);
+                this.showNotification('⚠️ Failed to restore online page', 'error');
+            }
             
             // Fallback: try to reload the page
             setTimeout(() => {
@@ -1401,7 +1424,7 @@ class OfflineIntegration {
     
     /// Force save the current state immediately
     forceSaveCurrentState() {
-        console.log('💾 Force saving current state...');
+        // Force saving current state silently
         this.saveCurrentState();
     }
     
@@ -1462,8 +1485,7 @@ class OfflineIntegration {
             }
             
         } catch (error) {
-            console.warn('⚠️ Reconnection failed:', error);
-            
+            // Silently handle reconnection failures - this is normal when offline
             if (error.name === 'AbortError') {
                 this.showNotification('⏰ Connection timeout. Please check your network.', 'warning');
             } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
