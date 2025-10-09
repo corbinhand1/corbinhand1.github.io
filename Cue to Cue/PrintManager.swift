@@ -333,6 +333,9 @@ func performPrint(cueStacks: [CueStack], fontSize: CGFloat) {
         }
     }
     
+    // Get highlight colors from settings
+    let highlightColors = SettingsManager().settings.highlightColors
+    
     // Create a paginated printable view
     let printView = CueStackPaginatedView(
         cueStacks: modifiedCueStacks,
@@ -342,7 +345,8 @@ func performPrint(cueStacks: [CueStack], fontSize: CGFloat) {
         showPageNumbers: showPageNumbers,
         useColumnLayout: useColumnLayout,
         showTimeColumns: showTimeColumn,
-        useLandscape: useLandscape
+        useLandscape: useLandscape,
+        highlightColors: highlightColors
     )
     
     // Configure print info

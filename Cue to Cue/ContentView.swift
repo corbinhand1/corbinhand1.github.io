@@ -789,8 +789,8 @@ struct ContentView: View {
     
     /// Call this function (for example, from your File > Print menu) to show the print options.
     func printCueStacks() {
-        // Preselect all cue stacks by default.
-        printSelectedCueStackIndices = Set(cueStacks.indices)
+        // Don't preselect any cue stacks - let user choose manually
+        printSelectedCueStackIndices = Set<Int>()
         showPrintSheet = true
     }
     

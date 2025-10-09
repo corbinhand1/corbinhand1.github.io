@@ -64,13 +64,15 @@ extension CueStackPaginatedView {
                                  startY: yPosition,
                                  width: contentWidth,
                                  dirtyRect: dirtyRect,
-                                 yPos: &yPosition)
+                                 yPos: &yPosition,
+                                 highlightColors: highlightColors)
             } else {
                 drawCompactLayout(cueStack: cueStack,
                                   startY: yPosition,
                                   width: contentWidth,
                                   dirtyRect: dirtyRect,
-                                  yPos: &yPosition)
+                                  yPos: &yPosition,
+                                  highlightColors: highlightColors)
             }
             
             // Draw divider line if visible
@@ -90,7 +92,8 @@ extension CueStackPaginatedView {
                                   startY: CGFloat,
                                   width: CGFloat,
                                   dirtyRect: NSRect,
-                                  yPos: inout CGFloat) {
+                                  yPos: inout CGFloat,
+                                  highlightColors: [HighlightColorSetting]) {
         guard !cueStack.columns.isEmpty else { return }
         
         let contentX: CGFloat = 36.0 // Left margin
@@ -110,12 +113,12 @@ extension CueStackPaginatedView {
             columnPositions.append(runningX)
         }
         
-        let rowHeight: CGFloat = fontSize * 1.5 + 8.0
+        let baseRowHeight: CGFloat = fontSize * 1.5 + 8.0
         
         // Header row
         if showHeaders {
-            if currentY + rowHeight >= dirtyRect.minY && currentY <= dirtyRect.maxY {
-                let headerBackground = NSRect(x: contentX, y: currentY, width: width, height: rowHeight)
+            if currentY + baseRowHeight >= dirtyRect.minY && currentY <= dirtyRect.maxY {
+                let headerBackground = NSRect(x: contentX, y: currentY, width: width, height: baseRowHeight)
                 NSColor.lightGray.withAlphaComponent(0.2).setFill()
                 // Check if context exists before drawing using NSBezierPath
                 if NSGraphicsContext.current != nil {
@@ -127,14 +130,16 @@ extension CueStackPaginatedView {
                 for colIndex in 0..<cueStack.columns.count {
                     let headerName = cueStack.columns[colIndex].name
                     let colX = columnPositions[colIndex]
+                    let colWidth = columnWidths[colIndex]
                     
                     let headerAttributes: [NSAttributedString.Key: Any] = [
                         .font: NSFont.boldSystemFont(ofSize: fontSize),
-                        .foregroundColor: NSColor.black
+                        .foregroundColor: NSColor.black,
+                        .paragraphStyle: getParagraphStyle(for: colWidth - 16.0)
                     ]
                     
                     let headerText = NSAttributedString(string: headerName, attributes: headerAttributes)
-                    headerText.draw(at: NSPoint(x: colX + 8.0, y: currentY + (rowHeight - headerText.size().height) / 2))
+                    headerText.draw(at: NSPoint(x: colX + 8.0, y: currentY + (baseRowHeight - headerText.size().height) / 2))
                 }
                 
                 // Time column header (if showing time)
@@ -148,24 +153,49 @@ extension CueStackPaginatedView {
                     let timeHeader = NSAttributedString(string: "Time", attributes: timeHeaderAttributes)
                     let timeTextSize = timeHeader.size()
                     timeHeader.draw(at: NSPoint(x: timeX + (75.0 - timeTextSize.width) - 4.0,
-                                                  y: currentY + (rowHeight - timeTextSize.height) / 2))
+                                                  y: currentY + (baseRowHeight - timeTextSize.height) / 2))
                 }
             }
             
-            currentY += rowHeight + 4.0 // Move below header
+            currentY += baseRowHeight + 4.0 // Move below header
         }
         
         // Draw each cue row
         for cueIndex in 0..<cueStack.cues.count {
-            if currentY + rowHeight < dirtyRect.minY || currentY > dirtyRect.maxY {
-                currentY += rowHeight
+            let cue = cueStack.cues[cueIndex]
+            let _ = currentY // Track row start position
+            
+            // Calculate the maximum height needed for this row
+            // Only Description column (index 1) can wrap, others are single-line
+            var maxRowHeight: CGFloat = baseRowHeight
+            
+            // Check Description column for wrapping height
+            if cueStack.columns.count > 1 && cue.values.count > 1 {
+                let value = cue.values[1] // Description column
+                let colWidth = columnWidths[1]
+                
+                let valueAttributes: [NSAttributedString.Key: Any] = [
+                    .font: NSFont.systemFont(ofSize: fontSize),
+                    .foregroundColor: NSColor.black,
+                    .paragraphStyle: getWrappingParagraphStyle(for: colWidth - 16.0)
+                ]
+                
+                let valueText = NSAttributedString(string: value, attributes: valueAttributes)
+                let textRect = valueText.boundingRect(with: NSSize(width: colWidth - 16.0, height: 1000), 
+                                                     options: [.usesLineFragmentOrigin])
+                
+                maxRowHeight = max(maxRowHeight, textRect.height + 8.0)
+            }
+            
+            // Skip drawing if this row is completely outside the dirty rect
+            if currentY + maxRowHeight < dirtyRect.minY || currentY > dirtyRect.maxY {
+                currentY += maxRowHeight
                 continue
             }
             
-            let cue = cueStack.cues[cueIndex]
-            
+            // Draw alternating row background
             if cueIndex % 2 != 0 {
-                let rowBackground = NSRect(x: contentX, y: currentY, width: width, height: rowHeight)
+                let rowBackground = NSRect(x: contentX, y: currentY, width: width, height: maxRowHeight)
                 NSColor.lightGray.withAlphaComponent(0.05).setFill()
                 if NSGraphicsContext.current != nil {
                     NSBezierPath(roundedRect: rowBackground, xRadius: 2.0, yRadius: 2.0).fill()
@@ -174,6 +204,7 @@ extension CueStackPaginatedView {
                 }
             }
             
+            // Draw each column's text with proper wrapping
             for colIndex in 0..<min(cueStack.columns.count, cue.values.count) {
                 let value = cue.values[colIndex]
                 let colX = columnPositions[colIndex]
@@ -183,26 +214,46 @@ extension CueStackPaginatedView {
                 if cue.isStruckThrough {
                     valueColor = NSColor.gray
                 } else if useColors {
-                    if value.lowercased().contains("warning") {
-                        valueColor = NSColor.red
-                    } else if value.lowercased().contains("note") {
-                        valueColor = NSColor.blue
-                    } else {
-                        valueColor = NSColor.black
-                    }
+                    // Use the actual highlight color system from settings
+                    valueColor = getHighlightColorForCue(cue, highlightColors: highlightColors)
                 } else {
                     valueColor = NSColor.black
+                }
+                
+                // Use different paragraph styles based on column type
+                let paragraphStyle: NSParagraphStyle
+                if colIndex == 1 {
+                    // Description column - use wrapping
+                    paragraphStyle = getWrappingParagraphStyle(for: colWidth - 16.0)
+                } else {
+                    // All other columns - use truncation for single-line display
+                    paragraphStyle = getParagraphStyle(for: colWidth - 16.0)
                 }
                 
                 let valueAttributes: [NSAttributedString.Key: Any] = [
                     .font: NSFont.systemFont(ofSize: fontSize),
                     .foregroundColor: valueColor,
                     .strikethroughStyle: cue.isStruckThrough ? NSUnderlineStyle.single.rawValue : 0,
-                    .paragraphStyle: getParagraphStyle(for: colWidth - 16.0)
+                    .paragraphStyle: paragraphStyle
                 ]
                 
                 let valueText = NSAttributedString(string: value, attributes: valueAttributes)
-                valueText.draw(at: NSPoint(x: colX + 8.0, y: currentY + (rowHeight - valueText.size().height) / 2))
+                
+                if colIndex == 1 {
+                    // Description column - draw with wrapping
+                    let textRect = valueText.boundingRect(with: NSSize(width: colWidth - 16.0, height: 1000), 
+                                                         options: [.usesLineFragmentOrigin])
+                    
+                    if currentY + textRect.height >= dirtyRect.minY && currentY <= dirtyRect.maxY {
+                        valueText.draw(in: NSRect(x: colX + 8.0, y: currentY + (maxRowHeight - textRect.height) / 2, 
+                                                width: colWidth - 16.0, height: textRect.height))
+                    }
+                } else {
+                    // All other columns - draw single line with truncation
+                    if currentY + fontSize * 1.5 >= dirtyRect.minY && currentY <= dirtyRect.maxY {
+                        valueText.draw(at: NSPoint(x: colX + 8.0, y: currentY + (maxRowHeight - fontSize * 1.5) / 2))
+                    }
+                }
             }
             
             // Draw timer value (if showing time)
@@ -216,10 +267,10 @@ extension CueStackPaginatedView {
                 let timeValue = NSAttributedString(string: cue.timerValue, attributes: timeAttributes)
                 let timeSize = timeValue.size()
                 timeValue.draw(at: NSPoint(x: timeX + (75.0 - timeSize.width) - 4.0,
-                                            y: currentY + (rowHeight - timeSize.height) / 2))
+                                            y: currentY + (maxRowHeight - timeSize.height) / 2))
             }
             
-            currentY += rowHeight
+            currentY += maxRowHeight
         }
         
         currentY += 16.0
@@ -230,7 +281,8 @@ extension CueStackPaginatedView {
                                    startY: CGFloat,
                                    width: CGFloat,
                                    dirtyRect: NSRect,
-                                   yPos: inout CGFloat) {
+                                   yPos: inout CGFloat,
+                                   highlightColors: [HighlightColorSetting]) {
         let contentX: CGFloat = 36.0 // Left margin
         var currentY = startY
         let includeTimeColumn = showTimeColumns[cueStacks.firstIndex(where: { $0.name == cueStack.name }) ?? 0] ?? true
@@ -283,13 +335,8 @@ extension CueStackPaginatedView {
                     if cue.isStruckThrough {
                         valueColor = NSColor.gray
                     } else if useColors {
-                        if cue.values[colIndex].lowercased().contains("warning") {
-                            valueColor = NSColor.red
-                        } else if cue.values[colIndex].lowercased().contains("note") {
-                            valueColor = NSColor.blue
-                        } else {
-                            valueColor = NSColor.black
-                        }
+                        // Use the actual highlight color system from settings
+                        valueColor = getHighlightColorForCue(cue, highlightColors: highlightColors)
                     } else {
                         valueColor = NSColor.black
                     }
@@ -343,5 +390,30 @@ extension CueStackPaginatedView {
         style.alignment = .left
         style.allowsDefaultTighteningForTruncation = true
         return style
+    }
+    
+    /// Creates and returns a paragraph style with word wrapping enabled.
+    private func getWrappingParagraphStyle(for width: CGFloat) -> NSParagraphStyle {
+        let style = NSMutableParagraphStyle()
+        style.lineBreakMode = .byWordWrapping
+        style.alignment = .left
+        style.allowsDefaultTighteningForTruncation = true
+        return style
+    }
+    
+    /// Gets the highlight color for a cue based on the highlight color settings.
+    private func getHighlightColorForCue(_ cue: Cue, highlightColors: [HighlightColorSetting]) -> NSColor {
+        // Check each highlight color setting
+        for highlight in highlightColors {
+            // Check if any value in the cue contains the keyword
+            for value in cue.values {
+                if value.lowercased().contains(highlight.keyword.lowercased()) {
+                    // Convert SwiftUI Color to NSColor
+                    return NSColor(highlight.color)
+                }
+            }
+        }
+        // Return black if no highlight matches
+        return NSColor.black
     }
 }

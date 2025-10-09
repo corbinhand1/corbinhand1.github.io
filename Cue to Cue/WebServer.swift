@@ -126,11 +126,11 @@ class WebServer: ObservableObject {
         switch state {
         case .ready:
             break
-        case .failed(let error):
+        case .failed(_):
             break
         case .cancelled:
             break
-        case .waiting(let error):
+        case .waiting(_):
             break
         case .setup:
             break

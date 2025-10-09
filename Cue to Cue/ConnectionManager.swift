@@ -108,7 +108,7 @@ class ConnectionManager: ObservableObject {
                 self._activeConnections.remove(at: index)
                 // Remove request count tracking
                 let id = ObjectIdentifier(connection)
-                let requestCount = self._connectionRequestCounts[id] ?? 0
+                let _ = self._connectionRequestCounts[id] ?? 0 // Track request count
                 let userAgent = self._connectionUserAgents[id] ?? "Unknown"
                 let ipAddress = NetworkUtilities.extractIPAddress(from: String(describing: connection.endpoint))
                 

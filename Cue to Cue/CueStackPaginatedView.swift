@@ -79,7 +79,7 @@ class CueStackPaginatedView: NSView {
         return showTimeColumns[stackIndex] ?? true
     }
     
-    /// Calculates the column widths for each cue stack based on the relative widths and content sizes.
+    /// Calculates the column widths for each cue stack with smart auto-adjustment and priority wrapping.
     func calculateColumnWidths() {
         for stackIndex in 0..<cueStacks.count {
             let cueStack = cueStacks[stackIndex]
@@ -91,9 +91,6 @@ class CueStackPaginatedView: NSView {
                 columnWidthCache[stackIndex] = []
                 continue
             }
-            
-            // Total relative width from the cue stack's columns
-            let totalStackWidth = cueStack.columns.reduce(0) { $0 + $1.width }
             
             // Determine the longest text width for each column (header and content)
             var longestTextWidths: [CGFloat] = Array(repeating: 0, count: cueStack.columns.count)
@@ -115,30 +112,61 @@ class CueStackPaginatedView: NSView {
             
             longestTextCache[stackIndex] = longestTextWidths
             
-            // Calculate column widths based on proportion and content
-            var columnWidths: [CGFloat] = []
-            if totalStackWidth > 0 {
-                for (i, column) in cueStack.columns.enumerated() {
-                    let proportion = CGFloat(column.width) / CGFloat(totalStackWidth)
-                    let baseWidth = availableWidth * proportion
-                    let minWidth = min(longestTextWidths[i], baseWidth * 1.5)
-                    columnWidths.append(max(baseWidth, minWidth))
-                }
-            } else {
-                let equalWidth = availableWidth / CGFloat(cueStack.columns.count)
-                columnWidths = Array(repeating: equalWidth, count: cueStack.columns.count)
-            }
-            
-            // Ensure a minimum width and adjust to fit the available width
-            columnWidths = columnWidths.map { max($0, 50) }
-            let totalWidth = columnWidths.reduce(0, +)
-            if totalWidth > availableWidth {
-                let scaleFactor = availableWidth / totalWidth
-                columnWidths = columnWidths.map { $0 * scaleFactor }
-            }
+            // Smart column width calculation with priority wrapping
+            var columnWidths = calculateSmartColumnWidths(
+                cueStack: cueStack,
+                longestTextWidths: longestTextWidths,
+                availableWidth: availableWidth
+            )
             
             columnWidthCache[stackIndex] = columnWidths
         }
+    }
+    
+    /// Calculates smart column widths with single-line priority for all columns except Description.
+    private func calculateSmartColumnWidths(cueStack: CueStack, longestTextWidths: [CGFloat], availableWidth: CGFloat) -> [CGFloat] {
+        let columnCount = cueStack.columns.count
+        var columnWidths: [CGFloat] = Array(repeating: 0, count: columnCount)
+        
+        // Step 1: Assign exact widths needed for single-line display to all columns except Description
+        for i in 0..<columnCount {
+            if i == 1 {
+                // Description column - start with minimum width, will expand later
+                columnWidths[i] = max(120, longestTextWidths[i])
+            } else {
+                // All other columns - give them exactly what they need for single line
+                columnWidths[i] = longestTextWidths[i]
+            }
+        }
+        
+        // Step 2: Calculate remaining width after single-line assignments
+        let usedWidth = columnWidths.reduce(0, +)
+        let remainingWidth = max(0, availableWidth - usedWidth)
+        
+        // Step 3: Give ALL remaining width to Description column
+        if remainingWidth > 0 && columnCount > 1 {
+            columnWidths[1] += remainingWidth
+        }
+        
+        // Step 4: If still too wide, only reduce Description column
+        let totalWidth = columnWidths.reduce(0, +)
+        if totalWidth > availableWidth {
+            let excessWidth = totalWidth - availableWidth
+            
+            // Only reduce Description column - keep all other columns at their single-line width
+            if columnCount > 1 {
+                let minDescriptionWidth: CGFloat = 120
+                let currentDescriptionWidth = columnWidths[1]
+                let maxReduction = currentDescriptionWidth - minDescriptionWidth
+                
+                if maxReduction > 0 {
+                    let reduction = min(maxReduction, excessWidth)
+                    columnWidths[1] -= reduction
+                }
+            }
+        }
+        
+        return columnWidths
     }
     
     /// Measures the required width for the time column based on its content.
@@ -172,11 +200,31 @@ class CueStackPaginatedView: NSView {
             yPos += stackNameSize.height + 16
             
             if useColumnLayout {
-                let rowHeight = fontSize * 1.5 + 8
+                let baseRowHeight = fontSize * 1.5 + 8
                 if showHeaders && !cueStack.columns.isEmpty {
-                    yPos += rowHeight + 4
+                    yPos += baseRowHeight + 4
                 }
-                yPos += CGFloat(cueStack.cues.count) * rowHeight
+                
+                // Calculate actual row heights - only Description column can wrap
+                for cue in cueStack.cues {
+                    var maxRowHeight: CGFloat = baseRowHeight
+                    
+                    // Only check Description column (index 1) for wrapping height
+                    if cueStack.columns.count > 1 && cue.values.count > 1 {
+                        let value = cue.values[1] // Description column
+                        let colWidth = columnWidthCache[stackIndex]?[1] ?? 200
+                        
+                        let textAttributes = [NSAttributedString.Key.font: NSFont.systemFont(ofSize: fontSize)]
+                        let valueText = NSAttributedString(string: value, attributes: textAttributes)
+                        let textRect = valueText.boundingRect(with: NSSize(width: colWidth - 16, height: 1000), 
+                                                             options: [.usesLineFragmentOrigin])
+                        
+                        maxRowHeight = max(maxRowHeight, textRect.height + 8)
+                    }
+                    
+                    yPos += maxRowHeight
+                }
+                
                 yPos += 16 // Extra space after rows
             } else {
                 for cueIndex in 0..<cueStack.cues.count {
@@ -277,11 +325,26 @@ class CueStackPaginatedView: NSView {
                 rowPositions.append((headerRowStart, yPosition - headerRowStart))
             }
             
-            let rowHeight = fontSize * 1.5 + 8
-            for _ in 0..<cueStack.cues.count {
+            // Calculate dynamic row heights for each cue - only Description column can wrap
+            for cue in cueStack.cues {
                 let rowStart = yPosition
-                yPosition += rowHeight
-                rowPositions.append((rowStart, rowHeight))
+                var maxRowHeight: CGFloat = fontSize * 1.5 + 8
+                
+                // Only check Description column (index 1) for wrapping height
+                if cueStack.columns.count > 1 && cue.values.count > 1 {
+                    let value = cue.values[1] // Description column
+                    let colWidth = columnWidthCache[stackIndex]?[1] ?? 200
+                    
+                    let textAttributes = [NSAttributedString.Key.font: NSFont.systemFont(ofSize: fontSize)]
+                    let valueText = NSAttributedString(string: value, attributes: textAttributes)
+                    let textRect = valueText.boundingRect(with: NSSize(width: colWidth - 16, height: 1000), 
+                                                         options: [.usesLineFragmentOrigin])
+                    
+                    maxRowHeight = max(maxRowHeight, textRect.height + 8)
+                }
+                
+                yPosition += maxRowHeight
+                rowPositions.append((rowStart, maxRowHeight))
             }
             
             yPosition += 16 // After rows

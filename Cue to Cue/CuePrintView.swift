@@ -18,6 +18,7 @@ class CueStackPaginatedView: NSView {
     var contentHeight: CGFloat = 0
     var useLandscape: Bool
     var contentWidth: CGFloat = 612 // Default width for portrait
+    var highlightColors: [HighlightColorSetting] = []
     
     // Changed from private to internal so the extension can access these properties.
     var columnWidthCache: [Int: [CGFloat]] = [:] // [stackIndex: [columnWidths]]
@@ -31,7 +32,8 @@ class CueStackPaginatedView: NSView {
          showPageNumbers: Bool,
          useColumnLayout: Bool,
          showTimeColumns: [Int: Bool],
-         useLandscape: Bool = false) {
+         useLandscape: Bool = false,
+         highlightColors: [HighlightColorSetting] = []) {
         self.cueStacks = cueStacks
         self.fontSize = fontSize
         self.useColors = useColors
@@ -40,6 +42,7 @@ class CueStackPaginatedView: NSView {
         self.useColumnLayout = useColumnLayout
         self.showTimeColumns = showTimeColumns
         self.useLandscape = useLandscape
+        self.highlightColors = highlightColors
         
         // Determine initial frame width based on orientation
         self.contentWidth = useLandscape ? 792 : 612 // 8.5" x 11" paper in points
@@ -71,7 +74,7 @@ class CueStackPaginatedView: NSView {
         return showTimeColumns[stackIndex] ?? true
     }
     
-    /// Calculates the column widths for each cue stack based on the relative widths and content sizes.
+    /// Calculates the column widths for each cue stack with smart auto-adjustment and priority wrapping.
     func calculateColumnWidths() {
         for stackIndex in 0..<cueStacks.count {
             let cueStack = cueStacks[stackIndex]
@@ -83,9 +86,6 @@ class CueStackPaginatedView: NSView {
                 columnWidthCache[stackIndex] = []
                 continue
             }
-            
-            // Total relative width from the cue stack's columns
-            let totalStackWidth = cueStack.columns.reduce(0) { $0 + $1.width }
             
             // Determine the longest text width for each column (header and content)
             var longestTextWidths: [CGFloat] = Array(repeating: 0, count: cueStack.columns.count)
@@ -107,30 +107,61 @@ class CueStackPaginatedView: NSView {
             
             longestTextCache[stackIndex] = longestTextWidths
             
-            // Calculate column widths based on proportion and content
-            var columnWidths: [CGFloat] = []
-            if totalStackWidth > 0 {
-                for (i, column) in cueStack.columns.enumerated() {
-                    let proportion = CGFloat(column.width) / CGFloat(totalStackWidth)
-                    let baseWidth = availableWidth * proportion
-                    let minWidth = min(longestTextWidths[i], baseWidth * 1.5)
-                    columnWidths.append(max(baseWidth, minWidth))
-                }
-            } else {
-                let equalWidth = availableWidth / CGFloat(cueStack.columns.count)
-                columnWidths = Array(repeating: equalWidth, count: cueStack.columns.count)
-            }
-            
-            // Ensure a minimum width and adjust to fit the available width
-            columnWidths = columnWidths.map { max($0, 50) }
-            let totalWidth = columnWidths.reduce(0, +)
-            if totalWidth > availableWidth {
-                let scaleFactor = availableWidth / totalWidth
-                columnWidths = columnWidths.map { $0 * scaleFactor }
-            }
+            // Smart column width calculation with priority wrapping
+            let columnWidths = calculateSmartColumnWidths(
+                cueStack: cueStack,
+                longestTextWidths: longestTextWidths,
+                availableWidth: availableWidth
+            )
             
             columnWidthCache[stackIndex] = columnWidths
         }
+    }
+    
+    /// Calculates smart column widths with single-line priority for all columns except Description.
+    private func calculateSmartColumnWidths(cueStack: CueStack, longestTextWidths: [CGFloat], availableWidth: CGFloat) -> [CGFloat] {
+        let columnCount = cueStack.columns.count
+        var columnWidths: [CGFloat] = Array(repeating: 0, count: columnCount)
+        
+        // Step 1: Assign exact widths needed for single-line display to all columns except Description
+        for i in 0..<columnCount {
+            if i == 1 {
+                // Description column - start with minimum width, will expand later
+                columnWidths[i] = max(120, longestTextWidths[i])
+            } else {
+                // All other columns - give them exactly what they need for single line
+                columnWidths[i] = longestTextWidths[i]
+            }
+        }
+        
+        // Step 2: Calculate remaining width after single-line assignments
+        let usedWidth = columnWidths.reduce(0, +)
+        let remainingWidth = max(0, availableWidth - usedWidth)
+        
+        // Step 3: Give ALL remaining width to Description column
+        if remainingWidth > 0 && columnCount > 1 {
+            columnWidths[1] += remainingWidth
+        }
+        
+        // Step 4: If still too wide, only reduce Description column
+        let totalWidth = columnWidths.reduce(0, +)
+        if totalWidth > availableWidth {
+            let excessWidth = totalWidth - availableWidth
+            
+            // Only reduce Description column - keep all other columns at their single-line width
+            if columnCount > 1 {
+                let minDescriptionWidth: CGFloat = 120
+                let currentDescriptionWidth = columnWidths[1]
+                let maxReduction = currentDescriptionWidth - minDescriptionWidth
+                
+                if maxReduction > 0 {
+                    let reduction = min(maxReduction, excessWidth)
+                    columnWidths[1] -= reduction
+                }
+            }
+        }
+        
+        return columnWidths
     }
     
     /// Measures the required width for the time column based on its content.
