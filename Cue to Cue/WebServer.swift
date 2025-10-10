@@ -31,25 +31,30 @@ class WebServer: ObservableObject {
     private let connectionManager: ConnectionManager
     private let httpHandler: HTTPHandler
     private let offlineFileServer: OfflineFileServer
-    private let dataSyncManager: DataSyncManager
+    let dataSyncManager: DataSyncManager
     private let networkUtilities: NetworkUtilities
+    let authManager: AuthenticationManager
     
     // MARK: - Initialization
     
-    init() {
+    init(dataSyncManager: DataSyncManager) {
         self.port = 8080
         
-        // Initialize dependencies
-        self.dataSyncManager = DataSyncManager()
+        // Use the provided DataSyncManager instead of creating a new one
+        self.dataSyncManager = dataSyncManager
         self.networkUtilities = NetworkUtilities()
         self.offlineFileServer = OfflineFileServer()
+        self.authManager = AuthenticationManager(dataSyncManager: dataSyncManager)
+        
+        // Create test data if needed
+        self.dataSyncManager.createTestDataIfNeeded()
         
         // Create a temporary HTTPHandler for ConnectionManager initialization
-        let tempHTTPHandler = HTTPHandler(dataSyncManager: dataSyncManager, offlineFileServer: offlineFileServer, networkUtilities: networkUtilities, connectionManager: nil)
+        let tempHTTPHandler = HTTPHandler(dataSyncManager: dataSyncManager, offlineFileServer: offlineFileServer, networkUtilities: networkUtilities, connectionManager: nil, authManager: authManager)
         self.connectionManager = ConnectionManager(httpHandler: tempHTTPHandler)
         
         // Now create the real HTTPHandler with the connection manager
-        self.httpHandler = HTTPHandler(dataSyncManager: dataSyncManager, offlineFileServer: offlineFileServer, networkUtilities: networkUtilities, connectionManager: connectionManager)
+        self.httpHandler = HTTPHandler(dataSyncManager: dataSyncManager, offlineFileServer: offlineFileServer, networkUtilities: networkUtilities, connectionManager: connectionManager, authManager: authManager)
         
         // Initialize published properties safely for initialization
         initializePublishedProperties()

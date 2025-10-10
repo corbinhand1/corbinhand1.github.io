@@ -29,6 +29,13 @@ struct CompleteHTML {
             <span class="status-text" id="statusText">Disconnected</span>
         </div>
         <h1>Cue to Cue Viewer</h1>
+        <div class="auth-container" id="authContainer">
+            <div class="auth-status" id="authStatus">
+                <span id="userInfo">Not logged in</span>
+                <button id="loginButton" class="auth-button">Login</button>
+                <button id="logoutButton" class="auth-button" style="display: none;">Logout</button>
+            </div>
+        </div>
         <div class="clocks-container">
             <div class="clock-box">
                 <div class="clock-label">Current Time</div>
@@ -90,6 +97,34 @@ struct CompleteHTML {
 
     <!-- Settings Overlay -->
     <div class="settings-overlay" id="settingsOverlay"></div>
+
+    <!-- Login Modal -->
+    <div class="login-modal" id="loginModal">
+        <div class="login-content">
+            <div class="login-header">
+                <h2>Login to Edit</h2>
+                <p>Enter your credentials to edit cue data</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelLogin" class="secondary">Cancel</button>
+                    <button type="submit" id="submitLogin" class="primary">Login</button>
+                </div>
+            </form>
+            <div class="login-error" id="loginError" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Login Overlay -->
+    <div class="login-overlay" id="loginOverlay"></div>
 
     <script>
         \(HTMLJavaScript.content)

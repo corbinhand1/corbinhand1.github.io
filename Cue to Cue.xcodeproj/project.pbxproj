@@ -33,6 +33,8 @@
 		31WEBSERVER007 /* OfflineFileServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER008 /* OfflineFileServer.swift */; };
 		31WEBSERVER009 /* HTTPHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER010 /* HTTPHandler.swift */; };
 		31WEBSERVER011 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER012 /* ConnectionManager.swift */; };
+		31AUTH001 /* AuthenticationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31AUTH002 /* AuthenticationManager.swift */; };
+		31AUTH003 /* UserManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31AUTH004 /* UserManagementView.swift */; };
 		31CONNECTION001 /* ConnectionMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CONNECTION002 /* ConnectionMonitorView.swift */; };
 		31CADDE52C856B200072CFCE /* CompleteHTML.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CADDE42C856B200072CFCE /* CompleteHTML.swift */; };
 		31D830E62D0B55D9001A8DB9 /* CueStackDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D830E52D0B55D9001A8DB9 /* CueStackDetailView.swift */; };
@@ -128,6 +130,8 @@
 		31WEBSERVER008 /* OfflineFileServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineFileServer.swift; sourceTree = "<group>"; };
 		31WEBSERVER010 /* HTTPHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPHandler.swift; sourceTree = "<group>"; };
 		31WEBSERVER012 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
+		31AUTH002 /* AuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationManager.swift; sourceTree = "<group>"; };
+		31AUTH004 /* UserManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementView.swift; sourceTree = "<group>"; };
 		31CONNECTION002 /* ConnectionMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionMonitorView.swift; sourceTree = "<group>"; };
 		31CADDE12C83B0FB0072CFCE /* Cue-to-Cue-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Cue-to-Cue-Info.plist"; sourceTree = SOURCE_ROOT; };
 		31CADDE42C856B200072CFCE /* CompleteHTML.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompleteHTML.swift; sourceTree = "<group>"; };
@@ -274,6 +278,8 @@
 				31WEBSERVER008 /* OfflineFileServer.swift */,
 				31WEBSERVER010 /* HTTPHandler.swift */,
 				31WEBSERVER012 /* ConnectionManager.swift */,
+				31AUTH002 /* AuthenticationManager.swift */,
+				31AUTH004 /* UserManagementView.swift */,
 				31CONNECTION002 /* ConnectionMonitorView.swift */,
 				31CADDE42C856B200072CFCE /* CompleteHTML.swift */,
 				31OFFLINE001 /* offline.html */,
@@ -531,6 +537,8 @@
 				31WEBSERVER007 /* OfflineFileServer.swift in Sources */,
 				31WEBSERVER009 /* HTTPHandler.swift in Sources */,
 				31WEBSERVER011 /* ConnectionManager.swift in Sources */,
+				31AUTH001 /* AuthenticationManager.swift in Sources */,
+				31AUTH003 /* UserManagementView.swift in Sources */,
 				31CONNECTION001 /* ConnectionMonitorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

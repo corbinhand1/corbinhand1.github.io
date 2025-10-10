@@ -10,12 +10,14 @@ import Foundation
 struct HTMLStyles {
     static let content = """
         /* Digital-7Mono font for timer displays - same as macOS app */
+        /* Digital Clock Font - Commented out due to missing font file
         @font-face {
             font-family: 'Digital-7Mono';
             src: url('/digital-7-mono.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
+        */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Source+Code+Pro&display=swap');
         
         /* Reset and Base Styles */
@@ -135,15 +137,16 @@ struct HTMLStyles {
             letter-spacing: 0.5px;
         }
         .clock {
-            font-family: 'Digital-7Mono', 'Source Code Pro', monospace;
+            font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
             font-size: 2rem;
             color: #ffffff;
             letter-spacing: 1px;
+            font-weight: bold;
         }
         .current-time { color: #4a90e2; }
         .countdown, .countup { color: #ff6b6b; } /* countdown and countdown-to-time */
         .date {
-            font-family: 'Digital-7Mono', 'Source Code Pro', monospace;
+            font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
             font-size: 0.9rem;
             margin-bottom: 5px;
             color: #b0b0b0;
@@ -422,6 +425,22 @@ struct HTMLStyles {
             
             .status-text {
                 font-size: 0.7rem;
+            }
+            
+            /* Adjust auth container for small screens */
+            .auth-container {
+                left: 15px;
+                gap: 8px;
+            }
+            
+            .auth-status {
+                gap: 8px;
+                font-size: 12px;
+            }
+            
+            .auth-button {
+                padding: 4px 8px;
+                font-size: 11px;
             }
         }
 
@@ -993,6 +1012,230 @@ struct HTMLStyles {
             .web-settings-panel button {
                 min-height: 44px;
             }
+        }
+
+        /* Authentication Styles */
+        .auth-container {
+            position: absolute;
+            top: max(5px, env(safe-area-inset-top) + 5px);
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1001;
+        }
+
+        .auth-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .auth-button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .auth-button:hover {
+            background: #0056CC;
+        }
+
+        .auth-button:active {
+            background: #004499;
+        }
+
+        /* Login Modal */
+        .login-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .login-modal.show {
+            display: flex;
+        }
+
+        .login-content {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .login-header h2 {
+            color: #ffffff;
+            margin-bottom: 8px;
+            font-size: 24px;
+        }
+
+        .login-header p {
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #404040;
+            border-radius: 8px;
+            background: #2a2a2a;
+            color: #ffffff;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #007AFF;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        .form-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .form-actions .primary {
+            background: #007AFF;
+            color: white;
+        }
+
+        .form-actions .primary:hover {
+            background: #0056CC;
+        }
+
+        .form-actions .secondary {
+            background: #404040;
+            color: #e0e0e0;
+        }
+
+        .form-actions .secondary:hover {
+            background: #505050;
+        }
+
+        .login-error {
+            background: #ff4444;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        /* Login Overlay */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 9999;
+        }
+
+        .login-overlay.show {
+            display: block;
+        }
+
+        /* Edit Indicators - Production Ready */
+        .editable-cell {
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .editable-cell:hover {
+            background: rgba(0, 122, 255, 0.1) !important;
+            border: 1px solid rgba(0, 122, 255, 0.3) !important;
+        }
+
+        .editable-cell::before {
+            content: "✏";
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            z-index: 10;
+            color: #007AFF;
+        }
+
+        .editable-cell:hover::before {
+            opacity: 0.7;
+        }
+
+        .readonly-cell {
+            cursor: default;
+            opacity: 0.9;
+        }
+
+        .readonly-cell:hover {
+            background: rgba(128, 128, 128, 0.05) !important;
+        }
+
+        .readonly-cell::before {
+            content: "🔒";
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 10px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            z-index: 10;
+            color: #666;
+        }
+
+        .readonly-cell:hover::before {
+            opacity: 0.5;
         }
     """
 }

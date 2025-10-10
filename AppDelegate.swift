@@ -17,13 +17,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var settingsManager = SettingsManager()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Set up the web server (if you have one)
-        webServer = WebServer()
-        let port: UInt16 = 8080
-        webServer?.start(port: port)
+        // WebServer is now created by ContentView with shared DataSyncManager
+        // No need to create it here
         
         if let ipAddress = webServer?.getLocalIPAddress() {
-            let url = "http://\(ipAddress):\(port)"
+            let url = "http://\(ipAddress):8080"
             print("Web server accessible at: \(url)")
             DispatchQueue.main.async {
                 self.showLocalURL(url)

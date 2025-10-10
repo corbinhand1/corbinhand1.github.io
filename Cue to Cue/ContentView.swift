@@ -12,22 +12,15 @@ import AppKit
 
 struct ContentView: View {
     @StateObject private var settingsManager = SettingsManager()
+    @StateObject private var dataSyncManager = DataSyncManager()
     @State private var currentTime = Date()
     @State private var countdownTime = 300
     @State private var countUpTime = 0
     @State private var countdownRunning = true
     @State private var countUpRunning = false
-    @State private var cueStacks = [
-        CueStack(
-            name: "Cue Stack 1",
-            cues: [Cue(values: ["Example Cue"])],
-            columns: [Column(name: "Column 1", width: 100)]
-        )
-    ]
-    @State private var selectedCueStackIndex: Int = 0
     @State private var showSettings = false
     @State private var showConnectionMonitor = false
-    @State private var selectedCueIndex: Int?
+    @State private var showUserManagement = false
     @State private var selectedCueTime: Int?
     @State var showSavePanel = false
     @State var showOpenPanel = false
@@ -46,6 +39,7 @@ struct ContentView: View {
     @State private var lastUpdateTime = Date()
     @State var pdfNotes: [String: [Int: String]] = [:]
     @State private var webServer: WebServer?
+    @State private var authManager: AuthenticationManager?
 
     // Multi-selection properties
     @State private var selectedCueIndices: Set<Int> = []
@@ -71,14 +65,28 @@ struct ContentView: View {
     private var selectedCueStackBinding: Binding<CueStack> {
         Binding(
             get: {
-                guard cueStacks.indices.contains(selectedCueStackIndex) else {
+                let stacks = dataSyncManager.cueStacks
+                let index = dataSyncManager.selectedCueStackIndex
+                guard stacks.indices.contains(index) else {
                     return CueStack(name: "Invalid", cues: [], columns: [])
                 }
-                return cueStacks[selectedCueStackIndex]
+                return stacks[index]
             },
             set: { newValue in
-                guard cueStacks.indices.contains(selectedCueStackIndex) else { return }
-                cueStacks[selectedCueStackIndex] = newValue
+                let stacks = dataSyncManager.cueStacks
+                let index = dataSyncManager.selectedCueStackIndex
+                guard stacks.indices.contains(index) else { return }
+                dataSyncManager.cueStacks[index] = newValue
+            }
+        )
+    }
+    
+    // Computed property to convert selectedCueIndex from Int to Int?
+    private var selectedCueIndexBinding: Binding<Int?> {
+        Binding(
+            get: { dataSyncManager.selectedCueIndex >= 0 ? dataSyncManager.selectedCueIndex : nil },
+            set: { newValue in
+                dataSyncManager.selectedCueIndex = newValue ?? -1
             }
         )
     }
@@ -107,13 +115,14 @@ struct ContentView: View {
                         
                         VStack(spacing: 20) {
                             TopSectionView(
-                                currentTime: $currentTime,
-                                countdownTime: $countdownTime,
-                                countdownRunning: $countdownRunning,
-                                countUpTime: $countUpTime,
-                                countUpRunning: $countUpRunning,
+                                currentTime: $dataSyncManager.currentTime,
+                                countdownTime: $dataSyncManager.countdownTime,
+                                countdownRunning: $dataSyncManager.countdownRunning,
+                                countUpTime: $dataSyncManager.countUpTime,
+                                countUpRunning: $dataSyncManager.countUpRunning,
                                 showSettings: $showSettings,
                                 showConnectionMonitor: $showConnectionMonitor,
+                                showUserManagement: $showUserManagement,
                                 updateWebClients: updateWebClients
                             )
                             .environmentObject(settingsManager)
@@ -121,8 +130,8 @@ struct ContentView: View {
                             HStack(alignment: .top, spacing: 0) {
                                 VStack(alignment: .leading, spacing: 0) {
                                     CueStackListView(
-                                        cueStacks: $cueStacks,
-                                        selectedCueStackIndex: $selectedCueStackIndex,
+                                        cueStacks: $dataSyncManager.cueStacks,
+                                        selectedCueStackIndex: $dataSyncManager.selectedCueStackIndex,
                                         cueStackListWidth: $cueStackListWidth
                                     )
                                     Spacer(minLength: 20)
@@ -137,7 +146,7 @@ struct ContentView: View {
                                     editingCueIndex: $editingCueIndex,
                                     scrollViewProxy: $scrollViewProxy,
                                     geometry: geometry,
-                                    selectedCueIndex: $selectedCueIndex,
+                                    selectedCueIndex: selectedCueIndexBinding,
                                     selectedCueIndices: $selectedCueIndices,
                                     selectedCueTime: $selectedCueTime,
                                     countdownTime: $countdownTime,
@@ -173,15 +182,14 @@ struct ContentView: View {
             SettingsView(settingsManager: settingsManager)
         }
         .sheet(isPresented: $showConnectionMonitor) {
-            if let webServer = webServer {
-                ConnectionMonitorView(isPresented: $showConnectionMonitor, webServer: webServer)
-            }
+            connectionMonitorSheet
+        }
+        .sheet(isPresented: $showUserManagement) {
+            userManagementSheet
         }
         // Present the print settings sheet when requested.
         .sheet(isPresented: $showPrintSheet) {
-            PrintSettingsView(selectedIndices: $printSelectedCueStackIndices, fontSize: $printFontSize, cueStacks: cueStacks, onPrint: {
-                self.performPrintAction()
-            })
+            printSettingsSheet
         }
         .onChange(of: showSavePanel) { _, newValue in
             if newValue { saveFile() }
@@ -192,7 +200,7 @@ struct ContentView: View {
         .onChange(of: showImportCSVPanel) { _, newValue in
             if newValue { importCSV() }
         }
-        .onChange(of: selectedCueStackIndex) { _, _ in
+        .onChange(of: dataSyncManager.selectedCueStackIndex) { _, _ in
             clearCueSelection()
         }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
@@ -208,8 +216,19 @@ struct ContentView: View {
         }
         .onAppear {
             setupAppDelegate()
-            // Auto-load last file on startup
+            
+            // Load last saved file on startup
             loadLastFile()
+            
+            // Set up auto-save notification listener
+            NotificationCenter.default.addObserver(
+                forName: .autoSaveRequested,
+                object: nil,
+                queue: .main
+            ) { _ in
+                self.autoSave()
+            }
+            
             // Initialize web server with current timer values after a short delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 updateWebClients()
@@ -224,6 +243,49 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in
             showSettings = false
         }
+        .onDisappear {
+            // Remove notification observer
+            NotificationCenter.default.removeObserver(self, name: .autoSaveRequested, object: nil)
+        }
+    }
+    
+    // MARK: - Computed Properties
+    
+    @ViewBuilder
+    private var connectionMonitorSheet: some View {
+        if let webServer = webServer {
+            ConnectionMonitorView(
+                isPresented: $showConnectionMonitor,
+                webServer: webServer
+            )
+        } else {
+            EmptyView()
+        }
+    }
+    
+    @ViewBuilder
+    private var userManagementSheet: some View {
+        if let authManager = authManager {
+            UserManagementView(
+                authManager: authManager,
+                isPresented: $showUserManagement,
+                cueStacks: dataSyncManager.cueStacks
+            )
+        } else {
+            EmptyView()
+        }
+    }
+    
+    @ViewBuilder
+    private var printSettingsSheet: some View {
+        PrintSettingsView(
+            selectedIndices: $printSelectedCueStackIndices,
+            fontSize: $printFontSize,
+            cueStacks: dataSyncManager.cueStacks,
+            onPrint: {
+                self.performPrintAction()
+            }
+        )
     }
     
     // MARK: - Helper Methods
@@ -235,16 +297,21 @@ struct ContentView: View {
     private func updateWebServer() {
         // Web server update implementation
         if webServer == nil {
-            webServer = WebServer()
+            webServer = WebServer(dataSyncManager: dataSyncManager)
             webServer?.start(port: 8080)
+            // Get the auth manager from the web server
+            authManager = webServer?.authManager
         }
-        webServer?.updateCues(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex, activeCueIndex: selectedCueIndex ?? -1, selectedCueIndex: selectedCueIndex ?? -1)
-        webServer?.updateClockState(currentTime: currentTime, countdownTime: countdownTime, countUpTime: countUpTime, countdownRunning: countdownRunning, countUpRunning: countUpRunning)
-        webServer?.updateHighlightColors(settingsManager.settings.highlightColors)
+        
+        // Synchronize highlight colors from SettingsManager to DataSyncManager
+        dataSyncManager.updateHighlightColors(settingsManager.settings.highlightColors)
+        
+        // No need to manually update cues - WebServer now uses the same DataSyncManager
+        // The data is automatically synchronized through the shared instance
     }
     
     func getWebUpdateInfo() -> (cueStacks: [CueStack], selectedIndex: Int, activeIndex: Int) {
-        return (cueStacks, selectedCueStackIndex, selectedCueIndex ?? -1)
+        return (dataSyncManager.cueStacks, dataSyncManager.selectedCueStackIndex, dataSyncManager.selectedCueIndex)
     }
     
     private func setupAppDelegate() {
@@ -289,8 +356,8 @@ struct ContentView: View {
     // MARK: - Selection Methods
     
     func handleCueSelection(at index: Int, withShiftKey: Bool, withCommandKey: Bool) {
-        guard cueStacks.indices.contains(selectedCueStackIndex),
-              index >= 0 && index < cueStacks[selectedCueStackIndex].cues.count else {
+        guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex),
+              index >= 0 && index < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count else {
             return
         }
         if withCommandKey {
@@ -299,28 +366,28 @@ struct ContentView: View {
                 selectedCueIndices.remove(index)
                 if selectedCueIndices.isEmpty {
                     isMultiSelectMode = false
-                    selectedCueIndex = nil
+                    dataSyncManager.selectedCueIndex = -1
                 }
             } else {
                 selectedCueIndices.insert(index)
-                selectedCueIndex = index
+                dataSyncManager.selectedCueIndex = index
             }
         } else if withShiftKey && lastSelectedIndex != nil {
             isMultiSelectMode = true
             let start = min(lastSelectedIndex!, index)
             let end = max(lastSelectedIndex!, index)
             for i in start...end {
-                if i >= 0 && i < cueStacks[selectedCueStackIndex].cues.count {
+                if i >= 0 && i < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count {
                     selectedCueIndices.insert(i)
                 }
             }
-            selectedCueIndex = index
+            dataSyncManager.selectedCueIndex = index
         } else {
             if isMultiSelectMode {
                 selectedCueIndices.removeAll()
                 isMultiSelectMode = false
             }
-            selectedCueIndex = index
+            dataSyncManager.selectedCueIndex = index
             lastSelectedIndex = index
             selectedCueIndices = [index]
             // Reset the countdown based on the cue’s timer.
@@ -333,8 +400,8 @@ struct ContentView: View {
     func getSelectedCueIndices() -> [Int]? {
         if isMultiSelectMode && !selectedCueIndices.isEmpty {
             return Array(selectedCueIndices).sorted()
-        } else if let selectedIndex = selectedCueIndex {
-            return [selectedIndex]
+        } else if dataSyncManager.selectedCueIndex >= 0 {
+            return [dataSyncManager.selectedCueIndex]
         }
         return nil
     }
@@ -346,15 +413,15 @@ struct ContentView: View {
     }
     
     func selectAllCues() {
-        guard cueStacks.indices.contains(selectedCueStackIndex) else { return }
-        let cueCount = cueStacks[selectedCueStackIndex].cues.count
+        guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex) else { return }
+        let cueCount = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count
         if cueCount > 0 {
             isMultiSelectMode = true
             selectedCueIndices = Set(0..<cueCount)
-            if let selectedIndex = selectedCueIndex {
-                lastSelectedIndex = selectedIndex
+            if dataSyncManager.selectedCueIndex >= 0 {
+                lastSelectedIndex = dataSyncManager.selectedCueIndex
             } else {
-                selectedCueIndex = 0
+                dataSyncManager.selectedCueIndex = 0
                 lastSelectedIndex = 0
             }
             updateWebClients()
@@ -366,17 +433,17 @@ struct ContentView: View {
         let sortedIndices = Array(selectedCueIndices).sorted(by: >)
         saveState()
         for index in sortedIndices {
-            if index < cueStacks[selectedCueStackIndex].cues.count {
-                cueStacks[selectedCueStackIndex].cues.remove(at: index)
+            if index < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count {
+                dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.remove(at: index)
             }
         }
-        if let selectedCueIndex = selectedCueIndex {
+        if dataSyncManager.selectedCueIndex >= 0 {
             let lowestDeletedIndex = sortedIndices.last ?? 0
-            if sortedIndices.contains(selectedCueIndex) {
-                self.selectedCueIndex = max(0, lowestDeletedIndex - 1)
-            } else if lowestDeletedIndex < selectedCueIndex {
-                let deletedCount = sortedIndices.filter { $0 < selectedCueIndex }.count
-                self.selectedCueIndex = selectedCueIndex - deletedCount
+            if sortedIndices.contains(dataSyncManager.selectedCueIndex) {
+                dataSyncManager.selectedCueIndex = max(0, lowestDeletedIndex - 1)
+            } else if lowestDeletedIndex < dataSyncManager.selectedCueIndex {
+                let deletedCount = sortedIndices.filter { $0 < dataSyncManager.selectedCueIndex }.count
+                dataSyncManager.selectedCueIndex = dataSyncManager.selectedCueIndex - deletedCount
             }
         }
         clearCueSelection()
@@ -384,23 +451,23 @@ struct ContentView: View {
     }
     
     private func advanceCue() {
-        guard let selectedIndex = selectedCueIndex else { return }
-        if selectedIndex < cueStacks[selectedCueStackIndex].cues.count - 1 {
-            selectCue(at: selectedIndex + 1)
+        guard dataSyncManager.selectedCueIndex >= 0 else { return }
+        if dataSyncManager.selectedCueIndex < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count - 1 {
+            selectCue(at: dataSyncManager.selectedCueIndex + 1)
             self.appDelegate.updateWebClients()
         }
     }
     
     private func previousCue() {
-        guard let selectedIndex = selectedCueIndex else { return }
-        if selectedIndex > 0 {
-            selectCue(at: selectedIndex - 1)
+        guard dataSyncManager.selectedCueIndex >= 0 else { return }
+        if dataSyncManager.selectedCueIndex > 0 {
+            selectCue(at: dataSyncManager.selectedCueIndex - 1)
             self.appDelegate.updateWebClients()
         }
     }
     
     private func selectCue(at index: Int) {
-        selectedCueIndex = index
+        dataSyncManager.selectedCueIndex = index
         highlightCue(at: index)
         self.appDelegate.updateWebClients()
     }
@@ -424,7 +491,7 @@ struct ContentView: View {
     }
     
     private func highlightCue(at index: Int) {
-        let cue = cueStacks[selectedCueStackIndex].cues[index]
+        let cue = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues[index]
         if let timerValue = parseCountdownTime(cue.timerValue) {
             selectedCueTime = timerValue
             // Post a notification to reset the countdown in TopSectionView
@@ -434,8 +501,8 @@ struct ContentView: View {
     
     func addCue() {
         saveState()
-        let newCue = Cue(values: Array(repeating: "", count: cueStacks[selectedCueStackIndex].columns.count))
-        cueStacks[selectedCueStackIndex].cues.append(newCue)
+        let newCue = Cue(values: Array(repeating: "", count: dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count))
+        dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.append(newCue)
         self.appDelegate.updateWebClients()
     }
     
@@ -452,7 +519,7 @@ struct ContentView: View {
     func saveToURL(_ url: URL) {
         do {
             let savedData = SavedData(
-                cueStacks: self.cueStacks,
+                cueStacks: self.dataSyncManager.cueStacks,
                 highlightColors: self.settingsManager.settings.highlightColors,
                 pdfNotes: self.pdfNotes
             )
@@ -498,7 +565,7 @@ struct ContentView: View {
     
     func saveDocument(to url: URL) {
         let savedData = SavedData(
-            cueStacks: cueStacks,
+            cueStacks: dataSyncManager.cueStacks,
             highlightColors: settingsManager.settings.highlightColors,
             pdfNotes: self.pdfNotes
         )
@@ -542,7 +609,7 @@ struct ContentView: View {
                     let data = try Data(contentsOf: url)
                     let decoder = JSONDecoder()
                     let savedData = try decoder.decode(SavedData.self, from: data)
-                    self.cueStacks = savedData.cueStacks
+                    self.dataSyncManager.cueStacks = savedData.cueStacks
                     self.settingsManager.settings.highlightColors = savedData.highlightColors
                     self.pdfNotes = savedData.pdfNotes
                     self.lastSavedURL = url
@@ -558,32 +625,51 @@ struct ContentView: View {
     }
     
     func loadLastFile() {
+        // Only load files on app startup, never during runtime
+        // This prevents overwriting web changes
+        
+        print("🔍 loadLastFile() called")
+        
         // Check if there's a last saved URL in UserDefaults
         if let lastURL = UserDefaults.standard.url(forKey: "LastSavedURL") {
+            print("🔍 Found LastSavedURL: \(lastURL.path)")
             // Check if the file still exists
             if FileManager.default.fileExists(atPath: lastURL.path) {
+                print("🔍 File exists, loading...")
                 do {
                     let data = try Data(contentsOf: lastURL)
                     let decoder = JSONDecoder()
                     let savedData = try decoder.decode(SavedData.self, from: data)
-                    self.cueStacks = savedData.cueStacks
-                    self.settingsManager.settings.highlightColors = savedData.highlightColors
-                    self.pdfNotes = savedData.pdfNotes
-                    self.lastSavedURL = lastURL
-                    self.currentFileName = lastURL.lastPathComponent
-                    print("Auto-loaded last file: \(lastURL.path)")
-                    self.updateWebClients()
+                    
+                    print("🔍 Loaded \(savedData.cueStacks.count) cue stacks")
+                    if let firstStack = savedData.cueStacks.first {
+                        print("🔍 First stack: \(firstStack.name) with \(firstStack.cues.count) cues")
+                    }
+                    
+                    // Only load the file if it has valid data (non-empty cue stacks)
+                    if !savedData.cueStacks.isEmpty {
+                        print("✅ File has valid data, loading...")
+                        dataSyncManager.cueStacks = savedData.cueStacks
+                    } else {
+                        print("⚠️ File is empty, keeping test data")
+                    }
+                    settingsManager.settings.highlightColors = savedData.highlightColors
+                    pdfNotes = savedData.pdfNotes
+                    lastSavedURL = lastURL
+                    currentFileName = lastURL.lastPathComponent
+                    print("✅ Loaded last file: \(lastURL.path)")
+                    updateWebClients()
                 } catch {
-                    print("Error auto-loading last file: \(error.localizedDescription)")
+                    print("❌ Error loading last file: \(error.localizedDescription)")
                     // If auto-load fails, continue with default state
                 }
             } else {
-                print("Last saved file no longer exists: \(lastURL.path)")
+                print("❌ Last saved file no longer exists: \(lastURL.path)")
                 // Clear the stored URL if file doesn't exist
                 UserDefaults.standard.removeObject(forKey: "LastSavedURL")
             }
         } else {
-            print("No last saved file found, starting with default state")
+            print("⚠️ No last saved file found in UserDefaults, starting with default state")
         }
     }
     
@@ -608,13 +694,13 @@ struct ContentView: View {
                     let data = try Data(contentsOf: url)
                     let importedCues = parseCSV(data: data)
                     saveState()
-                    let selectedStack = cueStacks[selectedCueStackIndex]
+                    let selectedStack = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex]
                     let maxImportedColumns = importedCues.map { $0.values.count }.max() ?? 0
                     let currentColumnCount = selectedStack.columns.count
                     let newMaxColumns = max(maxImportedColumns, currentColumnCount)
-                    while cueStacks[selectedCueStackIndex].columns.count < newMaxColumns {
-                        let newColumnIndex = cueStacks[selectedCueStackIndex].columns.count
-                        cueStacks[selectedCueStackIndex].columns.append(Column(name: "Column \(newColumnIndex + 1)", width: 100))
+                    while dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count < newMaxColumns {
+                        let newColumnIndex = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count
+                        dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.append(Column(name: "Column \(newColumnIndex + 1)", width: 100))
                     }
                     let preparedImportedCues = importedCues.map { cue -> Cue in
                         var values = cue.values
@@ -623,7 +709,7 @@ struct ContentView: View {
                         }
                         return Cue(values: values)
                     }
-                    cueStacks[selectedCueStackIndex].cues.insert(contentsOf: preparedImportedCues, at: 0)
+                    dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.insert(contentsOf: preparedImportedCues, at: 0)
                     updateWebClients()
                 } catch {
                     print("Error reading CSV file: \(error)")
@@ -642,8 +728,8 @@ struct ContentView: View {
     }
     
     func saveState() {
-        guard cueStacks.indices.contains(selectedCueStackIndex) else { return }
-        let currentStack = cueStacks[selectedCueStackIndex]
+        guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex) else { return }
+        let currentStack = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex]
         let currentState = (columns: currentStack.columns, cues: currentStack.cues)
         if currentStateIndex < stateHistory.count - 1 {
             stateHistory = Array(stateHistory.prefix(upTo: currentStateIndex + 1))
@@ -656,8 +742,8 @@ struct ContentView: View {
         guard currentStateIndex > 0 else { return }
         currentStateIndex -= 1
         let previousState = stateHistory[currentStateIndex]
-        cueStacks[selectedCueStackIndex].columns = previousState.columns
-        cueStacks[selectedCueStackIndex].cues = previousState.cues
+        dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns = previousState.columns
+        dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues = previousState.cues
         self.appDelegate.updateWebClients()
     }
     
@@ -665,8 +751,8 @@ struct ContentView: View {
         guard currentStateIndex < stateHistory.count - 1 else { return }
         currentStateIndex += 1
         let nextState = stateHistory[currentStateIndex]
-        cueStacks[selectedCueStackIndex].columns = nextState.columns
-        cueStacks[selectedCueStackIndex].cues = nextState.cues
+        dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns = nextState.columns
+        dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues = nextState.cues
         self.appDelegate.updateWebClients()
     }
     
@@ -688,17 +774,17 @@ struct ContentView: View {
     }
     
     func copyCues(at indices: [Int]) {
-        guard !indices.isEmpty, cueStacks.indices.contains(selectedCueStackIndex) else { return }
+        guard !indices.isEmpty, dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex) else { return }
         let cuesToCopy = indices.compactMap { index -> Cue? in
-            guard index >= 0 && index < cueStacks[selectedCueStackIndex].cues.count else {
+            guard index >= 0 && index < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count else {
                 return nil
             }
-            return cueStacks[selectedCueStackIndex].cues[index]
+            return dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues[index]
         }
         if !cuesToCopy.isEmpty {
             let transferCues = MultiCueTransfer(
                 cues: cuesToCopy,
-                columnCount: cueStacks[selectedCueStackIndex].columns.count
+                columnCount: dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count
             )
             let encoder = JSONEncoder()
             if let encodedCues = try? encoder.encode(transferCues) {
@@ -714,17 +800,17 @@ struct ContentView: View {
     }
     
     func paste(_ sender: Any?) {
-        if let selectedIndex = selectedCueIndex {
-            pasteCues(after: selectedIndex)
+        if dataSyncManager.selectedCueIndex >= 0 {
+            pasteCues(after: dataSyncManager.selectedCueIndex)
         }
     }
     
     func pasteCues(after index: Int) {
-        guard cueStacks.indices.contains(selectedCueStackIndex) else {
+        guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex) else {
             print("Selected cue stack index is out of range")
             return
         }
-        guard index >= 0 && index < cueStacks[selectedCueStackIndex].cues.count else {
+        guard index >= 0 && index < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count else {
             print("Selected cue index is out of range")
             return
         }
@@ -733,7 +819,7 @@ struct ContentView: View {
             let decoder = JSONDecoder()
             if let transferCues = try? decoder.decode(MultiCueTransfer.self, from: data) {
                 saveState()
-                let targetColumnCount = cueStacks[selectedCueStackIndex].columns.count
+                let targetColumnCount = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count
                 var adjustedCues: [Cue] = []
                 for cue in transferCues.cues {
                     var newCue = cue
@@ -746,12 +832,12 @@ struct ContentView: View {
                     }
                     adjustedCues.append(newCue)
                 }
-                cueStacks[selectedCueStackIndex].cues.insert(contentsOf: adjustedCues, at: index + 1)
-                selectedCueIndex = index + adjustedCues.count
+                dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.insert(contentsOf: adjustedCues, at: index + 1)
+                dataSyncManager.selectedCueIndex = index + adjustedCues.count
                 self.appDelegate.updateWebClients()
             } else if let transferCue = try? decoder.decode(TransferCue.self, from: data) {
                 saveState()
-                let targetColumnCount = cueStacks[selectedCueStackIndex].columns.count
+                let targetColumnCount = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count
                 var newCue = transferCue.cue
                 if newCue.values.count < targetColumnCount {
                     while newCue.values.count < targetColumnCount {
@@ -760,13 +846,13 @@ struct ContentView: View {
                 } else if newCue.values.count > targetColumnCount {
                     newCue.values = Array(newCue.values.prefix(targetColumnCount))
                 }
-                cueStacks[selectedCueStackIndex].cues.insert(newCue, at: index + 1)
-                selectedCueIndex = index + 1
+                dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.insert(newCue, at: index + 1)
+                dataSyncManager.selectedCueIndex = index + 1
                 self.appDelegate.updateWebClients()
             } else if let decodedCue = try? decoder.decode(Cue.self, from: data) {
                 saveState()
                 var newCue = decodedCue
-                let targetColumnCount = cueStacks[selectedCueStackIndex].columns.count
+                let targetColumnCount = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count
                 if newCue.values.count < targetColumnCount {
                     while newCue.values.count < targetColumnCount {
                         newCue.values.append("")
@@ -774,8 +860,8 @@ struct ContentView: View {
                 } else if newCue.values.count > targetColumnCount {
                     newCue.values = Array(newCue.values.prefix(targetColumnCount))
                 }
-                cueStacks[selectedCueStackIndex].cues.insert(newCue, at: index + 1)
-                selectedCueIndex = index + 1
+                dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.insert(newCue, at: index + 1)
+                dataSyncManager.selectedCueIndex = index + 1
                 self.appDelegate.updateWebClients()
             }
         }
@@ -797,7 +883,7 @@ struct ContentView: View {
     /// Called by the print settings sheet to perform printing.
     func performPrintAction() {
         // Gather the selected cue stacks.
-        let stacksToPrint = printSelectedCueStackIndices.sorted().map { cueStacks[$0] }
+        let stacksToPrint = printSelectedCueStackIndices.sorted().map { dataSyncManager.cueStacks[$0] }
         // Call the print function from PrintManager.swift.
         performPrint(cueStacks: stacksToPrint, fontSize: printFontSize)
     }

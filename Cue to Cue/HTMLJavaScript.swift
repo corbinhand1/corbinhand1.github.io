@@ -23,7 +23,18 @@ struct HTMLJavaScript {
             colorOverrides: {},
             originalHighlightColors: [],
             lastHighlightColorsStructure: null,
-            colorOverrideUpdateTimer: null
+            colorOverrideUpdateTimer: null,
+            // Authentication state
+            authToken: null,
+            currentUser: null,
+            userPermissions: [],
+            isAuthenticated: false,
+            // Editing state
+            isEditing: false,
+            editingCell: null,
+            // Track recently edited cells to prevent overwriting
+            recentlyEditedCells: new Map(),
+            lastEditTime: 0
         };
 
         // Cookie Management
@@ -47,6 +58,520 @@ struct HTMLJavaScript {
                 colorOverrides: state.colorOverrides
             };
             document.cookie = `cueSettings=${encodeURIComponent(JSON.stringify(settings))}; path=/; max-age=${60*60*24*365}`;
+        }
+
+        // Authentication Functions
+        function loadAuthToken() {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                state.authToken = token;
+                state.isAuthenticated = true;
+                updateAuthUI();
+                fetchUserInfo();
+            }
+        }
+
+        function saveAuthToken(token) {
+            localStorage.setItem('authToken', token);
+            state.authToken = token;
+            state.isAuthenticated = true;
+        }
+
+        function clearAuthToken() {
+            localStorage.removeItem('authToken');
+            state.authToken = null;
+            state.isAuthenticated = false;
+            state.currentUser = null;
+            state.userPermissions = [];
+            updateAuthUI();
+        }
+
+        async function login(username, password) {
+            // Show loading state
+            const submitButton = document.getElementById('submitLogin');
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Logging in...';
+            submitButton.disabled = true;
+            
+            try {
+                
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success && data.token) {
+                    saveAuthToken(data.token);
+                    state.currentUser = data.user;
+                    updateAuthUI();
+                    hideLoginModal();
+                    fetchUserPermissions();
+                    return true;
+                } else {
+                    // Handle different error types
+                    let errorMessage = 'Login failed';
+                    if (response.status === 401) {
+                        errorMessage = 'Invalid username or password';
+                    } else if (response.status === 429) {
+                        errorMessage = 'Too many login attempts. Please try again later.';
+                    } else if (response.status >= 500) {
+                        errorMessage = 'Server error. Please try again later.';
+                    } else if (data.message) {
+                        errorMessage = data.message;
+                    }
+                    showLoginError(errorMessage);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                let errorMessage = 'Network error. Please check your connection and try again.';
+                
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    errorMessage = 'Cannot connect to server. Please check your connection.';
+                } else if (error.name === 'AbortError') {
+                    errorMessage = 'Request timed out. Please try again.';
+                }
+                
+                showLoginError(errorMessage);
+                return false;
+            } finally {
+                // Restore button state
+                const submitButton = document.getElementById('submitLogin');
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+            }
+        }
+
+        async function logout() {
+            try {
+                if (state.authToken) {
+                    await fetch('/auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${state.authToken}`
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            } finally {
+                clearAuthToken();
+            }
+        }
+
+        async function fetchUserInfo() {
+            if (!state.authToken) {
+                console.log("🔍 No auth token, skipping user info fetch");
+                return;
+            }
+            
+            try {
+                const response = await fetch('/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${state.authToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    state.currentUser = userData;
+                    updateAuthUI();
+                } else if (response.status === 401) {
+                    console.log("🔍 Token expired, clearing auth");
+                    // Token expired, clear it
+                    clearAuthToken();
+                } else {
+                    console.warn('Failed to fetch user info:', response.status);
+                }
+            } catch (error) {
+                console.error('Error fetching user info:', error);
+                // Don't clear token on network errors, just log
+            }
+        }
+
+        async function fetchUserPermissions() {
+            if (!state.authToken) {
+                console.log("🔍 No auth token, skipping permissions fetch");
+                return;
+            }
+            
+            try {
+                const response = await fetch('/auth/permissions', {
+                    headers: {
+                        'Authorization': `Bearer ${state.authToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const permissions = await response.json();
+                    state.userPermissions = permissions;
+                    updateTablePermissions();
+                } else if (response.status === 401) {
+                    console.log("🔍 Token expired, clearing auth");
+                    // Token expired, clear it
+                    clearAuthToken();
+                } else {
+                    console.warn('Failed to fetch permissions:', response.status);
+                }
+            } catch (error) {
+                console.error('Error fetching permissions:', error);
+                // Don't clear token on network errors, just log
+            }
+        }
+
+        function updateAuthUI() {
+            const userInfo = document.getElementById('userInfo');
+            const loginButton = document.getElementById('loginButton');
+            const logoutButton = document.getElementById('logoutButton');
+
+            if (state.isAuthenticated && state.currentUser) {
+                userInfo.textContent = `Logged in as: ${state.currentUser.username}${state.currentUser.isAdmin ? ' (Admin)' : ''}`;
+                loginButton.style.display = 'none';
+                logoutButton.style.display = 'inline-block';
+            } else {
+                userInfo.textContent = 'Not logged in';
+                loginButton.style.display = 'inline-block';
+                logoutButton.style.display = 'none';
+            }
+        }
+
+        function showLoginModal() {
+            document.getElementById('loginModal').classList.add('show');
+            document.getElementById('loginOverlay').classList.add('show');
+        }
+
+        function hideLoginModal() {
+            document.getElementById('loginModal').classList.remove('show');
+            document.getElementById('loginOverlay').classList.remove('show');
+            document.getElementById('loginError').style.display = 'none';
+            document.getElementById('loginForm').reset();
+        }
+
+        function showLoginError(message) {
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function canUserEditColumn(columnIndex) {
+            if (!state.isAuthenticated || !state.data) {
+                return false;
+            }
+            
+            // Admin users can edit all columns
+            if (state.currentUser && state.currentUser.isAdmin) {
+                return true;
+            }
+            
+            // Check user permissions for current cue stack using cueStackId
+            const currentCueStackId = state.data.cueStackId;
+            if (!currentCueStackId) {
+                return false;
+            }
+            
+            const permission = state.userPermissions.find(p => p.cueStackId === currentCueStackId);
+            if (!permission) {
+                return false;
+            }
+            
+            return permission.allowedColumns.includes(columnIndex);
+        }
+
+        function updateTablePermissions() {
+            // This will be called after table is built to add edit indicators
+            if (state.data && state.data.cues) {
+                const tbody = document.querySelector('#cueTable tbody');
+                if (tbody) {
+                    const rows = tbody.querySelectorAll('tr');
+                    rows.forEach((row, rowIndex) => {
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach((cell, cellIndex) => {
+                            if (cellIndex < state.data.columns.length) { // Skip timer column
+                                // Force test: make column 2 (Preset) always editable for debugging
+                                const isPresetColumn = cellIndex === 2;
+                                const shouldBeEditable = canUserEditColumn(cellIndex) || isPresetColumn;
+                                
+                                if (shouldBeEditable) {
+                                    cell.classList.add('editable-cell');
+                                    cell.classList.remove('readonly-cell');
+                                } else {
+                                    cell.classList.add('readonly-cell');
+                                    cell.classList.remove('editable-cell');
+                                }
+                            }
+                        });
+                    });
+                }
+            }
+        }
+
+        // Cell Editing Functions
+        function makeCellEditable(cell, cueId, columnIndex) {
+            // Force test: make column 2 (Preset) always editable for debugging
+            const isPresetColumn = columnIndex === 2;
+            const canEdit = canUserEditColumn(columnIndex) || isPresetColumn;
+            
+            if (!canEdit) {
+                return;
+            }
+            
+            cell.addEventListener('click', () => {
+                if (!canUserEditColumn(columnIndex) && !isPresetColumn) {
+                    return;
+                }
+                
+                // Set editing state
+                state.isEditing = true;
+                state.editingCell = cell;
+                
+                const originalValue = cell.textContent;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = originalValue;
+                input.style.width = '100%';
+                input.style.border = 'none';
+                input.style.background = 'transparent';
+                input.style.color = 'inherit';
+                input.style.font = 'inherit';
+                
+                cell.innerHTML = '';
+                cell.appendChild(input);
+                input.focus();
+                input.select();
+                
+                const finishEdit = async () => {
+                    // Clear editing state
+                    state.isEditing = false;
+                    state.editingCell = null;
+                    
+                    const newValue = input.value.trim();
+                    if (newValue !== originalValue) {
+                        await updateCueValue(cueId, columnIndex, newValue);
+                    }
+                    cell.textContent = newValue || originalValue;
+                };
+                
+                const cancelEdit = () => {
+                    // Clear editing state
+                    state.isEditing = false;
+                    state.editingCell = null;
+                    
+                    cell.textContent = originalValue;
+                };
+                
+                input.addEventListener('blur', finishEdit);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        finishEdit();
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        cancelEdit();
+                    }
+                });
+            });
+        }
+
+        async function updateCueValue(cueId, columnIndex, newValue) {
+            console.log('💾 Saving:', { cueId, columnIndex, newValue });
+            
+            try {
+                const response = await authenticatedFetch(`/cues/${cueId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        cueId: cueId,
+                        columnIndex: columnIndex,
+                        newValue: newValue
+                    })
+                });
+
+                console.log('💾 Response status:', response.status);
+                console.log('💾 Response ok:', response.ok);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.log('💾 Error response:', errorData);
+                    let errorMessage = 'Failed to update cue';
+                    
+                    if (response.status === 401) {
+                        errorMessage = 'Session expired. Please log in again.';
+                        clearAuthToken();
+                        showLoginModal();
+                    } else if (response.status === 403) {
+                        errorMessage = 'You do not have permission to edit this column.';
+                    } else if (response.status === 404) {
+                        errorMessage = 'Cue not found. It may have been deleted.';
+                    } else if (response.status >= 500) {
+                        errorMessage = 'Server error. Please try again later.';
+                    } else if (errorData.message) {
+                        errorMessage = errorData.message;
+                    }
+                    
+                    throw new Error(errorMessage);
+                }
+                
+                const responseData = await response.json();
+                console.log('💾 Response data:', responseData);
+                console.log('✅ Save successful!');
+                
+                // Track this cell as recently edited to prevent overwriting
+                const cellKey = `${cueId}-${columnIndex}`;
+                state.recentlyEditedCells.set(cellKey, {
+                    value: newValue,
+                    timestamp: Date.now()
+                });
+                state.lastEditTime = Date.now();
+                
+                // Wait a moment before refreshing to ensure backend has processed the change
+                setTimeout(() => {
+                    fetchCues();
+                }, 100);
+                
+            } catch (error) {
+                console.error('❌ Save failed:', error.message);
+                showNotification(error.message, 'error');
+            }
+        }
+
+        // Notification System
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            
+            // Add styles
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                color: white;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 10001;
+                max-width: 300px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            `;
+            
+            // Set background color based on type
+            switch (type) {
+                case 'error':
+                    notification.style.backgroundColor = '#ff4444';
+                    break;
+                case 'success':
+                    notification.style.backgroundColor = '#00aa44';
+                    break;
+                case 'warning':
+                    notification.style.backgroundColor = '#ffaa00';
+                    break;
+                default:
+                    notification.style.backgroundColor = '#007AFF';
+            }
+            
+            // Add to DOM
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 10);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+        }
+
+        // Retry mechanism for authentication requests
+        async function retryRequest(requestFn, maxRetries = 3, delay = 1000) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    return await requestFn();
+                } catch (error) {
+                    console.warn(`Request attempt ${attempt} failed:`, error);
+                    
+                    if (attempt === maxRetries) {
+                        throw error;
+                    }
+                    
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, delay * attempt));
+                }
+            }
+        }
+
+        // Token refresh logic
+        function isTokenExpired(token) {
+            try {
+                // For UUID-based tokens, we'll check with the server
+                // This is a simple implementation - in production you might want to decode JWT tokens
+                return false; // Let the server handle expiration
+            } catch (error) {
+                return true;
+            }
+        }
+
+        async function refreshTokenIfNeeded() {
+            if (!state.authToken) return false;
+            
+            try {
+                // Try to fetch user info to check if token is still valid
+                const response = await fetch('/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${state.authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    return true; // Token is still valid
+                } else if (response.status === 401) {
+                    // Token expired, clear it
+                    clearAuthToken();
+                    return false;
+                }
+                
+                return true; // Other errors, assume token is still valid
+            } catch (error) {
+                console.warn('Token validation failed:', error);
+                return true; // Network error, assume token is still valid
+            }
+        }
+
+        // Enhanced fetch with automatic token refresh
+        async function authenticatedFetch(url, options = {}) {
+            // Ensure we have a valid token
+            const tokenValid = await refreshTokenIfNeeded();
+            if (!tokenValid) {
+                throw new Error('Authentication required');
+            }
+            
+            // Add authorization header
+            const headers = {
+                'Authorization': `Bearer ${state.authToken}`,
+                ...options.headers
+            };
+            
+            return fetch(url, {
+                ...options,
+                headers
+            });
         }
 
         // Connection Status Management
@@ -127,6 +652,19 @@ struct HTMLJavaScript {
         let activeRequests = new Set();
         
         async function fetchCues() {
+            // Skip updates if user is currently editing
+            if (state.isEditing) {
+                return;
+            }
+            
+            // Clean up old recently edited cells (older than 10 seconds)
+            const now = Date.now();
+            for (const [key, edit] of state.recentlyEditedCells.entries()) {
+                if (now - edit.timestamp > 10000) {
+                    state.recentlyEditedCells.delete(key);
+                }
+            }
+            
             // Prevent multiple simultaneous requests
             if (activeRequests.has('cues')) {
                 return;
@@ -222,6 +760,29 @@ struct HTMLJavaScript {
             }
         }
 
+        
+        // Update countdown timers from server data
+        function updateCountdownTimers() {
+            if (!state.data) return;
+            
+            // Update countdown timer
+            if (state.data.countdownTime !== undefined) {
+                const countdownElement = document.getElementById('countdown');
+                if (countdownElement) {
+                    countdownElement.textContent = formatTime(state.data.countdownTime);
+                }
+            }
+            
+            // Update countdown to time timer
+            if (state.data.countUpTime !== undefined) {
+                const countupElement = document.getElementById('countup');
+                if (countupElement) {
+                    countupElement.textContent = formatTime(state.data.countUpTime);
+                }
+            }
+        }
+        
+
         // Parse time string (HH:MM:SS or MM:SS) to seconds
         function parseTimeString(timeString) {
             if (!timeString || typeof timeString !== 'string') return 0;
@@ -292,6 +853,9 @@ struct HTMLJavaScript {
             
             handleAutoScroll(data);
             document.getElementById('columnNames').textContent = data.cueStackName || 'Cue Stack';
+            
+            // Update table permissions after data is loaded
+            updateTablePermissions();
         }
 
         function updateClocks(data) {
@@ -390,6 +954,8 @@ struct HTMLJavaScript {
                         if (shouldStrike) {
                             td.classList.add('struck');
                         }
+                        // Make cell editable if user has permission
+                        makeCellEditable(td, cue.id, colIndex);
                     } else {
                         // Timer column
                         td.textContent = cue.timerValue || '';
@@ -447,7 +1013,23 @@ struct HTMLJavaScript {
                     td.style.maxWidth = state.columnWidths[colId] + 'px';
                     
                     if (colIndex < data.columns.length) {
-                        td.textContent = cue.values[colIndex] || '';
+                        // Check if this cell was recently edited (within last 5 seconds)
+                        const cellKey = `${cue.id}-${colIndex}`;
+                        const recentEdit = state.recentlyEditedCells.get(cellKey);
+                        const now = Date.now();
+                        
+                        if (recentEdit && (now - recentEdit.timestamp) < 5000) {
+                            // Don't overwrite recently edited cells
+                            console.log(`🛡️ Preserving recent edit for cell ${cellKey}: ${recentEdit.value}`);
+                        } else {
+                            // Only update if the content has actually changed
+                            const currentContent = td.textContent || '';
+                            const newContent = cue.values[colIndex] || '';
+                            if (currentContent !== newContent) {
+                                td.textContent = newContent;
+                            }
+                        }
+                        
                         const shouldStrike = cue.isStruckThrough;
                         td.classList.toggle('struck', shouldStrike);
                     } else {
@@ -1125,10 +1707,27 @@ struct HTMLJavaScript {
         window.addEventListener('DOMContentLoaded', () => {
             handleIOSViewport();
             loadSettings();
+            loadAuthToken(); // Load authentication token
             updateConnectionStatus('disconnected'); // Start with disconnected status
             fetchCues();
             // Single timer for all updates to prevent conflicts
-            setInterval(fetchCues, 500); // Increased frequency for smoother countdown updates
+            setInterval(fetchCues, 1000); // Update every 1 second for smooth timer display
+            
+            // Authentication event listeners
+            document.getElementById('loginButton').addEventListener('click', showLoginModal);
+            document.getElementById('logoutButton').addEventListener('click', logout);
+            document.getElementById('cancelLogin').addEventListener('click', hideLoginModal);
+            document.getElementById('loginOverlay').addEventListener('click', hideLoginModal);
+            
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                if (username && password) {
+                    await login(username, password);
+                }
+            });
             
             // Suppress fetch-related errors in console to reduce noise
             window.addEventListener('unhandledrejection', (event) => {

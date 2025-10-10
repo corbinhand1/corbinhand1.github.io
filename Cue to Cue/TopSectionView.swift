@@ -21,6 +21,7 @@ struct TopSectionView: View {
 
     @Binding var showSettings: Bool
     @Binding var showConnectionMonitor: Bool
+    @Binding var showUserManagement: Bool
     @EnvironmentObject var settingsManager: SettingsManager
     var updateWebClients: () -> Void
 
@@ -38,6 +39,7 @@ struct TopSectionView: View {
             countdownView(time: countdownTime, running: countdownRunning)
             countdownToTimeView()
             networkButton
+            userManagementButton
             settingsButton
         }
         .padding()
@@ -296,6 +298,15 @@ struct TopSectionView: View {
     private var networkButton: some View {
         Button(action: { showConnectionMonitor.toggle() }) {
             Image(systemName: "network")
+                .resizable()
+                .frame(width: 24, height: 24)
+                .foregroundColor(settingsManager.settings.fontColor)
+        }
+    }
+    
+    private var userManagementButton: some View {
+        Button(action: { showUserManagement.toggle() }) {
+            Image(systemName: "person.2")
                 .resizable()
                 .frame(width: 24, height: 24)
                 .foregroundColor(settingsManager.settings.fontColor)

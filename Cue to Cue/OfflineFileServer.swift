@@ -274,7 +274,12 @@ class OfflineFileServer {
     func serveHealthCheck() -> HTTPResponse {
         return HTTPResponse(
             status: .ok,
-            headers: ["Content-Type": "text/plain"],
+            headers: [
+                "Content-Type": "text/plain",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization"
+            ],
             body: "OK".data(using: .utf8) ?? Data()
         )
     }
