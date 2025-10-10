@@ -16,7 +16,7 @@ struct CompleteHTML {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Cue to Cue Viewer</title>
+    <title>Cue to Cue 2.0 Viewer</title>
     <style>
         \(HTMLStyles.content)
         \(HTMLSettingsStyles.content)
@@ -28,7 +28,7 @@ struct CompleteHTML {
             <div class="status-dot" id="statusDot"></div>
             <span class="status-text" id="statusText">Disconnected</span>
         </div>
-        <h1>Cue to Cue Viewer</h1>
+        <h1>Cue to Cue 2.0 Viewer</h1>
         <div class="auth-container" id="authContainer">
             <div class="auth-status" id="authStatus">
                 <span id="userInfo">Not logged in</span>
@@ -52,10 +52,15 @@ struct CompleteHTML {
             </div>
         </div>
         <div class="column-header">
+            <div class="cue-stack-selector">
+                <select id="cueStackDropdown" class="cue-stack-dropdown">
+                    <option value="">Loading cue stacks...</option>
+                </select>
+            </div>
             <div id="columnNames">Cue Stack</div>
             <div class="auto-scroll-toggle">
                 <label class="switch">
-                    <input type="checkbox" id="autoScrollToggle" checked>
+                    <input type="checkbox" id="autoScrollToggle">
                     <span class="slider"></span>
                 </label>
                 <span class="toggle-label">Auto Scroll</span>

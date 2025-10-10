@@ -1,8 +1,8 @@
 {
-  "name": "Cue to Cue",
-  "short_name": "Cue to Cue",
+  "name": "Cue to Cue 2.0",
+  "short_name": "Cue to Cue 2.0",
   "description": "Professional cue management system for live events and productions",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "start_url": "/",
   "display": "standalone",
   "orientation": "any",

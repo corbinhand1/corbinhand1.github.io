@@ -175,6 +175,36 @@ struct HTMLStyles {
             text-overflow: ellipsis;
             color: #ffffff;
         }
+        .cue-stack-selector {
+            margin-right: 15px;
+            position: relative;
+        }
+        .cue-stack-dropdown {
+            background-color: #2d2d2d;
+            color: #ffffff;
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            min-width: 150px;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .cue-stack-dropdown:hover {
+            border-color: #777;
+            background-color: #333;
+        }
+        .cue-stack-dropdown:focus {
+            border-color: #007AFF;
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+        }
+        .cue-stack-dropdown option {
+            background-color: #2d2d2d;
+            color: #ffffff;
+            padding: 8px;
+        }
         .auto-scroll-toggle {
             display: flex;
             align-items: center;

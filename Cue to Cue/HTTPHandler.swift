@@ -89,6 +89,8 @@ class HTTPHandler {
             return serveTimerState()
         case (.post, "/timer-command"):
             return handleTimerCommand(request)
+        case (.post, "/select-cue-stack"):
+            return handleCueStackSelection(request)
         case (.get, "/health"), (.head, "/health"):
             return offlineFileServer.serveHealthCheck()
         // Authentication endpoints
@@ -132,7 +134,7 @@ class HTTPHandler {
     }
     
     private func serveJSON() -> HTTPResponse {
-        let jsonData = dataSyncManager.generateJSONResponse()
+        let jsonData = dataSyncManager.generateJSONResponseForWebClient()
         
         // Check if JSON generation failed (empty data indicates error)
         if jsonData.isEmpty {
@@ -209,6 +211,66 @@ class HTTPHandler {
                 status: .badRequest,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Invalid timer command")
+            )
+        }
+    }
+    
+    private func handleCueStackSelection(_ request: HTTPRequest) -> HTTPResponse {
+        guard let body = request.body else {
+            return HTTPResponse(
+                status: .badRequest,
+                headers: createCORSHeaders(["Content-Type": "application/json"]),
+                body: createErrorJSON(message: "No request body")
+            )
+        }
+        
+        do {
+            guard let json = try JSONSerialization.jsonObject(with: body) as? [String: Any],
+                  let cueStackIndex = json["cueStackIndex"] as? Int else {
+                return HTTPResponse(
+                    status: .badRequest,
+                    headers: createCORSHeaders(["Content-Type": "application/json"]),
+                    body: createErrorJSON(message: "Invalid cue stack index")
+                )
+            }
+            
+            // Validate the cue stack index
+            let cueStacks = dataSyncManager.cueStacks
+            guard cueStackIndex >= 0 && cueStackIndex < cueStacks.count else {
+                return HTTPResponse(
+                    status: .badRequest,
+                    headers: createCORSHeaders(["Content-Type": "application/json"]),
+                    body: createErrorJSON(message: "Invalid cue stack index: \(cueStackIndex)")
+                )
+            }
+            
+            // IMPORTANT: Do NOT update the global selectedCueStackIndex
+            // This would affect the macOS app. Instead, we'll handle web client
+            // cue stack selection separately in the JSON response generation.
+            
+            // Store the web client's selected cue stack index for this session
+            // We'll use this in generateJSONResponseForWebClient() method
+            print("🔄 HTTPHandler: Setting web client cue stack to \(cueStackIndex)")
+            dataSyncManager.setWebClientCueStackIndex(cueStackIndex)
+            
+            let response: [String: Any] = [
+                "success": true, 
+                "message": "Cue stack selected for web client",
+                "selectedIndex": cueStackIndex,
+                "cueStackName": cueStacks[cueStackIndex].name
+            ]
+            let responseData = try JSONSerialization.data(withJSONObject: response)
+            
+            return HTTPResponse(
+                status: .ok,
+                headers: createCORSHeaders(["Content-Type": "application/json"]),
+                body: responseData
+            )
+        } catch {
+            return HTTPResponse(
+                status: .badRequest,
+                headers: createCORSHeaders(["Content-Type": "application/json"]),
+                body: createErrorJSON(message: "Invalid request format")
             )
         }
     }

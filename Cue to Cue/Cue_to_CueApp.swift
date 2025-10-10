@@ -151,7 +151,7 @@ struct CueToCueApp: App {
     // Function to update the window title.
     private func updateWindowTitle(to title: String) {
         if let window = NSApplication.shared.windows.first {
-            window.title = title
+            window.title = "\(title) - Cue to Cue 2.0"
         }
     }
 }

@@ -11,7 +11,7 @@ struct HTMLJavaScript {
     static let content = """
         // State
         const state = {
-            autoScrollEnabled: true,
+            autoScrollEnabled: false,
             columnVisibility: {},
             columnWidths: {},
             columns: [],
@@ -934,6 +934,11 @@ struct HTMLJavaScript {
             handleAutoScroll(data);
             document.getElementById('columnNames').textContent = data.cueStackName || 'Cue Stack';
             
+            // Update cue stack dropdown if data is available
+            if (data.availableCueStacks) {
+                updateCueStackDropdown(data);
+            }
+            
             // Update table permissions after data is loaded
             updateTablePermissions();
         }
@@ -1065,6 +1070,9 @@ struct HTMLJavaScript {
             const tbody = document.querySelector('#cueTable tbody');
             const rows = tbody.querySelectorAll('tr');
             
+            // Batch all DOM updates to prevent visual lag
+            const updates = [];
+            
             data.cues.forEach((cue, rowIndex) => {
                 let row = rows[rowIndex];
                 if (!row) {
@@ -1072,15 +1080,24 @@ struct HTMLJavaScript {
                     tbody.appendChild(row);
                 }
                 
-                // Update row classes
-                row.className = '';
-                if (rowIndex === data.selectedCueIndex) {
-                    row.classList.add('selected');
-                } else if (rowIndex === data.selectedCueIndex + 1) {
-                    row.classList.add('next');
-                }
+                // Prepare all updates for this row
+                const rowUpdate = {
+                    row: row,
+                    cue: cue,
+                    rowIndex: rowIndex,
+                    cellUpdates: []
+                };
                 
-                // Update cells
+                // Determine row classes
+                let rowClass = '';
+                if (rowIndex === data.selectedCueIndex) {
+                    rowClass = 'selected';
+                } else if (rowIndex === data.selectedCueIndex + 1) {
+                    rowClass = 'next';
+                }
+                rowUpdate.rowClass = rowClass;
+                
+                // Prepare cell updates
                 state.columns.forEach((col, colIndex) => {
                     let td = row.children[colIndex];
                     if (!td) {
@@ -1089,10 +1106,11 @@ struct HTMLJavaScript {
                     }
                     
                     const colId = `col-${colIndex}`;
-                    td.className = colId;
-                    td.style.width = state.columnWidths[colId] + 'px';
-                    td.style.minWidth = state.columnWidths[colId] + 'px';
-                    td.style.maxWidth = state.columnWidths[colId] + 'px';
+                    const cellUpdate = {
+                        td: td,
+                        colId: colId,
+                        colIndex: colIndex
+                    };
                     
                     if (colIndex < data.columns.length) {
                         // Check if this cell was recently edited (within last 5 seconds)
@@ -1108,22 +1126,55 @@ struct HTMLJavaScript {
                             const currentContent = td.textContent || '';
                             const newContent = cue.values[colIndex] || '';
                             if (currentContent !== newContent) {
-                                td.textContent = newContent;
+                                cellUpdate.textContent = newContent;
                             }
                         }
                         
-                        const shouldStrike = cue.isStruckThrough;
-                        td.classList.toggle('struck', shouldStrike);
+                        cellUpdate.shouldStrike = cue.isStruckThrough;
                     } else {
-                        td.textContent = cue.timerValue || '';
+                        cellUpdate.textContent = cue.timerValue || '';
+                        cellUpdate.isTimerCell = true;
+                    }
+                    
+                    cellUpdate.isHidden = !state.columnVisibility[colId];
+                    rowUpdate.cellUpdates.push(cellUpdate);
+                });
+                
+                updates.push(rowUpdate);
+            });
+            
+            // Apply all updates in a single batch to prevent visual lag
+            updates.forEach(update => {
+                // Update row class
+                update.row.className = update.rowClass;
+                
+                // Update all cells
+                update.cellUpdates.forEach(cellUpdate => {
+                    const td = cellUpdate.td;
+                    const colId = cellUpdate.colId;
+                    
+                    td.className = colId;
+                    td.style.width = state.columnWidths[colId] + 'px';
+                    td.style.minWidth = state.columnWidths[colId] + 'px';
+                    td.style.maxWidth = state.columnWidths[colId] + 'px';
+                    
+                    if (cellUpdate.textContent !== undefined) {
+                        td.textContent = cellUpdate.textContent;
+                    }
+                    
+                    if (cellUpdate.shouldStrike !== undefined) {
+                        td.classList.toggle('struck', cellUpdate.shouldStrike);
+                    }
+                    
+                    if (cellUpdate.isTimerCell) {
                         td.classList.add('timer-cell');
                     }
                     
-                    td.classList.toggle('hidden', !state.columnVisibility[colId]);
+                    td.classList.toggle('hidden', cellUpdate.isHidden);
                 });
                 
                 // Apply row-level highlighting after all cells are updated
-                applyRowHighlighting(row, cue, data.highlightColors);
+                applyRowHighlighting(update.row, update.cue, data.highlightColors);
             });
             
             // Remove extra rows
@@ -1859,5 +1910,74 @@ struct HTMLJavaScript {
         
         // Load offline functionality after main app is ready
         setTimeout(loadOfflineScripts, 1000);
+        
+        // Cue Stack Dropdown Functions
+        function updateCueStackDropdown(data) {
+            const dropdown = document.getElementById('cueStackDropdown');
+            if (!dropdown) return;
+            
+            // Clear existing options
+            dropdown.innerHTML = '';
+            
+            // Add options for each cue stack
+            data.availableCueStacks.forEach((stack, index) => {
+                const option = document.createElement('option');
+                option.value = stack.index;
+                option.textContent = stack.name;
+                if (stack.index === data.currentCueStackIndex) {
+                    option.selected = true;
+                }
+                dropdown.appendChild(option);
+            });
+        }
+        
+        async function selectCueStack(index) {
+            try {
+                // Turn off auto-scroll when user selects a different cue stack
+                const autoScrollToggle = document.getElementById('autoScrollToggle');
+                if (autoScrollToggle) {
+                    autoScrollToggle.checked = false;
+                }
+                
+                const response = await fetch('/select-cue-stack', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ cueStackIndex: parseInt(index) })
+                });
+                
+                if (response.ok) {
+                    console.log('✅ Cue stack selection successful');
+                    // The dropdown will be updated automatically via polling
+                } else {
+                    console.error('❌ Failed to select cue stack:', response.statusText);
+                    // Reset dropdown to current selection
+                    const dropdown = document.getElementById('cueStackDropdown');
+                    if (dropdown) {
+                        dropdown.value = state.data?.currentCueStackIndex || 0;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error selecting cue stack:', error);
+                // Reset dropdown to current selection
+                const dropdown = document.getElementById('cueStackDropdown');
+                if (dropdown) {
+                    dropdown.value = state.data?.currentCueStackIndex || 0;
+                }
+            }
+        }
+        
+        // Add event listener for dropdown changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdown = document.getElementById('cueStackDropdown');
+            if (dropdown) {
+                dropdown.addEventListener('change', function() {
+                    if (this.value !== '') {
+                        selectCueStack(this.value);
+                    }
+                });
+            }
+        });
     """
 }

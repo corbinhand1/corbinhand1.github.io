@@ -38,6 +38,16 @@ class DataSyncManager: ObservableObject {
     // Track when web changes were made to prevent auto-load from overwriting them
     private var _lastWebChangeTime: Date = Date.distantPast
     
+    // Web client cue stack selection (separate from macOS app)
+    private var webClientCueStackIndex: Int = 0
+    private let webClientQueue = DispatchQueue(label: "DataSyncManager.webClientQueue", attributes: .concurrent)
+    
+    // Initialize web client state to match macOS app state
+    init() {
+        // Web client starts viewing the same cue stack as macOS app
+        webClientCueStackIndex = selectedCueStackIndex
+    }
+    
     
     // MARK: - Data Update Methods
     
@@ -299,7 +309,157 @@ class DataSyncManager: ObservableObject {
                         "keyword": colorSetting.keyword,
                         "color": colorSetting.color.toHex()
                     ]
-                }
+                },
+                // New fields for cue stack dropdown
+                "availableCueStacks": stacks.map { stack in
+                    [
+                        "name": stack.name,
+                        "index": stacks.firstIndex(of: stack) ?? -1
+                    ]
+                },
+                "currentCueStackIndex": selectedIndex
+            ]
+        }
+        
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: jsonObject, options: [])
+            return jsonData
+        } catch {
+            // Return a minimal error response instead of empty data
+            let errorResponse = ["error": "Failed to generate JSON response", "details": error.localizedDescription]
+            if let errorData = try? JSONSerialization.data(withJSONObject: errorResponse, options: []) {
+                return errorData
+            }
+            return Data()
+        }
+    }
+    
+    // MARK: - Web Client Cue Stack Management
+    
+    func setWebClientCueStackIndex(_ index: Int) {
+        webClientQueue.async(flags: .barrier) {
+            // Validate the index before setting
+            let validIndex = max(0, min(index, self.cueStacks.count - 1))
+            print("🔄 Web client cue stack changing from \(self.webClientCueStackIndex) to \(validIndex) (requested: \(index))")
+            self.webClientCueStackIndex = validIndex
+        }
+    }
+    
+    func getWebClientCueStackIndex() -> Int {
+        return webClientQueue.sync {
+            return webClientCueStackIndex
+        }
+    }
+    
+    func syncWebClientWithMacOSApp() {
+        webClientQueue.async(flags: .barrier) {
+            print("🔄 Syncing web client with macOS app: \(self.selectedCueStackIndex)")
+            self.webClientCueStackIndex = self.selectedCueStackIndex
+        }
+    }
+    
+    func generateJSONResponseForWebClient() -> Data {
+        let stacks = cueStacks
+        let webClientIndex = getWebClientCueStackIndex()
+        
+        // Use web client's selection directly - no fallback to macOS app
+        let selectedIndex = webClientIndex
+        
+        print("🔍 generateJSONResponseForWebClient() - stacks.count: \(stacks.count), webClientIndex: \(webClientIndex), selectedIndex: \(selectedIndex), macOSIndex: \(selectedCueStackIndex)")
+        
+        let jsonObject: [String: Any]
+        
+        if stacks.isEmpty || selectedIndex >= stacks.count || selectedIndex < 0 {
+            print("❌ No valid cue stack available for web client - using fallback to macOS app")
+            // Only fallback if web client selection is completely invalid
+            let fallbackIndex = selectedCueStackIndex < stacks.count ? selectedCueStackIndex : 0
+            let fallbackStack = stacks[fallbackIndex]
+            
+            jsonObject = [
+                "cueStackId": fallbackStack.id.uuidString,
+                "cueStackName": fallbackStack.name,
+                "columns": fallbackStack.columns.map { ["name": $0.name, "width": Double($0.width)] },
+                "cues": fallbackStack.cues.enumerated().map { index, cue in
+                    [
+                        "id": cue.id.uuidString,
+                        "index": index,
+                        "values": cue.values,
+                        "timerValue": cue.timerValue,
+                        "isStruckThrough": cue.isStruckThrough,
+                        "struck": Array(repeating: cue.isStruckThrough, count: fallbackStack.columns.count)
+                    ]
+                },
+                "activeCueIndex": activeCueIndex,
+                "selectedCueIndex": selectedCueIndex,
+                "lastUpdateTime": Date().timeIntervalSince1970,
+                "currentDate": DataSyncManager.dateFormatter.string(from: timerServer.currentTime),
+                "currentTime": DataSyncManager.timeFormatter.string(from: timerServer.currentTime),
+                "currentAMPM": DataSyncManager.amPmFormatter.string(from: timerServer.currentTime),
+                "countdownTime": timerServer.countdownTime,
+                "countUpTime": timerServer.countUpTime,
+                "countdownRunning": timerServer.countdownRunning,
+                "countUpRunning": timerServer.countUpRunning,
+                "highlightColors": highlightColors.compactMap { colorSetting in
+                    return [
+                        "keyword": colorSetting.keyword,
+                        "color": colorSetting.color.toHex()
+                    ]
+                },
+                "availableCueStacks": stacks.map { stack in
+                    [
+                        "name": stack.name,
+                        "index": stacks.firstIndex(of: stack) ?? -1
+                    ]
+                },
+                "currentCueStackIndex": fallbackIndex
+            ]
+        } else {
+            let selectedStack = stacks[selectedIndex]
+            
+            // Only show highlights (green/yellow) if web client is viewing the same cue stack as macOS app
+            let isViewingMacOSCueStack = (webClientIndex == selectedCueStackIndex)
+            let highlightActiveCueIndex = isViewingMacOSCueStack ? activeCueIndex : -1
+            let highlightSelectedCueIndex = isViewingMacOSCueStack ? selectedCueIndex : -1
+            
+            jsonObject = [
+                "cueStackId": selectedStack.id.uuidString,
+                "cueStackName": selectedStack.name,
+                "columns": selectedStack.columns.map { ["name": $0.name, "width": Double($0.width)] },
+                "cues": selectedStack.cues.enumerated().map { index, cue in
+                    [
+                        "id": cue.id.uuidString,
+                        "index": index,
+                        "values": cue.values,
+                        "timerValue": cue.timerValue,
+                        "isStruckThrough": cue.isStruckThrough,
+                        "struck": Array(repeating: cue.isStruckThrough, count: selectedStack.columns.count)
+                    ]
+                },
+                // Only show highlights if viewing the macOS app's cue stack
+                "activeCueIndex": highlightActiveCueIndex,
+                "selectedCueIndex": highlightSelectedCueIndex,
+                "lastUpdateTime": Date().timeIntervalSince1970,
+                "currentDate": DataSyncManager.dateFormatter.string(from: timerServer.currentTime),
+                "currentTime": DataSyncManager.timeFormatter.string(from: timerServer.currentTime),
+                "currentAMPM": DataSyncManager.amPmFormatter.string(from: timerServer.currentTime),
+                "countdownTime": timerServer.countdownTime,
+                "countUpTime": timerServer.countUpTime,
+                "countdownRunning": timerServer.countdownRunning,
+                "countUpRunning": timerServer.countUpRunning,
+                "highlightColors": highlightColors.compactMap { colorSetting in
+                    return [
+                        "keyword": colorSetting.keyword,
+                        "color": colorSetting.color.toHex()
+                    ]
+                },
+                // New fields for cue stack dropdown
+                "availableCueStacks": stacks.map { stack in
+                    [
+                        "name": stack.name,
+                        "index": stacks.firstIndex(of: stack) ?? -1
+                    ]
+                },
+                "currentCueStackIndex": selectedIndex
             ]
         }
         

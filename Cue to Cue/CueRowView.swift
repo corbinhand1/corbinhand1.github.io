@@ -26,7 +26,7 @@ struct CueRowView: View {
                     }
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .frame(width: columns[columnIndex].width, alignment: .leading)
+                .frame(width: columnIndex < columns.count ? columns[columnIndex].width : 100, alignment: .leading)
                 .font(selectedCueIndex == rowIndex ? .system(size: fontSize, weight: .bold) : .system(size: fontSize))
                 .foregroundColor(getHighlightColor(for: cue))
             }
