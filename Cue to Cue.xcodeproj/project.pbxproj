@@ -36,6 +36,7 @@
 		31AUTH001 /* AuthenticationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31AUTH002 /* AuthenticationManager.swift */; };
 		31AUTH003 /* UserManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31AUTH004 /* UserManagementView.swift */; };
 		31CONNECTION001 /* ConnectionMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CONNECTION002 /* ConnectionMonitorView.swift */; };
+		31TIMER001 /* AuthoritativeTimerServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31TIMER002 /* AuthoritativeTimerServer.swift */; };
 		31CADDE52C856B200072CFCE /* CompleteHTML.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CADDE42C856B200072CFCE /* CompleteHTML.swift */; };
 		31D830E62D0B55D9001A8DB9 /* CueStackDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D830E52D0B55D9001A8DB9 /* CueStackDetailView.swift */; };
 		31E585762C86CB4300133E33 /* ScriptingBridge.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31E585752C86CB4300133E33 /* ScriptingBridge.framework */; platformFilters = (ios, macos, ); };
@@ -133,6 +134,7 @@
 		31AUTH002 /* AuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationManager.swift; sourceTree = "<group>"; };
 		31AUTH004 /* UserManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementView.swift; sourceTree = "<group>"; };
 		31CONNECTION002 /* ConnectionMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionMonitorView.swift; sourceTree = "<group>"; };
+		31TIMER002 /* AuthoritativeTimerServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoritativeTimerServer.swift; sourceTree = "<group>"; };
 		31CADDE12C83B0FB0072CFCE /* Cue-to-Cue-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Cue-to-Cue-Info.plist"; sourceTree = SOURCE_ROOT; };
 		31CADDE42C856B200072CFCE /* CompleteHTML.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompleteHTML.swift; sourceTree = "<group>"; };
 		31D830E52D0B55D9001A8DB9 /* CueStackDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueStackDetailView.swift; sourceTree = "<group>"; };
@@ -281,6 +283,7 @@
 				31AUTH002 /* AuthenticationManager.swift */,
 				31AUTH004 /* UserManagementView.swift */,
 				31CONNECTION002 /* ConnectionMonitorView.swift */,
+				31TIMER002 /* AuthoritativeTimerServer.swift */,
 				31CADDE42C856B200072CFCE /* CompleteHTML.swift */,
 				31OFFLINE001 /* offline.html */,
 				31OFFLINE002 /* offline-styles.css */,
@@ -540,6 +543,7 @@
 				31AUTH001 /* AuthenticationManager.swift in Sources */,
 				31AUTH003 /* UserManagementView.swift in Sources */,
 				31CONNECTION001 /* ConnectionMonitorView.swift in Sources */,
+				31TIMER001 /* AuthoritativeTimerServer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

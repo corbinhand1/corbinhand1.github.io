@@ -115,17 +115,18 @@ struct ContentView: View {
                         
                         VStack(spacing: 20) {
                             TopSectionView(
-                                currentTime: $dataSyncManager.currentTime,
-                                countdownTime: $dataSyncManager.countdownTime,
-                                countdownRunning: $dataSyncManager.countdownRunning,
-                                countUpTime: $dataSyncManager.countUpTime,
-                                countUpRunning: $dataSyncManager.countUpRunning,
+                                currentTime: $dataSyncManager.timerServer.currentTime,
+                                countdownTime: $dataSyncManager.timerServer.countdownTime,
+                                countdownRunning: $dataSyncManager.timerServer.countdownRunning,
+                                countUpTime: $dataSyncManager.timerServer.countUpTime,
+                                countUpRunning: $dataSyncManager.timerServer.countUpRunning,
                                 showSettings: $showSettings,
                                 showConnectionMonitor: $showConnectionMonitor,
                                 showUserManagement: $showUserManagement,
                                 updateWebClients: updateWebClients
                             )
                             .environmentObject(settingsManager)
+                            .environmentObject(dataSyncManager)
                             
                             HStack(alignment: .top, spacing: 0) {
                                 VStack(alignment: .leading, spacing: 0) {
@@ -202,6 +203,10 @@ struct ContentView: View {
         }
         .onChange(of: dataSyncManager.selectedCueStackIndex) { _, _ in
             clearCueSelection()
+        }
+        .onChange(of: dataSyncManager.selectedCueIndex) { _, _ in
+            // Immediately notify web clients when selected cue changes
+            updateWebClients()
         }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             updateWebClients()
@@ -454,7 +459,7 @@ struct ContentView: View {
         guard dataSyncManager.selectedCueIndex >= 0 else { return }
         if dataSyncManager.selectedCueIndex < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count - 1 {
             selectCue(at: dataSyncManager.selectedCueIndex + 1)
-            self.appDelegate.updateWebClients()
+            updateWebClients()
         }
     }
     
@@ -462,14 +467,14 @@ struct ContentView: View {
         guard dataSyncManager.selectedCueIndex >= 0 else { return }
         if dataSyncManager.selectedCueIndex > 0 {
             selectCue(at: dataSyncManager.selectedCueIndex - 1)
-            self.appDelegate.updateWebClients()
+            updateWebClients()
         }
     }
     
     private func selectCue(at index: Int) {
         dataSyncManager.selectedCueIndex = index
         highlightCue(at: index)
-        self.appDelegate.updateWebClients()
+        updateWebClients()
     }
     
     // When a new cue is selected, reset the countdown clock.

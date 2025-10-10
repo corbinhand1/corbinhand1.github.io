@@ -85,8 +85,10 @@ class HTTPHandler {
             return offlineFileServer.serveTestOfflineHTML()
         case (.get, "/digital-7-mono.ttf"):
             return offlineFileServer.serveDigital7MonoFont()
-        case (.get, "/offline-status"):
-            return serveOfflineStatus()
+        case (.get, "/timer-state"):
+            return serveTimerState()
+        case (.post, "/timer-command"):
+            return handleTimerCommand(request)
         case (.get, "/health"), (.head, "/health"):
             return offlineFileServer.serveHealthCheck()
         // Authentication endpoints
@@ -162,24 +164,59 @@ class HTTPHandler {
         )
     }
     
-    private func serveOfflineStatus() -> HTTPResponse {
-        // Get connection stats from connection manager
-        let activeConnections = connectionManager?.getConnectionStats().active ?? 0
-        let maxConnections = connectionManager?.getConnectionStats().max ?? 100
+    private func serveTimerState() -> HTTPResponse {
+        let timerState = dataSyncManager.timerServer.getTimerState()
         
-        return offlineFileServer.serveOfflineStatus(
-            cueStacksCount: dataSyncManager.cueStacks.count,
-            activeConnections: activeConnections,
-            maxConnections: maxConnections
-        )
+        do {
+            let jsonData = try JSONEncoder().encode(timerState)
+            return HTTPResponse(
+                status: .ok,
+                headers: createCORSHeaders(["Content-Type": "application/json; charset=utf-8"]),
+                body: jsonData
+            )
+        } catch {
+            return HTTPResponse(
+                status: .internalServerError,
+                headers: createCORSHeaders(["Content-Type": "application/json; charset=utf-8"]),
+                body: createErrorJSON(message: "Failed to encode timer state")
+            )
+        }
+    }
+    
+    private func handleTimerCommand(_ request: HTTPRequest) -> HTTPResponse {
+        guard let body = request.body else {
+            return HTTPResponse(
+                status: .badRequest,
+                headers: createCORSHeaders(["Content-Type": "application/json"]),
+                body: createErrorJSON(message: "No request body")
+            )
+        }
+        
+        do {
+            let command = try JSONDecoder().decode(TimerCommand.self, from: body)
+            dataSyncManager.executeTimerCommand(command)
+            
+            let response: [String: Any] = ["success": true, "message": "Timer command executed"]
+            let responseData = try JSONSerialization.data(withJSONObject: response)
+            
+            return HTTPResponse(
+                status: .ok,
+                headers: createCORSHeaders(["Content-Type": "application/json"]),
+                body: responseData
+            )
+        } catch {
+            return HTTPResponse(
+                status: .badRequest,
+                headers: createCORSHeaders(["Content-Type": "application/json"]),
+                body: createErrorJSON(message: "Invalid timer command")
+            )
+        }
     }
     
     // MARK: - Response Sending
     
     func sendResponse(_ response: HTTPResponse, on connection: NWConnection) {
-        print("🔍 sendResponse() called with status: \(response.status.rawValue)")
         let responseData = response.serialize()
-        print("🔍 Response data size: \(responseData.count) bytes")
         
         connection.send(content: responseData, completion: .contentProcessed { error in
             if let error = error {
@@ -242,9 +279,8 @@ class HTTPHandler {
         // Extract token from Authorization header
         if let authHeader = request.headers["authorization"],
            authHeader.hasPrefix("Bearer ") {
-            let token = String(authHeader.dropFirst(7)) // Remove "Bearer " prefix
+            let _ = String(authHeader.dropFirst(7)) // Remove "Bearer " prefix
             // Invalidate token (optional - tokens expire naturally)
-            print("User logged out with token: \(token)")
         }
         
         authManager.logout()
@@ -260,9 +296,7 @@ class HTTPHandler {
     }
     
     private func handleGetCurrentUser(_ request: HTTPRequest) -> HTTPResponse {
-        print("🔍 handleGetCurrentUser() called")
         guard let user = getCurrentUser(from: request) else {
-            print("❌ No authenticated user found - returning 401")
             return HTTPResponse(
                 status: .unauthorized,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
@@ -270,19 +304,16 @@ class HTTPHandler {
             )
         }
         
-        print("🔍 Found user: \(user.username)")
         let userResponse = UserResponse(user: user, permissions: authManager.getUserPermissions(for: user.id, cueStacks: dataSyncManager.cueStacks))
         
         do {
             let responseData = try JSONEncoder().encode(userResponse)
-            print("✅ UserResponse encoded successfully, size: \(responseData.count) bytes")
             return HTTPResponse(
                 status: .ok,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: responseData
             )
         } catch {
-            print("❌ Failed to encode UserResponse: \(error)")
             return HTTPResponse(
                 status: .internalServerError,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
@@ -368,8 +399,7 @@ class HTTPHandler {
         switch authManager.validateToken(token) {
         case .success(let user):
             return user
-        case .failure(let error):
-            print("❌ Token validation failed: \(error)")
+        case .failure(_):
             return nil
         }
     }
@@ -392,7 +422,6 @@ class HTTPHandler {
         }
         
         guard let body = request.body else {
-            print("❌ No request body")
             return HTTPResponse(
                 status: .internalServerError,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
@@ -400,13 +429,8 @@ class HTTPHandler {
             )
         }
         
-        print("🔍 Request body size: \(body.count) bytes")
-        if let bodyString = String(data: body, encoding: .utf8) {
-            print("🔍 Request body content: \(bodyString)")
-        }
         
         guard let editRequest = try? JSONDecoder().decode(EditCueRequest.self, from: body) else {
-            print("❌ Failed to decode EditCueRequest")
             return HTTPResponse(
                 status: .internalServerError,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
@@ -414,12 +438,11 @@ class HTTPHandler {
             )
         }
         
-        print("🔍 Decoded request: cueId=\(editRequest.cueId), columnIndex=\(editRequest.columnIndex), newValue='\(editRequest.newValue)'")
         
         // Find the cue and its cue stack
         guard let (cueStack, _) = dataSyncManager.findCue(by: editRequest.cueId) else {
             return HTTPResponse(
-                status: .internalServerError,
+                status: .notFound,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Cue not found")
             )
@@ -447,7 +470,6 @@ class HTTPHandler {
             )
         }
         
-        print("✅ Saved: \(editRequest.newValue) to column \(editRequest.columnIndex)")
         
         // Return success response
         let response: [String: Any] = ["success": true, "message": "Cue updated successfully"]
@@ -482,7 +504,7 @@ class HTTPHandler {
         // Find the cue stack
         guard dataSyncManager.cueStacks.contains(where: { $0.id == addRequest.cueStackId }) else {
             return HTTPResponse(
-                status: .internalServerError,
+                status: .notFound,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Cue stack not found")
             )
@@ -492,7 +514,7 @@ class HTTPHandler {
         let userPermissions = authManager.permissions.filter { $0.userId == user.id && $0.cueStackId == addRequest.cueStackId }
         guard !userPermissions.isEmpty || user.isAdmin else {
             return HTTPResponse(
-                status: .internalServerError,
+                status: .forbidden,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Permission denied for this cue stack")
             )
@@ -543,7 +565,7 @@ class HTTPHandler {
         // Find the cue and its cue stack
         guard let (cueStack, _) = dataSyncManager.findCue(by: cueId) else {
             return HTTPResponse(
-                status: .internalServerError,
+                status: .notFound,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Cue not found")
             )
@@ -553,7 +575,7 @@ class HTTPHandler {
         let userPermissions = authManager.permissions.filter { $0.userId == user.id && $0.cueStackId == cueStack.id }
         guard !userPermissions.isEmpty || user.isAdmin else {
             return HTTPResponse(
-                status: .internalServerError,
+                status: .forbidden,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Permission denied for this cue stack")
             )

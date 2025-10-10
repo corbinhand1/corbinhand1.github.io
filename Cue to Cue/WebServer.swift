@@ -61,6 +61,11 @@ class WebServer: ObservableObject {
         
         // Set up bindings to connection manager
         setupBindings()
+        
+        // Create test user if needed (after all initialization is complete)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.authManager.createTestUserIfNeeded()
+        }
     }
     
     // MARK: - Server Management

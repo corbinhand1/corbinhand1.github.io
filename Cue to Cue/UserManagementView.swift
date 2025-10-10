@@ -838,10 +838,10 @@ struct PermissionEditorView: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: min(4, cueStack.columns.count)), spacing: 8) {
                 ForEach(0..<cueStack.columns.count, id: \.self) { columnIndex in
                     let column = cueStack.columns[columnIndex]
-                    let isSelected = userPermissions.first(where: { $0.cueStackId == cueStack.id })?.allowedColumns.contains(columnIndex) ?? false
+                    let isSelected = userPermissions.first(where: { $0.cueStackId == cueStack.id })?.allowedColumns.contains(column.name) ?? false
                     
                     Button(action: {
-                        togglePermission(cueStackId: cueStack.id, columnIndex: columnIndex)
+                        togglePermission(cueStackId: cueStack.id, columnName: column.name)
                     }) {
                         HStack(spacing: 6) {
                             Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
@@ -881,17 +881,19 @@ struct PermissionEditorView: View {
     
     private func selectAllColumns(for cueStackId: UUID) {
         if let cueStack = cueStacks.first(where: { $0.id == cueStackId }) {
-            let allColumnIndices = Array(0..<cueStack.columns.count)
+            let allColumnNames = cueStack.columns.map { $0.name }
             
             if let index = userPermissions.firstIndex(where: { $0.cueStackId == cueStackId }) {
                 userPermissions[index] = PermissionRequest(
                     cueStackId: cueStackId,
-                    allowedColumns: allColumnIndices
+                    allowedColumns: allColumnNames,
+                    allowedColumnIndices: nil
                 )
             } else {
                 userPermissions.append(PermissionRequest(
                     cueStackId: cueStackId,
-                    allowedColumns: allColumnIndices
+                    allowedColumns: allColumnNames,
+                    allowedColumnIndices: nil
                 ))
             }
         }
@@ -901,7 +903,8 @@ struct PermissionEditorView: View {
         if let index = userPermissions.firstIndex(where: { $0.cueStackId == cueStackId }) {
             userPermissions[index] = PermissionRequest(
                 cueStackId: cueStackId,
-                allowedColumns: []
+                allowedColumns: [],
+                allowedColumnIndices: nil
             )
         }
     }
@@ -910,28 +913,40 @@ struct PermissionEditorView: View {
         // Load existing permissions for this user
         let existingPermissions = authManager.permissions.filter { $0.userId == user.id }
         userPermissions = existingPermissions.map { permission in
-            PermissionRequest(cueStackId: permission.cueStackId, allowedColumns: permission.allowedColumns)
+            PermissionRequest(
+                cueStackId: permission.cueStackId, 
+                allowedColumns: permission.allowedColumns,
+                allowedColumnIndices: permission.allowedColumnIndices
+            )
         }
         
         // Add empty permissions for cue stacks that don't have permissions yet
         for cueStack in cueStacks {
             if !userPermissions.contains(where: { $0.cueStackId == cueStack.id }) {
-                userPermissions.append(PermissionRequest(cueStackId: cueStack.id, allowedColumns: []))
+                userPermissions.append(PermissionRequest(
+                    cueStackId: cueStack.id, 
+                    allowedColumns: [],
+                    allowedColumnIndices: nil
+                ))
             }
         }
     }
     
-    private func togglePermission(cueStackId: UUID, columnIndex: Int) {
+    private func togglePermission(cueStackId: UUID, columnName: String) {
         if let index = userPermissions.firstIndex(where: { $0.cueStackId == cueStackId }) {
             var allowedColumns = userPermissions[index].allowedColumns
             
-            if allowedColumns.contains(columnIndex) {
-                allowedColumns.removeAll { $0 == columnIndex }
+            if allowedColumns.contains(columnName) {
+                allowedColumns.removeAll { $0 == columnName }
             } else {
-                allowedColumns.append(columnIndex)
+                allowedColumns.append(columnName)
             }
             
-            userPermissions[index] = PermissionRequest(cueStackId: cueStackId, allowedColumns: allowedColumns)
+            userPermissions[index] = PermissionRequest(
+                cueStackId: cueStackId, 
+                allowedColumns: allowedColumns,
+                allowedColumnIndices: nil
+            )
         }
     }
     

@@ -32,12 +32,8 @@ class DataSyncManager: ObservableObject {
     @Published var selectedCueIndex: Int = -1
     @Published var highlightColors: [HighlightColorSetting] = []
     
-    // Clock-related properties - Published for SwiftUI
-    @Published var currentTime: Date = Date()
-    @Published var countdownTime: Int = 0
-    @Published var countUpTime: Int = 0
-    @Published var countdownRunning: Bool = false
-    @Published var countUpRunning: Bool = false
+    // Authoritative Timer Server - Single source of truth for all timers
+    @Published var timerServer = AuthoritativeTimerServer()
     
     // Track when web changes were made to prevent auto-load from overwriting them
     private var _lastWebChangeTime: Date = Date.distantPast
@@ -51,6 +47,8 @@ class DataSyncManager: ObservableObject {
         self.activeCueIndex = activeCueIndex
         self.selectedCueIndex = selectedCueIndex
         
+        print("🔄 DataSyncManager: selectedCueIndex updated to \(selectedCueIndex)")
+        
         // Automatically cache data for offline use
         cacheDataForOffline()
     }
@@ -60,20 +58,30 @@ class DataSyncManager: ObservableObject {
     }
     
     func updateClockState(currentTime: Date, countdownTime: Int, countUpTime: Int, countdownRunning: Bool, countUpRunning: Bool) {
-        self.currentTime = currentTime
-        self.countdownTime = countdownTime
-        self.countUpTime = countUpTime
-        self.countdownRunning = countdownRunning
-        self.countUpRunning = countUpRunning
+        // This method is now deprecated - timer state is managed by AuthoritativeTimerServer
+        // Keeping for backward compatibility but timer state comes from timerServer
+        print("⚠️ updateClockState called - timer state now managed by AuthoritativeTimerServer")
+    }
+    
+    // MARK: - Timer Commands
+    
+    func executeTimerCommand(_ command: TimerCommand) {
+        timerServer.executeCommand(command)
+    }
+    
+    func resetCountdown(with newTime: Int) {
+        timerServer.resetCountdown(with: newTime)
     }
     
     // MARK: - Cue Editing Methods
     
     func updateCueValue(cueId: UUID, columnIndex: Int, newValue: String) -> Bool {
+        // Use a semaphore to wait for the async operation to complete
+        let semaphore = DispatchSemaphore(value: 0)
         var success = false
         
-        // Update on main thread to avoid SwiftUI threading issues
-        DispatchQueue.main.sync {
+        // Update on main thread asynchronously to avoid deadlocks
+        DispatchQueue.main.async {
             for stackIndex in 0..<self.cueStacks.count {
                 if let cueIndex = self.cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
                     if columnIndex < self.cueStacks[stackIndex].cues[cueIndex].values.count {
@@ -96,38 +104,86 @@ class DataSyncManager: ObservableObject {
                 
                 print("🔄 Desktop app notified of cue update: \(newValue) in column \(columnIndex)")
             }
+            
+            // Signal that the operation is complete
+            semaphore.signal()
+        }
+        
+        // Wait for the async operation to complete (with timeout to prevent infinite wait)
+        let timeout = DispatchTime.now() + .seconds(5)
+        let result = semaphore.wait(timeout: timeout)
+        
+        if result == .timedOut {
+            print("⚠️ updateCueValue timed out - operation may have failed")
+            return false
         }
         
         return success
     }
     
     func addCue(to cueStackId: UUID, values: [String], timerValue: String = "") -> UUID? {
+        // Use a semaphore to wait for the async operation to complete
+        let semaphore = DispatchSemaphore(value: 0)
         var newCueId: UUID?
         
-        // Update on main thread to avoid SwiftUI threading issues
-        DispatchQueue.main.sync {
+        // Update on main thread asynchronously to avoid deadlocks
+        DispatchQueue.main.async {
             if let stackIndex = self.cueStacks.firstIndex(where: { $0.id == cueStackId }) {
                 let newCue = Cue(values: values, timerValue: timerValue)
                 self.cueStacks[stackIndex].cues.append(newCue)
                 newCueId = newCue.id
+                print("✅ Added new cue with ID: \(newCue.id)")
+            } else {
+                print("❌ Failed to find cue stack with ID: \(cueStackId)")
             }
+            
+            // Signal that the operation is complete
+            semaphore.signal()
+        }
+        
+        // Wait for the async operation to complete (with timeout to prevent infinite wait)
+        let timeout = DispatchTime.now() + .seconds(5)
+        let result = semaphore.wait(timeout: timeout)
+        
+        if result == .timedOut {
+            print("⚠️ addCue timed out - operation may have failed")
+            return nil
         }
         
         return newCueId
     }
     
     func deleteCue(cueId: UUID) -> Bool {
+        // Use a semaphore to wait for the async operation to complete
+        let semaphore = DispatchSemaphore(value: 0)
         var success = false
         
-        // Update on main thread to avoid SwiftUI threading issues
-        DispatchQueue.main.sync {
+        // Update on main thread asynchronously to avoid deadlocks
+        DispatchQueue.main.async {
             for stackIndex in 0..<self.cueStacks.count {
                 if let cueIndex = self.cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
                     self.cueStacks[stackIndex].cues.remove(at: cueIndex)
                     success = true
+                    print("✅ Deleted cue with ID: \(cueId)")
                     break
                 }
             }
+            
+            if !success {
+                print("❌ Failed to find cue with ID: \(cueId)")
+            }
+            
+            // Signal that the operation is complete
+            semaphore.signal()
+        }
+        
+        // Wait for the async operation to complete (with timeout to prevent infinite wait)
+        let timeout = DispatchTime.now() + .seconds(5)
+        let result = semaphore.wait(timeout: timeout)
+        
+        if result == .timedOut {
+            print("⚠️ deleteCue timed out - operation may have failed")
+            return false
         }
         
         return success
@@ -204,7 +260,7 @@ class DataSyncManager: ObservableObject {
         let stacks = cueStacks
         let selectedIndex = selectedCueStackIndex
         
-        print("🔍 generateJSONResponse() - stacks.count: \(stacks.count), selectedIndex: \(selectedIndex)")
+        print("🔍 generateJSONResponse() - stacks.count: \(stacks.count), selectedIndex: \(selectedIndex), selectedCueIndex: \(selectedCueIndex)")
         
         let jsonObject: [String: Any]
         
@@ -231,13 +287,13 @@ class DataSyncManager: ObservableObject {
                 "activeCueIndex": activeCueIndex,
                 "selectedCueIndex": selectedCueIndex,
                 "lastUpdateTime": Date().timeIntervalSince1970,
-                "currentDate": DataSyncManager.dateFormatter.string(from: currentTime),
-                "currentTime": DataSyncManager.timeFormatter.string(from: currentTime),
-                "currentAMPM": DataSyncManager.amPmFormatter.string(from: currentTime),
-                "countdownTime": countdownTime,
-                "countUpTime": countUpTime,
-                "countdownRunning": countdownRunning,
-                "countUpRunning": countUpRunning,
+                "currentDate": DataSyncManager.dateFormatter.string(from: timerServer.currentTime),
+                "currentTime": DataSyncManager.timeFormatter.string(from: timerServer.currentTime),
+                "currentAMPM": DataSyncManager.amPmFormatter.string(from: timerServer.currentTime),
+                "countdownTime": timerServer.countdownTime,
+                "countUpTime": timerServer.countUpTime,
+                "countdownRunning": timerServer.countdownRunning,
+                "countUpRunning": timerServer.countUpRunning,
                 "highlightColors": highlightColors.compactMap { colorSetting in
                     return [
                         "keyword": colorSetting.keyword,

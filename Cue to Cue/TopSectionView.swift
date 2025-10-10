@@ -24,14 +24,13 @@ struct TopSectionView: View {
     @Binding var showUserManagement: Bool
     @EnvironmentObject var settingsManager: SettingsManager
     var updateWebClients: () -> Void
+    
+    // Reference to DataSyncManager for timer commands
+    @EnvironmentObject var dataSyncManager: DataSyncManager
 
     // For editing the regular countdown time in a TextField
     @State private var isEditingCountdown = false
     @State private var editableCountdownTime = ""
-
-    // Instead of tracking a start date plus elapsed seconds,
-    // we track an absolute target date for the regular countdown.
-    @State private var countdownTargetDate: Date? = nil
 
     var body: some View {
         HStack(spacing: 20) {
@@ -54,10 +53,8 @@ struct TopSectionView: View {
             if countdownRunning {
                 startCountdownTimer()
             }
-            // Initialize countdown to time with default 10:00:00
-            if let date = parseAsTodayTime(targetTimeString) {
-                targetDate = date
-            }
+            // Get target time string from server
+            targetTimeString = dataSyncManager.timerServer.getTargetTimeString()
         }
         // Listen for the custom reset notification from ContentView.
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ResetCountdown"))) { notification in
@@ -68,117 +65,90 @@ struct TopSectionView: View {
         .onChange(of: countdownRunning) { oldValue, newValue in
             if newValue {
                 startCountdownTimer()
-            } else {
-                countdownTargetDate = nil
             }
         }
     }
 
-    // MARK: - Timer Tick
+    // MARK: - Timer Tick (Now just updates UI bindings)
 
     private func tick() {
-        let now = Date()
-        // Regular countdown based on absolute target date.
-        if countdownRunning, let target = countdownTargetDate {
-            let remaining = target.timeIntervalSince(now)
-            let newCountdown = max(0, Int(round(remaining)))
-            if countdownTime != newCountdown {
-                countdownTime = newCountdown
-                if newCountdown <= 0 {
-                    countdownRunning = false
-                    countdownTargetDate = nil
-                }
-                updateWebClients()
-            }
+        // Timer calculations are now handled by AuthoritativeTimerServer
+        // This function just updates the UI bindings from the timer server
+        let timerState = dataSyncManager.timerServer
+        
+        // Update bindings to reflect timer server state
+        if currentTime != timerState.currentTime {
+            currentTime = timerState.currentTime
         }
-        // Countdown-to-time update.
-        var newCountUpTime = countUpTime
-        if countUpRunning, let tDate = targetDate {
-            let diff = tDate.timeIntervalSince(now)
-            if diff <= 0 {
-                newCountUpTime = 0
-                countUpRunning = false
-            } else {
-                newCountUpTime = Int(round(diff))
-            }
+        
+        if countdownTime != timerState.countdownTime {
+            countdownTime = timerState.countdownTime
         }
-        if countUpTime != newCountUpTime {
-            countUpTime = newCountUpTime
-            updateWebClients()
+        
+        if countUpTime != timerState.countUpTime {
+            countUpTime = timerState.countUpTime
         }
-        // Update current time display.
-        if currentTime != now {
-            currentTime = now
-            updateWebClients()
+        
+        if countdownRunning != timerState.countdownRunning {
+            countdownRunning = timerState.countdownRunning
         }
+        
+        if countUpRunning != timerState.countUpRunning {
+            countUpRunning = timerState.countUpRunning
+        }
+        
+        // Update target time string from server
+        let serverTargetTime = timerState.getTargetTimeString()
+        if targetTimeString != serverTargetTime {
+            targetTimeString = serverTargetTime
+        }
+        
+        // Update web clients with current state
+        updateWebClients()
     }
 
-    // MARK: - Regular Countdown Controls
+    // MARK: - Regular Countdown Controls (Now delegate to AuthoritativeTimerServer)
 
     private func startCountdownTimer() {
-        // Set countdownRunning to true so that tick() will update the timer.
-        countdownRunning = true
-        // Set an absolute target date for the regular countdown.
-        countdownTargetDate = Date().addingTimeInterval(TimeInterval(countdownTime))
-        updateWebClients()
+        let command = TimerCommand(action: "start", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil)
+        dataSyncManager.executeTimerCommand(command)
     }
 
     private func pauseCountdownTimer() {
-        countdownRunning = false
-        countdownTargetDate = nil
-        updateWebClients()
+        let command = TimerCommand(action: "pause", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil)
+        dataSyncManager.executeTimerCommand(command)
     }
 
     private func resetCountdownTimer() {
-        countdownRunning = false
-        countdownTime = 0
-        countdownTargetDate = nil
-        updateWebClients()
+        let command = TimerCommand(action: "reset", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil)
+        dataSyncManager.executeTimerCommand(command)
     }
 
     /// Resets the regular countdown when a new cue timer is selected.
     private func resetCountdown(with newTime: Int) {
-        countdownRunning = false
-        countdownTime = newTime
-        countdownTargetDate = Date().addingTimeInterval(TimeInterval(newTime))
-        countdownRunning = true
-        updateWebClients()
+        dataSyncManager.resetCountdown(with: newTime)
     }
 
     private func adjustCountdownTime(by seconds: Int) {
-        let newTime = max(0, countdownTime + seconds)
-        countdownTime = newTime
-        if countdownRunning {
-            countdownTargetDate = Date().addingTimeInterval(TimeInterval(newTime))
-        }
-        updateWebClients()
+        let command = TimerCommand(action: "adjust", countdownTime: nil, countUpTime: nil, adjustment: seconds, targetTimeString: nil)
+        dataSyncManager.executeTimerCommand(command)
     }
 
-    // MARK: - “Countdown to Time” Controls
+    // MARK: - "Countdown to Time" Controls (Now delegate to AuthoritativeTimerServer)
 
     private func startCountdownToTime() {
-        guard let tDate = targetDate else { return }
-        countUpRunning = true
-        // Initialize countUpTime immediately.
-        countUpTime = max(0, Int(round(tDate.timeIntervalSince(Date()))))
-        updateWebClients()
+        let command = TimerCommand(action: "startCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil)
+        dataSyncManager.executeTimerCommand(command)
     }
 
     private func pauseCountdownToTime() {
-        countUpRunning = false
-        updateWebClients()
+        let command = TimerCommand(action: "pauseCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil)
+        dataSyncManager.executeTimerCommand(command)
     }
 
     private func resetCountdownToTime() {
-        countUpRunning = false
-        countUpTime = 0
-        targetDate = nil
-        targetTimeString = "10:00:00"
-        // Re-initialize target date
-        if let date = parseAsTodayTime(targetTimeString) {
-            targetDate = date
-        }
-        updateWebClients()
+        let command = TimerCommand(action: "resetCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil)
+        dataSyncManager.executeTimerCommand(command)
     }
 
     // MARK: - Subviews
@@ -215,11 +185,8 @@ struct TopSectionView: View {
                 if isEditingCountdown {
                     TextField("", text: $editableCountdownTime, onCommit: {
                         if let newTime = parseTimeString(editableCountdownTime) {
-                            countdownTime = newTime
-                            if countdownRunning {
-                                startCountdownTimer()
-                            }
-                            updateWebClients()
+                            let command = TimerCommand(action: "setCountdownTime", countdownTime: newTime, countUpTime: nil, adjustment: nil, targetTimeString: nil)
+                            dataSyncManager.executeTimerCommand(command)
                         }
                         isEditingCountdown = false
                     })
@@ -256,14 +223,9 @@ struct TopSectionView: View {
                     .foregroundColor(.white.opacity(0.7))
                 if isEditingCountdownToTime {
                     TextField("HH:mm:ss", text: $targetTimeString, onCommit: {
-                        if let date = parseAsTodayTime(targetTimeString) {
-                            targetDate = date
-                        } else {
-                            targetDate = nil
-                            countUpTime = 0
-                        }
+                        let command = TimerCommand(action: "setCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: targetTimeString)
+                        dataSyncManager.executeTimerCommand(command)
                         isEditingCountdownToTime = false
-                        updateWebClients()
                     })
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .frame(width: 150)

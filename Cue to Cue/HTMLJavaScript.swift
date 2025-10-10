@@ -68,6 +68,11 @@ struct HTMLJavaScript {
                 state.isAuthenticated = true;
                 updateAuthUI();
                 fetchUserInfo();
+                fetchUserPermissions(); // Also fetch permissions when loading saved token
+                // Ensure table is refreshed after permissions are loaded
+                setTimeout(() => {
+                    refreshTableEditability();
+                }, 100);
             }
         }
 
@@ -110,7 +115,16 @@ struct HTMLJavaScript {
                     state.currentUser = data.user;
                     updateAuthUI();
                     hideLoginModal();
-                    fetchUserPermissions();
+                    // Fetch permissions and refresh table editability
+                    try {
+                        await fetchUserPermissions();
+                        // Double-check that permissions are loaded and refresh table
+                        setTimeout(() => {
+                            refreshTableEditability();
+                        }, 200);
+                    } catch (error) {
+                        console.error('Error loading permissions after login:', error);
+                    }
                     return true;
                 } else {
                     // Handle different error types
@@ -166,7 +180,6 @@ struct HTMLJavaScript {
 
         async function fetchUserInfo() {
             if (!state.authToken) {
-                console.log("🔍 No auth token, skipping user info fetch");
                 return;
             }
             
@@ -196,7 +209,6 @@ struct HTMLJavaScript {
 
         async function fetchUserPermissions() {
             if (!state.authToken) {
-                console.log("🔍 No auth token, skipping permissions fetch");
                 return;
             }
             
@@ -210,7 +222,10 @@ struct HTMLJavaScript {
                 if (response.ok) {
                     const permissions = await response.json();
                     state.userPermissions = permissions;
+                    console.log("✅ User permissions loaded");
                     updateTablePermissions();
+                    // Also refresh the table to make cells editable
+                    refreshTableEditability();
                 } else if (response.status === 401) {
                     console.log("🔍 Token expired, clearing auth");
                     // Token expired, clear it
@@ -259,6 +274,7 @@ struct HTMLJavaScript {
         }
 
         function canUserEditColumn(columnIndex) {
+            // Must be authenticated and have data
             if (!state.isAuthenticated || !state.data) {
                 return false;
             }
@@ -267,6 +283,13 @@ struct HTMLJavaScript {
             if (state.currentUser && state.currentUser.isAdmin) {
                 return true;
             }
+            
+            // Get column name from index
+            if (columnIndex >= state.data.columns.length) {
+                return false;
+            }
+            
+            const columnName = state.data.columns[columnIndex].name;
             
             // Check user permissions for current cue stack using cueStackId
             const currentCueStackId = state.data.cueStackId;
@@ -279,7 +302,16 @@ struct HTMLJavaScript {
                 return false;
             }
             
-            return permission.allowedColumns.includes(columnIndex);
+            // Check if user can edit this column by name
+            const canEditByName = permission.allowedColumns.includes(columnName);
+            
+            // Check legacy index-based permissions for backward compatibility
+            let canEditByIndex = false;
+            if (permission.allowedColumnIndices && permission.allowedColumnIndices.includes(columnIndex)) {
+                canEditByIndex = true;
+            }
+            
+            return canEditByName || canEditByIndex;
         }
 
         function updateTablePermissions() {
@@ -292,9 +324,7 @@ struct HTMLJavaScript {
                         const cells = row.querySelectorAll('td');
                         cells.forEach((cell, cellIndex) => {
                             if (cellIndex < state.data.columns.length) { // Skip timer column
-                                // Force test: make column 2 (Preset) always editable for debugging
-                                const isPresetColumn = cellIndex === 2;
-                                const shouldBeEditable = canUserEditColumn(cellIndex) || isPresetColumn;
+                                const shouldBeEditable = canUserEditColumn(cellIndex);
                                 
                                 if (shouldBeEditable) {
                                     cell.classList.add('editable-cell');
@@ -310,18 +340,49 @@ struct HTMLJavaScript {
             }
         }
 
+        function refreshTableEditability() {
+            // Refresh the editability of all cells after permissions are loaded
+            if (state.data && state.data.cues) {
+                const tbody = document.querySelector('#cueTable tbody');
+                if (tbody) {
+                    const rows = tbody.querySelectorAll('tr');
+                    rows.forEach((row, rowIndex) => {
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach((cell, cellIndex) => {
+                            if (cellIndex < state.data.columns.length) { // Skip timer column
+                                // Get the cue ID for this row
+                                const cue = state.data.cues[rowIndex];
+                                if (cue) {
+                                    // Remove existing event listeners by cloning the cell
+                                    const newCell = cell.cloneNode(true);
+                                    cell.parentNode.replaceChild(newCell, cell);
+                                    
+                                    // Make the new cell editable
+                                    makeCellEditable(newCell, cue.id, cellIndex);
+                                    
+                                    // Update visual indicators
+                                    const shouldBeEditable = canUserEditColumn(cellIndex);
+                                    if (shouldBeEditable) {
+                                        newCell.classList.add('editable-cell');
+                                        newCell.classList.remove('readonly-cell');
+                                    } else {
+                                        newCell.classList.add('readonly-cell');
+                                        newCell.classList.remove('editable-cell');
+                                    }
+                                }
+                            }
+                        });
+                    });
+                }
+            }
+        }
+
         // Cell Editing Functions
         function makeCellEditable(cell, cueId, columnIndex) {
-            // Force test: make column 2 (Preset) always editable for debugging
-            const isPresetColumn = columnIndex === 2;
-            const canEdit = canUserEditColumn(columnIndex) || isPresetColumn;
-            
-            if (!canEdit) {
-                return;
-            }
-            
+            // Always add the click listener, but check permissions when clicked
             cell.addEventListener('click', () => {
-                if (!canUserEditColumn(columnIndex) && !isPresetColumn) {
+                // Check permissions at click time, not setup time
+                if (!canUserEditColumn(columnIndex)) {
                     return;
                 }
                 
@@ -380,6 +441,14 @@ struct HTMLJavaScript {
         async function updateCueValue(cueId, columnIndex, newValue) {
             console.log('💾 Saving:', { cueId, columnIndex, newValue });
             
+            // Double-check permissions before sending request
+            if (!canUserEditColumn(columnIndex)) {
+                const errorMessage = 'You do not have permission to edit this column.';
+                console.error('❌ Permission denied:', errorMessage);
+                showNotification(errorMessage, 'error');
+                return;
+            }
+            
             try {
                 const response = await authenticatedFetch(`/cues/${cueId}`, {
                     method: 'PUT',
@@ -429,6 +498,9 @@ struct HTMLJavaScript {
                     timestamp: Date.now()
                 });
                 state.lastEditTime = Date.now();
+                
+                // Show success notification
+                showNotification('Cue updated successfully', 'success');
                 
                 // Wait a moment before refreshing to ensure backend has processed the change
                 setTimeout(() => {
@@ -604,7 +676,7 @@ struct HTMLJavaScript {
                     break;
                 case 'disconnected':
                     statusDot.classList.add('disconnected');
-                    statusText.textContent = 'Disconnected';
+                    statusText.textContent = 'Disconnected. Local Save Only';
                     break;
             }
         }
@@ -695,8 +767,16 @@ struct HTMLJavaScript {
                 
                 const data = JSON.parse(text);
                 state.data = data;
+                console.log("🔍 Cues data received");
                 updateUI(data);
                 updateConnectionStatus('connected');
+                
+                // If user is authenticated, refresh table editability after data loads
+                if (state.isAuthenticated) {
+                    setTimeout(() => {
+                        refreshTableEditability();
+                    }, 100);
+                }
             } catch(err) {
                 // Handle different types of errors appropriately
                 if (err.name === 'AbortError') {
@@ -977,6 +1057,8 @@ struct HTMLJavaScript {
             
             attachResizeHandlers();
             saveSettings();
+            // Update table permissions after building
+            updateTablePermissions();
         }
 
         function updateTableData(data) {

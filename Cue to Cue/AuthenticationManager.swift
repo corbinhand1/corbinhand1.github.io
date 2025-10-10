@@ -39,7 +39,6 @@ class AuthenticationManager: ObservableObject {
     
     private func loadAuthData() {
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            print("Could not access documents directory")
             return
         }
         
@@ -52,20 +51,24 @@ class AuthenticationManager: ObservableObject {
                 users = authData.users
                 permissions = authData.permissions
                 tokens = authData.tokens
-                print("✅ Loaded authentication data with \(users.count) users and \(permissions.count) permissions")
+                
+                // Check if we need to migrate old permissions
+                migrateOldPermissionsIfNeeded()
+                
             } catch {
-                print("❌ Error loading auth data: \(error)")
+                // Try to backup the corrupted file
+                let backupURL = authDataURL.appendingPathExtension("backup")
+                try? fileManager.moveItem(at: authDataURL, to: backupURL)
+                
                 authData = AuthData()
             }
         } else {
-            print("📝 No existing auth data found, starting fresh")
             authData = AuthData()
         }
     }
     
     private func saveAuthData() {
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            print("Could not access documents directory")
             return
         }
         
@@ -78,7 +81,6 @@ class AuthenticationManager: ObservableObject {
             
             let data = try JSONEncoder().encode(authData)
             try data.write(to: authDataURL)
-            print("💾 Saved authentication data")
         } catch {
             print("❌ Error saving auth data: \(error)")
         }
@@ -115,7 +117,8 @@ class AuthenticationManager: ObservableObject {
             let permission = Permission(
                 userId: newUser.id,
                 cueStackId: permissionRequest.cueStackId,
-                allowedColumns: permissionRequest.allowedColumns
+                allowedColumns: permissionRequest.allowedColumns,
+                allowedColumnIndices: permissionRequest.allowedColumnIndices
             )
             DispatchQueue.main.async {
                 self.permissions.append(permission)
@@ -123,7 +126,6 @@ class AuthenticationManager: ObservableObject {
         }
         
         saveAuthData()
-        print("✅ Created user: \(username)")
         return .success(newUser)
     }
     
@@ -152,7 +154,6 @@ class AuthenticationManager: ObservableObject {
         }
         
         saveAuthData()
-        print("✅ Deleted user: \(user.username)")
         return .success(())
     }
     
@@ -171,7 +172,8 @@ class AuthenticationManager: ObservableObject {
             let permission = Permission(
                 userId: userId,
                 cueStackId: permissionRequest.cueStackId,
-                allowedColumns: permissionRequest.allowedColumns
+                allowedColumns: permissionRequest.allowedColumns,
+                allowedColumnIndices: permissionRequest.allowedColumnIndices
             )
             DispatchQueue.main.async {
                 self.permissions.append(permission)
@@ -179,23 +181,22 @@ class AuthenticationManager: ObservableObject {
         }
         
         saveAuthData()
-        print("✅ Updated permissions for user: \(userId)")
         return .success(())
     }
     
     // MARK: - Authentication
     
     func login(username: String, password: String) -> Result<LoginResponse, AuthError> {
-        print("🔍 Attempting login for user: \(username)")
-        print("🔍 Available users: \(users.map { $0.username })")
+        // If sherman user doesn't exist, try to create it now
+        if username.lowercased() == "sherman" && !users.contains(where: { $0.username.lowercased() == "sherman" }) {
+            createTestUserIfNeeded()
+        }
         
         guard let user = users.first(where: { $0.username.lowercased() == username.lowercased() }) else {
-            print("❌ User not found: \(username)")
             return .failure(.invalidCredentials)
         }
         
         guard user.verifyPassword(password) else {
-            print("❌ Invalid password for user: \(username)")
             return .failure(.invalidCredentials)
         }
         
@@ -228,7 +229,6 @@ class AuthenticationManager: ObservableObject {
             self.currentUser = nil
             self.isAuthenticated = false
         }
-        print("✅ User logged out")
     }
     
     func validateToken(_ tokenString: String) -> Result<User, AuthError> {
@@ -255,66 +255,134 @@ class AuthenticationManager: ObservableObject {
     // MARK: - Permission Management
     
     func getUserPermissions(for userId: UUID, cueStacks: [CueStack]) -> [PermissionResponse] {
-        print("🔍 Getting permissions for user ID: \(userId)")
-        print("🔍 Available permissions: \(permissions.map { "\($0.userId) -> \($0.cueStackId): \($0.allowedColumns)" })")
-        
         let userPermissions = permissions.filter { $0.userId == userId }
-        print("🔍 User permissions found: \(userPermissions.count)")
         
         return cueStacks.compactMap { cueStack in
             let permission = userPermissions.first { $0.cueStackId == cueStack.id }
-            let allowedColumns = permission?.allowedColumns ?? []
-            let columnNames = allowedColumns.compactMap { index in
-                index < cueStack.columns.count ? cueStack.columns[index].name : nil
-            }
             
-            print("🔍 CueStack \(cueStack.name): allowed columns \(allowedColumns) -> \(columnNames)")
+            // Handle both new (name-based) and legacy (index-based) permissions
+            var allowedColumnNames: [String] = []
+            var allowedColumnIndices: [Int]? = nil
+            
+            if let permission = permission {
+                // New name-based permissions
+                allowedColumnNames = permission.allowedColumns
+                
+                // Legacy index-based permissions (for backward compatibility)
+                if let legacyIndices = permission.allowedColumnIndices {
+                    allowedColumnIndices = legacyIndices
+                    // Convert legacy indices to names for display
+                    let legacyNames = legacyIndices.compactMap { index in
+                        index < cueStack.columns.count ? cueStack.columns[index].name : nil
+                    }
+                    // Merge with existing names, avoiding duplicates
+                    allowedColumnNames = Array(Set(allowedColumnNames + legacyNames))
+                }
+            }
             
             return PermissionResponse(
                 cueStackId: cueStack.id,
                 cueStackName: cueStack.name,
-                allowedColumns: allowedColumns,
-                columnNames: columnNames
+                allowedColumns: allowedColumnNames,
+                allowedColumnIndices: allowedColumnIndices,
+                columnNames: cueStack.columns.map { $0.name }
             )
         }
     }
     
     func canUserEditColumn(_ userId: UUID, cueStackId: UUID, columnIndex: Int) -> Bool {
-        print("🔍 Checking if user \(userId) can edit column \(columnIndex) in cue stack \(cueStackId)")
-        
         guard let user = users.first(where: { $0.id == userId }) else {
-            print("❌ User not found with ID: \(userId)")
             return false
         }
         
-        print("🔍 Found user: \(user.username) (Admin: \(user.isAdmin))")
+        // Admin users can edit all columns
+        if user.isAdmin {
+            return true
+        }
+        
+        // Find the cue stack to get column name
+        guard let cueStack = dataSyncManager.cueStacks.first(where: { $0.id == cueStackId }) else {
+            return false
+        }
+        
+        // Get column name from index
+        guard columnIndex < cueStack.columns.count else {
+            return false
+        }
+        
+        let columnName = cueStack.columns[columnIndex].name
+        
+        // Use the new column name-based permission checking
+        return canUserEditColumnByName(userId, cueStackId: cueStackId, columnName: columnName)
+    }
+    
+    func canUserEditColumnByName(_ userId: UUID, cueStackId: UUID, columnName: String) -> Bool {
+        guard let user = users.first(where: { $0.id == userId }) else {
+            return false
+        }
         
         // Admin users can edit all columns
         if user.isAdmin {
-            print("✅ Admin user - can edit all columns")
             return true
         }
         
         // Check specific permissions
         let userPermissions = permissions.filter { $0.userId == userId }
-        print("🔍 User has \(userPermissions.count) permission entries")
         
         guard let permission = userPermissions.first(where: { 
             $0.cueStackId == cueStackId 
         }) else {
-            print("❌ No permission found for cue stack \(cueStackId)")
-            print("🔍 Available permissions for user: \(userPermissions.map { "\($0.cueStackId): \($0.allowedColumns)" })")
             return false
         }
         
-        print("🔍 Found permission for cue stack: allowed columns \(permission.allowedColumns)")
-        let canEdit = permission.canEditColumn(columnIndex)
-        print("🔍 Can edit column \(columnIndex): \(canEdit)")
-        
-        return canEdit
+        return permission.canEditColumn(columnName)
     }
     
     // MARK: - Helper Methods
+    
+    private func migrateOldPermissionsIfNeeded() {
+        // Check if any permissions have empty allowedColumns but non-empty allowedColumnIndices
+        // This indicates old permission data that needs migration
+        var needsMigration = false
+        
+        for permission in permissions {
+            if permission.allowedColumns.isEmpty && permission.allowedColumnIndices != nil && !permission.allowedColumnIndices!.isEmpty {
+                needsMigration = true
+                break
+            }
+        }
+        
+        if needsMigration {
+            for i in 0..<permissions.count {
+                let permission = permissions[i]
+                
+                // If this permission has old index-based data but no name-based data
+                if permission.allowedColumns.isEmpty && permission.allowedColumnIndices != nil && !permission.allowedColumnIndices!.isEmpty {
+                    
+                    // Find the cue stack for this permission
+                    if let cueStack = dataSyncManager.cueStacks.first(where: { $0.id == permission.cueStackId }) {
+                        // Convert indices to column names
+                        let columnNames = permission.allowedColumnIndices!.compactMap { index in
+                            index < cueStack.columns.count ? cueStack.columns[index].name : nil
+                        }
+                        
+                        // Update the permission with column names
+                        permissions[i] = Permission(
+                            id: permission.id,
+                            userId: permission.userId,
+                            cueStackId: permission.cueStackId,
+                            allowedColumns: columnNames,
+                            allowedColumnIndices: permission.allowedColumnIndices, // Keep for backward compatibility
+                            createdAt: permission.createdAt
+                        )
+                    }
+                }
+            }
+            
+            // Save the migrated data
+            saveAuthData()
+        }
+    }
     
     private func createDefaultAdminUserIfNeeded() {
         if users.isEmpty {
@@ -324,7 +392,6 @@ class AuthenticationManager: ObservableObject {
                 self.users.append(adminUser)
             }
             saveAuthData()
-            print("🔐 Created default admin user (username: admin, password: admin123)")
         }
     }
     
@@ -335,7 +402,6 @@ class AuthenticationManager: ObservableObject {
                 self.tokens = validTokens
             }
             saveAuthData()
-            print("🧹 Cleaned up \(tokens.count - validTokens.count) expired tokens")
         }
     }
     
@@ -388,52 +454,30 @@ enum AuthError: Error, LocalizedError {
 
 extension AuthenticationManager {
     func createTestUserIfNeeded() {
-        print("🔧 Starting createTestUserIfNeeded...")
-        print("🔍 Current users: \(users.map { "\($0.username) (ID: \($0.id))" })")
-        
         // Check if sherman user exists
         if !self.users.contains(where: { $0.username.lowercased() == "sherman" }) {
-            print("🔧 Creating test user 'sherman'...")
-            
             let result = self.createUser(username: "sherman", password: "password123", isAdmin: false)
             switch result {
             case .success(let user):
-                print("✅ Created user: \(user.username) with ID: \(user.id)")
-                
                 // Get the first cue stack to set permissions
                 if let firstCueStack = self.dataSyncManager.cueStacks.first {
-                    print("🔧 Setting permissions for cue stack: \(firstCueStack.name) (ID: \(firstCueStack.id))")
-                    print("🔧 Cue stack has \(firstCueStack.columns.count) columns: \(firstCueStack.columns.map { $0.name })")
-                    
-                    // Give sherman permission to edit the "Preset" column (index 2)
+                    // Give sherman permission to edit the "Preset" column by name
                     let permissionRequest = PermissionRequest(
                         cueStackId: firstCueStack.id,
-                        allowedColumns: [2] // Preset column
+                        allowedColumns: ["Preset"], // Column name instead of index
+                        allowedColumnIndices: [2] // Legacy support for backward compatibility
                     )
-                    
-                    print("🔧 Creating permission request: cueStackId=\(permissionRequest.cueStackId), allowedColumns=\(permissionRequest.allowedColumns)")
                     
                     let permissionResult = self.updateUserPermissions(user.id, permissions: [permissionRequest])
                     switch permissionResult {
                     case .success:
-                        print("✅ Set permissions for user \(user.username): can edit column 2 (Preset)")
-                        print("🔍 Final permissions for user: \(self.permissions.filter { $0.userId == user.id }.map { "\($0.cueStackId): \($0.allowedColumns)" })")
+                        print("✅ Created Sherman user with Preset column permissions")
                     case .failure(let error):
                         print("❌ Failed to set permissions: \(error)")
                     }
-                } else {
-                    print("❌ No cue stacks available for permissions")
                 }
-                
             case .failure(let error):
-                print("❌ Failed to create user: \(error)")
-            }
-        } else {
-            print("✅ User 'sherman' already exists")
-            if let sherman = self.users.first(where: { $0.username.lowercased() == "sherman" }) {
-                print("🔍 Sherman user details: ID=\(sherman.id), Admin=\(sherman.isAdmin)")
-                let shermanPermissions = self.permissions.filter { $0.userId == sherman.id }
-                print("🔍 Sherman permissions: \(shermanPermissions.map { "\($0.cueStackId): \($0.allowedColumns)" })")
+                print("❌ Failed to create Sherman user: \(error)")
             }
         }
     }

@@ -111,20 +111,40 @@ struct Permission: Identifiable, Equatable, Codable {
     var id = UUID()
     var userId: UUID
     var cueStackId: UUID
-    var allowedColumns: [Int] // Array of column indices user can edit
+    var allowedColumns: [String] // Array of column names user can edit
+    var allowedColumnIndices: [Int]? // Legacy support for old index-based permissions
     var createdAt: Date
     
-    init(id: UUID = UUID(), userId: UUID, cueStackId: UUID, allowedColumns: [Int], createdAt: Date = Date()) {
+    init(id: UUID = UUID(), userId: UUID, cueStackId: UUID, allowedColumns: [String], allowedColumnIndices: [Int]? = nil, createdAt: Date = Date()) {
         self.id = id
         self.userId = userId
         self.cueStackId = cueStackId
         self.allowedColumns = allowedColumns
+        self.allowedColumnIndices = allowedColumnIndices
         self.createdAt = createdAt
     }
     
-    // Helper method to check if user can edit a specific column
-    func canEditColumn(_ columnIndex: Int) -> Bool {
-        return allowedColumns.contains(columnIndex)
+    // Helper method to check if user can edit a specific column by name
+    func canEditColumn(_ columnName: String) -> Bool {
+        return allowedColumns.contains(columnName)
+    }
+    
+    // Helper method to check if user can edit a specific column by index (for backward compatibility)
+    func canEditColumnByIndex(_ columnIndex: Int, cueStack: CueStack) -> Bool {
+        // First try the new name-based approach
+        if columnIndex < cueStack.columns.count {
+            let columnName = cueStack.columns[columnIndex].name
+            if canEditColumn(columnName) {
+                return true
+            }
+        }
+        
+        // Fall back to legacy index-based approach
+        if let indices = allowedColumnIndices {
+            return indices.contains(columnIndex)
+        }
+        
+        return false
     }
 }
 
@@ -180,13 +200,15 @@ struct LoginResponse: Codable {
 struct PermissionResponse: Codable {
     let cueStackId: UUID
     let cueStackName: String
-    let allowedColumns: [Int]
-    let columnNames: [String]
+    let allowedColumns: [String] // Column names instead of indices
+    let allowedColumnIndices: [Int]? // Legacy support
+    let columnNames: [String] // All column names for reference
     
-    init(cueStackId: UUID, cueStackName: String, allowedColumns: [Int], columnNames: [String]) {
+    init(cueStackId: UUID, cueStackName: String, allowedColumns: [String], allowedColumnIndices: [Int]? = nil, columnNames: [String]) {
         self.cueStackId = cueStackId
         self.cueStackName = cueStackName
         self.allowedColumns = allowedColumns
+        self.allowedColumnIndices = allowedColumnIndices
         self.columnNames = columnNames
     }
 }
@@ -218,7 +240,8 @@ struct CreateUserRequest: Codable {
 
 struct PermissionRequest: Codable {
     let cueStackId: UUID
-    let allowedColumns: [Int]
+    let allowedColumns: [String] // Column names instead of indices
+    let allowedColumnIndices: [Int]? // Legacy support
 }
 
 struct EditCueRequest: Codable {
