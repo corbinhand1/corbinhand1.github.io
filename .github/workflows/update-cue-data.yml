@@ -1,0 +1,25 @@
+name: Update Cue Data
+
+on:
+  repository_dispatch:
+    types: [cue-data-update]
+
+jobs:
+  update-cue-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Update cue data
+        run: |
+          echo '${{ github.event.client_payload.cueData }}' > cuetocue/cuetocue-data.json
+          echo '${{ github.event.client_payload.metadata }}' > cuetocue/metadata.json
+          
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add cuetocue/cuetocue-data.json cuetocue/metadata.json
+          git commit -m "Update cue data from macOS app: ${{ github.event.client_payload.metadata.filename }}" || exit 0
+          git push
