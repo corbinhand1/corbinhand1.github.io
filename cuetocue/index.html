@@ -36,10 +36,23 @@
             backdrop-filter: blur(10px);
         }
 
+        .title-section {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
         .title {
             font-size: 2.5rem;
             font-weight: bold;
             color: #ffffff;
+        }
+
+        .current-time {
+            font-size: 1.2rem;
+            color: #4CAF50;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-weight: 500;
         }
 
         .status-section {
@@ -366,29 +379,16 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="title">Cue to Cue Viewer</div>
+            <div class="title-section">
+                <div class="title">Cue to Cue Viewer</div>
+                <div class="current-time" id="currentTime">Loading...</div>
+            </div>
             <div class="status-section">
                 <div class="current-show">
                     <div class="current-show-label">CURRENT SHOW</div>
                     <div class="current-show-value" id="currentShow">Loading...</div>
                 </div>
                 <div class="last-updated" id="lastUpdated">Loading...</div>
-            </div>
-        </div>
-
-        <div class="time-displays">
-            <div class="time-box">
-                <div class="time-label">CURRENT TIME</div>
-                <div class="time-value" id="currentTime">--:--:--</div>
-                <div class="time-date" id="currentDate">Loading...</div>
-            </div>
-            <div class="time-box">
-                <div class="time-label">COUNTDOWN</div>
-                <div class="time-value" id="countdown">00:00</div>
-            </div>
-            <div class="time-box">
-                <div class="time-label">COUNT UP</div>
-                <div class="time-value" id="countUp">00:00</div>
             </div>
         </div>
 
@@ -464,8 +464,8 @@
                 day: 'numeric'
             });
 
-            document.getElementById('currentTime').textContent = timeString;
-            document.getElementById('currentDate').textContent = dateString;
+            // Update the header time display
+            document.getElementById('currentTime').textContent = `${timeString} • ${dateString}`;
         }
 
         // Load cue data
