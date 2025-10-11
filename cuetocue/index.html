@@ -116,6 +116,22 @@
             margin-top: 5px;
         }
 
+        /* Custom text colors for specific words */
+        .text-video {
+            color: #FF6B6B !important;
+            font-weight: 600;
+        }
+        
+        .text-demo {
+            color: #4ECDC4 !important;
+            font-weight: 600;
+        }
+        
+        .text-timer {
+            color: #45B7D1 !important;
+            font-weight: 600;
+        }
+        
         .cue-table-container {
             background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
@@ -185,8 +201,8 @@
         .column-controls {
             flex: 1;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 15px;
             padding: 20px;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
@@ -407,9 +423,7 @@
             </div>
 
             <div class="column-controls">
-                <div>
-                    <span style="color: #ffffff; font-size: 1rem;">Column Visibility</span>
-                </div>
+                <span style="color: #ffffff; font-size: 1rem;">Column Visibility</span>
                 <button class="column-toggle-btn" id="columnToggleBtn">
                     <span>⚙️</span>
                     <span>Select Columns</span>
@@ -690,6 +704,45 @@
             });
 
             console.log('✅ updateCueTable() completed - added', selectedStack.cues.length, 'cues');
+            
+            // Apply custom text colors after table is built
+            applyCustomTextColors();
+        }
+        
+        // Apply custom colors to specific words in table cells
+        function applyCustomTextColors() {
+            console.log('🎨 Applying custom text colors...');
+            
+            const tbody = document.getElementById('cueTableBody');
+            if (!tbody) return;
+            
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    const text = cell.textContent;
+                    if (!text) return;
+                    
+                    // Apply colors to specific words
+                    let updatedHTML = text;
+                    
+                    // Color Video words
+                    updatedHTML = updatedHTML.replace(/\b(Video|VIDEO|video)\b/g, '<span class="text-video">$1</span>');
+                    
+                    // Color Demo words
+                    updatedHTML = updatedHTML.replace(/\b(Demo|DEMO|demo)\b/g, '<span class="text-demo">$1</span>');
+                    
+                    // Color Timer words
+                    updatedHTML = updatedHTML.replace(/\b(Timer|TIMER|timer)\b/g, '<span class="text-timer">$1</span>');
+                    
+                    // Only update if changes were made
+                    if (updatedHTML !== text) {
+                        cell.innerHTML = updatedHTML;
+                    }
+                });
+            });
+            
+            console.log('✅ Custom text colors applied');
         }
 
         // Column Visibility Functions
