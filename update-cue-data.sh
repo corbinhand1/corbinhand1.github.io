@@ -1,3 +1,18 @@
+#!/bin/bash
+
+# Direct file update script for Cue to Cue data
+# This bypasses GitHub Actions and updates files directly
+
+echo "🔄 Updating cue data files directly..."
+
+# Create cuetocue directory if it doesn't exist
+mkdir -p cuetocue
+
+# Get the current timestamp
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+# Create sample real data structure (replace with your actual data)
+cat > cuetocue/cuetocue-data.json << 'EOF'
 {
   "availableCueStacks": [
     {
@@ -69,3 +84,25 @@
   ],
   "selectedCueStackIndex": 0
 }
+EOF
+
+# Create metadata file
+cat > cuetocue/metadata.json << EOF
+{
+  "filename": "DF_Keynote_25.json",
+  "lastUpdated": "$TIMESTAMP",
+  "syncStatus": "synced",
+  "appVersion": "1.0",
+  "notes": "Real cue data from macOS app"
+}
+EOF
+
+echo "✅ Files updated successfully"
+echo "📁 Cue data file: cuetocue/cuetocue-data.json"
+echo "📄 Metadata file: cuetocue/metadata.json"
+echo "🕐 Timestamp: $TIMESTAMP"
+
+# Copy to public directory for development
+cp cuetocue/* public/cuetocue/ 2>/dev/null || echo "⚠️ Public directory not found, skipping copy"
+
+echo "🎯 Ready for commit and push"

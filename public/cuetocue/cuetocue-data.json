@@ -1,71 +1,71 @@
 {
   "availableCueStacks": [
     {
-      "name": "Main Show Cues",
-      "description": "Primary cue stack for the main performance",
+      "name": "DF 25 Main Keynote",
+      "description": "Main keynote presentation cues",
       "cues": [
         {
           "cueNumber": "1",
-          "description": "House lights fade to black",
+          "description": "Welcome and introduction",
           "time": "00:00:00",
-          "notes": "Start of show - ensure audience is seated"
+          "notes": "Start of keynote"
         },
         {
-          "cueNumber": "2",
-          "description": "Stage lights up - warm wash",
-          "time": "00:00:05",
-          "notes": "Reveal stage setup"
+          "cueNumber": "2", 
+          "description": "Title slide reveal",
+          "time": "00:00:30",
+          "notes": "Main title animation"
         },
         {
           "cueNumber": "3",
-          "description": "Spotlight on center stage",
-          "time": "00:00:10",
-          "notes": "Actor entrance"
+          "description": "Speaker introduction",
+          "time": "00:01:00",
+          "notes": "Speaker walk-on"
         },
         {
           "cueNumber": "4",
-          "description": "Music cue - intro track",
-          "time": "00:00:15",
-          "notes": "Fade in background music"
+          "description": "Opening remarks",
+          "time": "00:01:30",
+          "notes": "Begin presentation"
         },
         {
           "cueNumber": "5",
-          "description": "Scene change - lights to blue",
-          "time": "00:05:30",
-          "notes": "Transition to next scene"
+          "description": "First topic slide",
+          "time": "00:02:00",
+          "notes": "Topic transition"
         }
       ]
     },
     {
-      "name": "Tech Rehearsal Cues",
-      "description": "Technical rehearsal cue stack",
+      "name": "DF 25 Demo Section",
+      "description": "Product demonstration cues",
       "cues": [
         {
-          "cueNumber": "T1",
-          "description": "Test all house lights",
-          "time": "00:00:00",
-          "notes": "Full brightness test"
+          "cueNumber": "D1",
+          "description": "Demo setup",
+          "time": "00:05:00",
+          "notes": "Prepare demo environment"
         },
         {
-          "cueNumber": "T2",
-          "description": "Test stage wash",
-          "time": "00:00:10",
-          "notes": "Warm and cool wash test"
-        },
+          "cueNumber": "D2",
+          "description": "Live demo start",
+          "time": "00:05:30",
+          "notes": "Begin live demonstration"
+        }
+      ]
+    },
+    {
+      "name": "DF 25 Q&A Section",
+      "description": "Question and answer session",
+      "cues": [
         {
-          "cueNumber": "T3",
-          "description": "Test spotlights",
-          "time": "00:00:20",
-          "notes": "All spot positions"
+          "cueNumber": "Q1",
+          "description": "Q&A session start",
+          "time": "00:15:00",
+          "notes": "Open floor for questions"
         }
       ]
     }
   ],
-  "selectedCueStackIndex": 0,
-  "metadata": {
-    "lastUpdated": "2024-01-15T10:30:00Z",
-    "version": "1.0",
-    "showName": "Sample Show",
-    "venue": "Main Theater"
-  }
+  "selectedCueStackIndex": 0
 }
