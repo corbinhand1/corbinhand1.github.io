@@ -373,6 +373,12 @@
             // Update cue stack selector
             console.log('🎯 Updating cue stack selector...');
             const cueStackSelect = document.getElementById('cueStackSelect');
+            
+            // Preserve current selection (from localStorage or current value)
+            const savedSelection = localStorage.getItem('selectedCueStack');
+            const currentSelection = cueStackSelect.value || savedSelection;
+            console.log('💾 Preserving current selection:', currentSelection, '(saved:', savedSelection, ')');
+            
             cueStackSelect.innerHTML = '';
             
             console.log('📊 Cue stacks info:', {
@@ -387,10 +393,16 @@
                     const option = document.createElement('option');
                     option.value = index;
                     option.textContent = stack.name;
-                    if (index === cueData.selectedCueStackIndex) {
+                    
+                    // Restore previous selection if it exists, otherwise use default
+                    if (currentSelection && currentSelection === index.toString()) {
                         option.selected = true;
-                        console.log(`✅ Selected stack ${index}: ${stack.name}`);
+                        console.log(`🔄 Restored previous selection: ${index} - ${stack.name}`);
+                    } else if (!currentSelection && index === cueData.selectedCueStackIndex) {
+                        option.selected = true;
+                        console.log(`✅ Default selection: ${index} - ${stack.name}`);
                     }
+                    
                     cueStackSelect.appendChild(option);
                 });
             } else {
@@ -402,7 +414,12 @@
             updateCueTable();
 
             // Add event listener for cue stack changes
-            cueStackSelect.addEventListener('change', updateCueTable);
+            cueStackSelect.addEventListener('change', function() {
+                // Save selection to localStorage
+                localStorage.setItem('selectedCueStack', this.value);
+                console.log('💾 Saved cue stack selection:', this.value);
+                updateCueTable();
+            });
             console.log('✅ updateDisplay() completed');
         }
 
