@@ -10,31 +10,69 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Debug payload
         run: |
           echo "=== DEBUG: GitHub Event Payload ==="
           echo "Event type: ${{ github.event_name }}"
-          echo "Client payload keys: ${{ toJson(github.event.client_payload) }}"
-          echo "Cue data type: ${{ github.event.client_payload.cueData }}"
-          echo "Metadata type: ${{ github.event.client_payload.metadata }}"
+          echo "Client payload exists: ${{ github.event.client_payload != null }}"
+          echo "Cue data exists: ${{ github.event.client_payload.cueData != null }}"
+          echo "Metadata exists: ${{ github.event.client_payload.metadata != null }}"
           
       - name: Update cue data
         run: |
           mkdir -p cuetocue
+          
+          # Write cue data with proper error handling
           echo "=== Writing cue data ==="
-          echo '${{ toJson(github.event.client_payload.cueData) }}' > cuetocue/cuetocue-data.json
+          if [ -n "${{ github.event.client_payload.cueData }}" ]; then
+            echo '${{ toJson(github.event.client_payload.cueData) }}' > cuetocue/cuetocue-data.json
+            echo "✅ Cue data written successfully"
+          else
+            echo "❌ No cue data in payload"
+            exit 1
+          fi
+          
+          # Write metadata with proper error handling
           echo "=== Writing metadata ==="
-          echo '${{ toJson(github.event.client_payload.metadata) }}' > cuetocue/metadata.json
-          echo "=== Debug - Cue data content ==="
-          cat cuetocue/cuetocue-data.json
-          echo "=== Debug - Metadata content ==="
+          if [ -n "${{ github.event.client_payload.metadata }}" ]; then
+            echo '${{ toJson(github.event.client_payload.metadata) }}' > cuetocue/metadata.json
+            echo "✅ Metadata written successfully"
+          else
+            echo "❌ No metadata in payload"
+            exit 1
+          fi
+          
+          # Verify files were created
+          echo "=== Verifying files ==="
+          if [ -f "cuetocue/cuetocue-data.json" ] && [ -f "cuetocue/metadata.json" ]; then
+            echo "✅ Both files created successfully"
+            echo "Cue data file size: $(wc -c < cuetocue/cuetocue-data.json) bytes"
+            echo "Metadata file size: $(wc -c < cuetocue/metadata.json) bytes"
+          else
+            echo "❌ Files not created properly"
+            exit 1
+          fi
+          
+          # Show content preview
+          echo "=== Cue data preview ==="
+          head -5 cuetocue/cuetocue-data.json
+          echo "=== Metadata preview ==="
           cat cuetocue/metadata.json
           
       - name: Commit changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add cuetocue/cuetocue-data.json cuetocue/metadata.json
-          git commit -m "Update cue data from macOS app: ${{ github.event.client_payload.metadata.filename }}" || exit 0
-          git push
+          
+          # Check if there are changes to commit
+          if git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git add cuetocue/cuetocue-data.json cuetocue/metadata.json
+            git commit -m "Update cue data from macOS app: ${{ github.event.client_payload.metadata.filename || 'Unknown' }}"
+            git push
+            echo "✅ Changes committed and pushed successfully"
+          fi
