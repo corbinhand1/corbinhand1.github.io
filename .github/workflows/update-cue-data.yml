@@ -23,9 +23,9 @@ jobs:
         run: |
           mkdir -p cuetocue
           echo "=== Writing cue data ==="
-          echo '${{ github.event.client_payload.cueData }}' > cuetocue/cuetocue-data.json
+          echo '${{ toJson(github.event.client_payload.cueData) }}' > cuetocue/cuetocue-data.json
           echo "=== Writing metadata ==="
-          echo '${{ github.event.client_payload.metadata }}' > cuetocue/metadata.json
+          echo '${{ toJson(github.event.client_payload.metadata) }}' > cuetocue/metadata.json
           echo "=== Debug - Cue data content ==="
           cat cuetocue/cuetocue-data.json
           echo "=== Debug - Metadata content ==="
