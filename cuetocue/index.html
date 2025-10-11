@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cue to Cue Viewer</title>
+    
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -1658,14 +1663,14 @@
             // Set up print modal event listeners
             const printBtn = document.getElementById('printBtn');
             const printModal = document.getElementById('printModal');
-            const closePrintModal = document.getElementById('closePrintModal');
+            const closePrintModalBtn = document.getElementById('closePrintModal');
             const cancelPrintBtn = document.getElementById('cancelPrintBtn');
             const printNowBtn = document.getElementById('printNowBtn');
             const printFontSize = document.getElementById('printFontSize');
             const fontSizeValue = document.getElementById('fontSizeValue');
             
             printBtn.addEventListener('click', openPrintModal);
-            closePrintModal.addEventListener('click', closePrintModal);
+            closePrintModalBtn.addEventListener('click', closePrintModal);
             cancelPrintBtn.addEventListener('click', closePrintModal);
             printNowBtn.addEventListener('click', performPrint);
             
@@ -1793,184 +1798,182 @@
             // Save settings
             savePrintSettings();
             
-            // Generate print content
-            const printContent = generatePrintContent();
-            
-            // Open print dialog
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(printContent);
-            printWindow.document.close();
-            
-            // Wait for content to load, then print
-            printWindow.onload = function() {
-                printWindow.print();
-                printWindow.close();
-            };
+            // Generate PDF and download
+            generateAndDownloadPDF();
             
             closePrintModal();
         }
         
-        function generatePrintContent() {
+        function generateAndDownloadPDF() {
+            console.log('📄 Generating PDF...');
+            
             const selectedStacks = Array.from(printSettings.selectedStacks)
                 .map(index => cueData.availableCueStacks[index])
                 .filter(stack => stack);
             
-            let html = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Cue to Cue - Print</title>
-                    <style>
-                        @media print {
-                            @page {
-                                size: ${printSettings.orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait'};
-                                margin: 1in;
-                            }
-                        }
-                        
-                        body {
-                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                            font-size: ${printSettings.fontSize}px;
-                            line-height: 1.4;
-                            color: #000;
-                            margin: 0;
-                            padding: 0;
-                        }
-                        
-                        .print-header {
-                            text-align: center;
-                            margin-bottom: 20px;
-                            border-bottom: 2px solid #000;
-                            padding-bottom: 10px;
-                        }
-                        
-                        .print-title {
-                            font-size: ${printSettings.fontSize + 4}px;
-                            font-weight: bold;
-                            margin: 0;
-                        }
-                        
-                        .print-meta {
-                            font-size: ${printSettings.fontSize - 2}px;
-                            color: #666;
-                            margin: 5px 0 0 0;
-                        }
-                        
-                        .cue-stack-section {
-                            margin-bottom: 30px;
-                            page-break-inside: avoid;
-                        }
-                        
-                        .cue-stack-title {
-                            font-size: ${printSettings.fontSize + 2}px;
-                            font-weight: bold;
-                            margin-bottom: 15px;
-                            border-bottom: 1px solid #ccc;
-                            padding-bottom: 5px;
-                        }
-                        
-                        .cue-table {
-                            width: 100%;
-                            border-collapse: collapse;
-                            margin-bottom: 20px;
-                        }
-                        
-                        .cue-table th {
-                            background: #f5f5f5;
-                            border: 1px solid #000;
-                            padding: 8px;
-                            text-align: left;
-                            font-weight: bold;
-                        }
-                        
-                        .cue-table td {
-                            border: 1px solid #000;
-                            padding: 6px 8px;
-                            vertical-align: top;
-                        }
-                        
-                        .cue-table tr:nth-child(even) {
-                            background: #f9f9f9;
-                        }
-                        
-                        .page-break {
-                            page-break-before: always;
-                        }
-                        
-                        .page-number {
-                            position: fixed;
-                            bottom: 0.5in;
-                            right: 0.5in;
-                            font-size: ${printSettings.fontSize - 2}px;
-                            color: #666;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="print-header">
-                        <h1 class="print-title">Cue to Cue</h1>
-                        <p class="print-meta">
-                            Printed on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
-                            ${metadata ? ` • ${metadata.filename}` : ''}
-                        </p>
-                    </div>
-            `;
+            // Create a temporary div to render the content
+            const tempDiv = document.createElement('div');
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.left = '-9999px';
+            tempDiv.style.top = '-9999px';
+            tempDiv.style.width = '800px';
+            tempDiv.style.backgroundColor = 'white';
+            tempDiv.style.padding = '20px';
+            tempDiv.style.fontFamily = 'Arial, sans-serif';
+            tempDiv.style.fontSize = printSettings.fontSize + 'px';
+            tempDiv.style.color = 'black';
             
+            // Add header
+            const header = document.createElement('div');
+            header.style.textAlign = 'center';
+            header.style.marginBottom = '20px';
+            header.style.borderBottom = '2px solid black';
+            header.style.paddingBottom = '10px';
+            
+            const title = document.createElement('h1');
+            title.textContent = 'Cue to Cue';
+            title.style.fontSize = (printSettings.fontSize + 4) + 'px';
+            title.style.fontWeight = 'bold';
+            title.style.margin = '0';
+            
+            const meta = document.createElement('p');
+            meta.textContent = `Printed on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}${metadata ? ` • ${metadata.filename}` : ''}`;
+            meta.style.fontSize = (printSettings.fontSize - 2) + 'px';
+            meta.style.color = '#666';
+            meta.style.margin = '5px 0 0 0';
+            
+            header.appendChild(title);
+            header.appendChild(meta);
+            tempDiv.appendChild(header);
+            
+            // Add cue stacks
             selectedStacks.forEach((stack, stackIndex) => {
-                if (stackIndex > 0) {
-                    html += '<div class="page-break"></div>';
-                }
+                const stackDiv = document.createElement('div');
+                stackDiv.style.marginBottom = '30px';
                 
-                html += `
-                    <div class="cue-stack-section">
-                        <h2 class="cue-stack-title">${stack.name}</h2>
-                        <table class="cue-table">
-                `;
+                const stackTitle = document.createElement('h2');
+                stackTitle.textContent = stack.name;
+                stackTitle.style.fontSize = (printSettings.fontSize + 2) + 'px';
+                stackTitle.style.fontWeight = 'bold';
+                stackTitle.style.marginBottom = '15px';
+                stackTitle.style.borderBottom = '1px solid #ccc';
+                stackTitle.style.paddingBottom = '5px';
                 
+                stackDiv.appendChild(stackTitle);
+                
+                // Create table
+                const table = document.createElement('table');
+                table.style.width = '100%';
+                table.style.borderCollapse = 'collapse';
+                table.style.marginBottom = '20px';
+                
+                // Add headers if enabled
                 if (printSettings.showHeaders && stack.cues.length > 0) {
-                    html += '<thead><tr>';
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+                    
                     const columns = cueData.columns || [];
                     columns.forEach(col => {
-                        html += `<th>${col.name}</th>`;
+                        const th = document.createElement('th');
+                        th.textContent = col.name;
+                        th.style.background = '#f5f5f5';
+                        th.style.border = '1px solid black';
+                        th.style.padding = '8px';
+                        th.style.textAlign = 'left';
+                        th.style.fontWeight = 'bold';
+                        headerRow.appendChild(th);
                     });
-                    html += '</tr></thead>';
+                    
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
                 }
                 
-                html += '<tbody>';
-                stack.cues.forEach(cue => {
-                    html += '<tr>';
+                // Add cue rows
+                const tbody = document.createElement('tbody');
+                stack.cues.forEach((cue, cueIndex) => {
+                    const row = document.createElement('tr');
+                    if (cueIndex % 2 === 1) {
+                        row.style.background = '#f9f9f9';
+                    }
+                    
                     const columns = cueData.columns || [];
                     columns.forEach(col => {
+                        const td = document.createElement('td');
                         let cellContent = cue[col.name] || '';
-                        let cellStyle = '';
+                        td.textContent = cellContent;
+                        td.style.border = '1px solid black';
+                        td.style.padding = '6px 8px';
+                        td.style.verticalAlign = 'top';
                         
                         // Apply colors if enabled
                         if (printSettings.printWithColors && highlightColors.length > 0) {
                             for (const highlight of highlightColors) {
                                 if (cellContent.toLowerCase().includes(highlight.keyword.toLowerCase())) {
                                     const colorToApply = colorOverrides[`${highlight.keyword}_${highlight.color}`] || highlight.color;
-                                    cellStyle = `color: #${colorToApply}; font-weight: bold;`;
+                                    td.style.color = '#' + colorToApply;
+                                    td.style.fontWeight = 'bold';
                                     break;
                                 }
                             }
                         }
                         
-                        html += `<td style="${cellStyle}">${cellContent}</td>`;
+                        row.appendChild(td);
                     });
-                    html += '</tr>';
+                    
+                    tbody.appendChild(row);
                 });
                 
-                html += '</tbody></table></div>';
+                table.appendChild(tbody);
+                stackDiv.appendChild(table);
+                tempDiv.appendChild(stackDiv);
             });
             
-            if (printSettings.showPageNumbers) {
-                html += '<div class="page-number">Page <span class="page-number-content"></span></div>';
-            }
+            // Add to document temporarily
+            document.body.appendChild(tempDiv);
             
-            html += '</body></html>';
-            
-            return html;
+            // Use html2canvas and jsPDF to generate PDF
+            html2canvas(tempDiv, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF(printSettings.orientation === 'landscape' ? 'landscape' : 'portrait', 'mm', 'a4');
+                
+                const imgWidth = pdf.internal.pageSize.getWidth();
+                const imgHeight = pdf.internal.pageSize.getHeight();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                
+                let heightLeft = imgHeight;
+                let position = 0;
+                
+                // Add first page
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                
+                // Add additional pages if needed
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                // Download the PDF
+                const filename = `cue-to-cue-${new Date().toISOString().split('T')[0]}.pdf`;
+                pdf.save(filename);
+                
+                // Clean up
+                document.body.removeChild(tempDiv);
+                
+                console.log('✅ PDF generated and downloaded');
+            }).catch(error => {
+                console.error('❌ Error generating PDF:', error);
+                document.body.removeChild(tempDiv);
+                alert('Error generating PDF. Please try again.');
+            });
         }
+        
         
         function savePrintSettings() {
             const settingsToSave = {
