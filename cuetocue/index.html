@@ -1090,13 +1090,13 @@
             // Set up color picker event listeners
             const colorSettingsBtn = document.getElementById('colorSettingsBtn');
             const colorModal = document.getElementById('colorModal');
-            const closeColorModal = document.getElementById('closeColorModal');
-            const closeColorModalBtn = document.getElementById('closeColorModalBtn');
+            const closeColorModalBtn = document.getElementById('closeColorModal');
+            const closeColorModalBtn2 = document.getElementById('closeColorModalBtn');
             const resetColorsBtn = document.getElementById('resetColorsBtn');
             
             colorSettingsBtn.addEventListener('click', openColorModal);
-            closeColorModal.addEventListener('click', closeColorModal);
             closeColorModalBtn.addEventListener('click', closeColorModal);
+            closeColorModalBtn2.addEventListener('click', closeColorModal);
             resetColorsBtn.addEventListener('click', resetAllColors);
             
             // Close modal when clicking outside
@@ -1111,10 +1111,16 @@
         
         function openColorModal() {
             console.log('🎨 Opening color picker modal...');
+            console.log('🎨 Current highlight colors:', highlightColors);
             
             if (!highlightColors || highlightColors.length === 0) {
-                console.warn('⚠️ No highlight colors available');
-                return;
+                console.warn('⚠️ No highlight colors available, using defaults');
+                // Use default colors if none available
+                highlightColors = [
+                    { keyword: 'video', color: '007AFF' },
+                    { keyword: 'demo', color: 'FF3B30' },
+                    { keyword: 'timer', color: '34C759' }
+                ];
             }
             
             updateColorOverrides();
@@ -1127,19 +1133,31 @@
         }
         
         function updateColorOverrides() {
-            if (!highlightColors || !Array.isArray(highlightColors)) return;
+            console.log('🎨 updateColorOverrides called with:', highlightColors);
+            
+            if (!highlightColors || !Array.isArray(highlightColors)) {
+                console.warn('⚠️ No valid highlight colors array');
+                return;
+            }
             
             // Store original colors if not already stored
             if (originalHighlightColors.length === 0) {
                 originalHighlightColors = [...highlightColors];
+                console.log('💾 Stored original colors:', originalHighlightColors);
             }
             
             const container = document.getElementById('colorOverridesContainer');
-            if (!container) return;
+            if (!container) {
+                console.error('❌ colorOverridesContainer not found');
+                return;
+            }
             
+            console.log('🎨 Building color override UI...');
             container.innerHTML = '';
             
-            highlightColors.forEach(highlight => {
+            highlightColors.forEach((highlight, index) => {
+                console.log(`🎨 Processing highlight ${index}:`, highlight);
+                
                 const overrideKey = `${highlight.keyword}_${highlight.color}`;
                 const currentOverride = colorOverrides[overrideKey];
                 
@@ -1162,6 +1180,7 @@
                 originalColor.style.backgroundColor = '#' + highlight.color;
                 originalColor.title = 'Reset to original color';
                 originalColor.onclick = () => {
+                    console.log('🔄 Resetting color for:', highlight.keyword);
                     delete colorOverrides[overrideKey];
                     saveColorSettings();
                     updateColorOverrides();
@@ -1175,6 +1194,7 @@
                 customColor.value = currentOverride ? '#' + currentOverride : '#' + highlight.color;
                 customColor.title = 'Customize highlight color';
                 customColor.onchange = (e) => {
+                    console.log('🎨 Color changed for:', highlight.keyword, 'to:', e.target.value);
                     const newColor = e.target.value.substring(1); // Remove # prefix
                     if (newColor !== highlight.color) {
                         colorOverrides[overrideKey] = newColor;
@@ -1191,7 +1211,11 @@
                 overrideDiv.appendChild(keywordSpan);
                 overrideDiv.appendChild(colorControls);
                 container.appendChild(overrideDiv);
+                
+                console.log('✅ Added color override for:', highlight.keyword);
             });
+            
+            console.log('✅ updateColorOverrides completed');
         }
         
         function resetAllColors() {
@@ -1203,18 +1227,29 @@
         }
         
         function saveColorSettings() {
+            console.log('💾 Saving color settings:', colorOverrides);
             localStorage.setItem('colorOverrides', JSON.stringify(colorOverrides));
         }
         
         function refreshTableColors() {
             console.log('🎨 Refreshing table colors...');
             const tbody = document.getElementById('cueTableBody');
-            if (!tbody) return;
+            if (!tbody) {
+                console.warn('⚠️ No table body found for color refresh');
+                return;
+            }
             
             const rows = tbody.querySelectorAll('tr');
-            rows.forEach(row => {
+            console.log(`🎨 Found ${rows.length} rows to process`);
+            
+            rows.forEach((row, index) => {
                 applyRowHighlighting(row);
+                if (index < 3) { // Log first few rows for debugging
+                    console.log(`🎨 Processed row ${index}`);
+                }
             });
+            
+            console.log('✅ Table colors refreshed');
         }
         
         function applyRowHighlighting(row) {
