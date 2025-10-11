@@ -1,6 +1,6 @@
 [
   {
-    "id": "stack1",
+    "id": "real-stack-1",
     "name": "DF 25 Main Keynote",
     "cues": [
       {
@@ -20,18 +20,6 @@
         "description": "Spotlight on center stage",
         "time": "00:00:10",
         "notes": "Actor entrance"
-      }
-    ]
-  },
-  {
-    "id": "stack2",
-    "name": "DF25 E2 Scre",
-    "cues": [
-      {
-        "cueNumber": "1",
-        "description": "Screen test pattern",
-        "time": "00:00:00",
-        "notes": "Test screen display"
       }
     ]
   }
