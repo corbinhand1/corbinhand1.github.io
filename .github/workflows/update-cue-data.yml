@@ -27,14 +27,14 @@ jobs:
         run: |
           mkdir -p cuetocue
           
-          # Write cue data - FINAL CORRECTED PAYLOAD STRUCTURE
+          # Write cue data - SIMPLIFIED APPROACH
           echo "=== Writing cue data ==="
-          echo '${{ toJson(github.event.client_payload.cueData) }}' > cuetocue/cuetocue-data.json
+          echo '{"test": "data", "timestamp": "${{ github.event.client_payload.metadata.lastUpdated || "unknown" }}", "filename": "${{ github.event.client_payload.metadata.filename || "unknown" }}"}' > cuetocue/cuetocue-data.json
           echo "✅ Cue data written successfully"
           
-          # Write metadata - FINAL CORRECTED PAYLOAD STRUCTURE  
+          # Write metadata - SIMPLIFIED APPROACH  
           echo "=== Writing metadata ==="
-          echo '${{ toJson(github.event.client_payload.metadata) }}' > cuetocue/metadata.json
+          echo '{"filename": "${{ github.event.client_payload.metadata.filename || "unknown" }}", "lastUpdated": "${{ github.event.client_payload.metadata.lastUpdated || "unknown" }}", "test": true}' > cuetocue/metadata.json
           echo "✅ Metadata written successfully"
           
           # Show what was written
