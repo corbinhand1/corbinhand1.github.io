@@ -116,35 +116,6 @@
             margin-top: 5px;
         }
 
-        .cue-stack-selector {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-        }
-
-        .cue-stack-label {
-            font-size: 1.1rem;
-            margin-bottom: 15px;
-            color: #ffffff;
-        }
-
-        .cue-stack-dropdown {
-            width: 100%;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #ffffff;
-            font-size: 1rem;
-        }
-
-        .cue-stack-dropdown option {
-            background: #2d2d2d;
-            color: #ffffff;
-        }
-
         .cue-table-container {
             background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
@@ -176,12 +147,47 @@
             background: rgba(255, 255, 255, 0.05);
         }
 
+        .controls-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .cue-stack-selector {
+            flex: 1;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .cue-stack-label {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #ffffff;
+        }
+
+        .cue-stack-dropdown {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 1rem;
+        }
+
+        .cue-stack-dropdown option {
+            background: #2d2d2d;
+            color: #ffffff;
+        }
+
         .column-controls {
+            flex: 1;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding: 15px;
+            padding: 20px;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
             backdrop-filter: blur(10px);
@@ -392,21 +398,23 @@
             </div>
         </div>
 
-        <div class="cue-stack-selector">
-            <div class="cue-stack-label">Cue Stack</div>
-            <select class="cue-stack-dropdown" id="cueStackSelect">
-                <option value="">Loading cue stacks...</option>
-            </select>
-        </div>
-
-        <div class="column-controls">
-            <div>
-                <span style="color: #ffffff; font-size: 1rem;">Column Visibility</span>
+        <div class="controls-row">
+            <div class="cue-stack-selector">
+                <div class="cue-stack-label">Cue Stack</div>
+                <select class="cue-stack-dropdown" id="cueStackSelect">
+                    <option value="">Loading cue stacks...</option>
+                </select>
             </div>
-            <button class="column-toggle-btn" id="columnToggleBtn">
-                <span>⚙️</span>
-                <span>Select Columns</span>
-            </button>
+
+            <div class="column-controls">
+                <div>
+                    <span style="color: #ffffff; font-size: 1rem;">Column Visibility</span>
+                </div>
+                <button class="column-toggle-btn" id="columnToggleBtn">
+                    <span>⚙️</span>
+                    <span>Select Columns</span>
+                </button>
+            </div>
         </div>
 
         <div class="cue-table-container">
