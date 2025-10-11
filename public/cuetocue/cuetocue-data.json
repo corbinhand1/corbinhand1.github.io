@@ -1,136 +1,81 @@
 {
-  "cueStacks": [
+  "availableCueStacks": [
     {
       "name": "Main Show Cues",
-      "description": "Primary cue stack for the main performance",
-      "cues": [
-        {
-          "number": "1",
-          "description": "House lights fade to black",
-          "time": "00:00:00",
-          "notes": "Start of show - ensure audience is seated"
-        },
-        {
-          "number": "2",
-          "description": "Stage lights up - warm wash",
-          "time": "00:00:05",
-          "notes": "Reveal stage setup"
-        },
-        {
-          "number": "3",
-          "description": "Spotlight on center stage",
-          "time": "00:00:10",
-          "notes": "Actor entrance"
-        },
-        {
-          "number": "4",
-          "description": "Music cue - intro track",
-          "time": "00:00:15",
-          "notes": "Fade in background music"
-        },
-        {
-          "number": "5",
-          "description": "Scene change - lights to blue",
-          "time": "00:05:30",
-          "notes": "Transition to next scene"
-        },
-        {
-          "number": "6",
-          "description": "Fog machine activation",
-          "time": "00:05:35",
-          "notes": "Atmospheric effect"
-        },
-        {
-          "number": "7",
-          "description": "Spotlight follow actor",
-          "time": "00:05:40",
-          "notes": "Actor moves stage left"
-        },
-        {
-          "number": "8",
-          "description": "Music fade out",
-          "time": "00:10:15",
-          "notes": "End of scene"
-        },
-        {
-          "number": "9",
-          "description": "Blackout",
-          "time": "00:10:20",
-          "notes": "Scene transition"
-        },
-        {
-          "number": "10",
-          "description": "Curtain call lights",
-          "time": "00:15:00",
-          "notes": "End of show"
-        }
-      ]
+      "description": "Primary cue stack for the main performance"
     },
     {
       "name": "Tech Rehearsal Cues",
-      "description": "Technical rehearsal cue stack",
-      "cues": [
-        {
-          "number": "T1",
-          "description": "Test all house lights",
-          "time": "00:00:00",
-          "notes": "Full brightness test"
-        },
-        {
-          "number": "T2",
-          "description": "Test stage wash",
-          "time": "00:00:10",
-          "notes": "Warm and cool wash test"
-        },
-        {
-          "number": "T3",
-          "description": "Test spotlights",
-          "time": "00:00:20",
-          "notes": "All spot positions"
-        },
-        {
-          "number": "T4",
-          "description": "Test fog machine",
-          "time": "00:00:30",
-          "notes": "Safety check"
-        },
-        {
-          "number": "T5",
-          "description": "Test audio levels",
-          "time": "00:00:40",
-          "notes": "Music and mic check"
-        }
-      ]
+      "description": "Technical rehearsal cue stack"
     },
     {
       "name": "Emergency Cues",
-      "description": "Emergency and safety cue stack",
-      "cues": [
-        {
-          "number": "E1",
-          "description": "Emergency lights on",
-          "time": "IMMEDIATE",
-          "notes": "Safety protocol"
-        },
-        {
-          "number": "E2",
-          "description": "All fog machines off",
-          "time": "IMMEDIATE",
-          "notes": "Air quality safety"
-        },
-        {
-          "number": "E3",
-          "description": "House lights full",
-          "time": "IMMEDIATE",
-          "notes": "Evacuation lighting"
-        },
-        {
-          "number": "E4",
-          "description": "Audio system mute",
-          "time": "IMMEDIATE",
-          "notes": "Clear announcements"
-        }
-      ]
+      "description": "Emergency and safety cue stack"
+    }
+  ],
+  "currentCueStackIndex": 0,
+  "activeCueIndex": 2,
+  "selectedCueIndex": 1,
+  "countdownTime": 300,
+  "countUpTime": 180,
+  "columns": [
+    {
+      "name": "Cue #",
+      "width": 80
+    },
+    {
+      "name": "Description",
+      "width": 300
+    },
+    {
+      "name": "Time",
+      "width": 100
+    },
+    {
+      "name": "Notes",
+      "width": 250
+    }
+  ],
+  "cues": [
+    {
+      "values": ["1", "House lights fade to black", "00:00:00", "Start of show - ensure audience is seated"],
+      "isStruckThrough": false
+    },
+    {
+      "values": ["2", "Stage lights up - warm wash", "00:00:05", "Reveal stage setup"],
+      "isStruckThrough": false
+    },
+    {
+      "values": ["3", "Spotlight on center stage", "00:00:10", "Actor entrance"],
+      "isStruckThrough": false
+    },
+    {
+      "values": ["4", "Music cue - intro track", "00:00:15", "Fade in background music"],
+      "isStruckThrough": false
+    },
+    {
+      "values": ["5", "Scene change - lights to blue", "00:05:30", "Transition to next scene"],
+      "isStruckThrough": false
+    },
+    {
+      "values": ["6", "Fog machine activation", "00:05:35", "Atmospheric effect"],
+      "isStruckThrough": false
+    },
+    {
+      "values": ["7", "Spotlight follow actor", "00:05:40", "Actor moves stage left"],
+      "isStruckThrough": false
+    },
+    {
+      "values": ["8", "Music fade out", "00:10:15", "End of scene"],
+      "isStruckThrough": false
+    },
+    {
+      "values": ["9", "Blackout", "00:10:20", "Scene transition"],
+      "isStruckThrough": false
+    },
+    {
+      "values": ["10", "Curtain call lights", "00:15:00", "End of show"],
+      "isStruckThrough": false
     }
   ],
   "metadata": {
