@@ -393,6 +393,26 @@ const NebulaShowtime: React.FC = () => {
         >
           <header className="mb-4 sm:mb-6 relative z-20 text-center">
             <LogoReactor />
+            
+            {/* Navigation Link */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 1.0 }}
+              className="mt-4"
+            >
+              <a
+                href="/cuetocue/"
+                className="inline-block px-4 py-2 rounded-lg text-white/70 hover:text-white text-sm font-light tracking-wide no-underline transition-all duration-300 hover:bg-white/5"
+                style={{
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                }}
+                aria-label="Open Cue to Cue Viewer"
+              >
+                Cue to Cue Viewer
+              </a>
+            </motion.div>
         </header>
           <main>
             <h1 className="sr-only">Nebula Creative - Professional Stage Management, Show Calling, Production Management, and Tour Management Services</h1>
