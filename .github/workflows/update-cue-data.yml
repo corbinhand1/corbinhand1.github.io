@@ -27,7 +27,10 @@ jobs:
           
           # Write cue data - SIMPLIFIED APPROACH
           echo "=== Writing cue data ==="
-          echo '${{ toJson(github.event.client_payload.cueData.allCues) }}' > cuetocue/cuetocue-data.json
+          echo '{
+            "availableCueStacks": ${{ toJson(github.event.client_payload.cueData.allCues) }},
+            "selectedCueStackIndex": ${{ github.event.client_payload.metadata.selectedCueStackIndex }}
+          }' > cuetocue/cuetocue-data.json
           echo "✅ Cue data written successfully"
           
           # Write metadata - SIMPLIFIED APPROACH  
