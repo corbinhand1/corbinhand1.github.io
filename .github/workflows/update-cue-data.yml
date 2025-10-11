@@ -20,6 +20,8 @@ jobs:
           echo "Client payload exists: ${{ github.event.client_payload != null }}"
           echo "Cue data exists: ${{ github.event.client_payload.cueData != null }}"
           echo "Metadata exists: ${{ github.event.client_payload.metadata != null }}"
+          echo "=== FULL CLIENT PAYLOAD ==="
+          echo '${{ toJson(github.event.client_payload) }}'
           
       - name: Update cue data
         run: |
