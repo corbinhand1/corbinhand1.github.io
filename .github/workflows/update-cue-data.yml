@@ -13,8 +13,20 @@ jobs:
         
       - name: Update cue data
         run: |
-          echo '${{ github.event.client_payload.cueData }}' > cuetocue/cuetocue-data.json
-          echo '${{ github.event.client_payload.metadata }}' > cuetocue/metadata.json
+          # Create cuetocue directory if it doesn't exist
+          mkdir -p cuetocue
+          
+          # Write the real cue data from the macOS app
+          echo '${{ toJson(github.event.client_payload.cueData) }}' > cuetocue/cuetocue-data.json
+          
+          # Write the real metadata from the macOS app
+          echo '${{ toJson(github.event.client_payload.metadata) }}' > cuetocue/metadata.json
+          
+          # Debug: Show what we're writing
+          echo "Cue data content:"
+          cat cuetocue/cuetocue-data.json
+          echo "Metadata content:"
+          cat cuetocue/metadata.json
           
       - name: Commit changes
         run: |
