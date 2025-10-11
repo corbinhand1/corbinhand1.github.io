@@ -14,8 +14,12 @@ jobs:
       - name: Update cue data
         run: |
           mkdir -p cuetocue
-          echo '${{ toJson(github.event.client_payload.cueData) }}' > cuetocue/cuetocue-data.json
-          echo '${{ toJson(github.event.client_payload.metadata) }}' > cuetocue/metadata.json
+          echo '${{ github.event.client_payload.cueData }}' > cuetocue/cuetocue-data.json
+          echo '${{ github.event.client_payload.metadata }}' > cuetocue/metadata.json
+          echo "Debug - Cue data content:"
+          cat cuetocue/cuetocue-data.json
+          echo "Debug - Metadata content:"
+          cat cuetocue/metadata.json
           
       - name: Commit changes
         run: |
