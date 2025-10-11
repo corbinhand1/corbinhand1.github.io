@@ -25,11 +25,12 @@ jobs:
         run: |
           mkdir -p cuetocue
           
-          # Write cue data - SIMPLIFIED APPROACH
+          # Write cue data - WITH COLUMN STRUCTURE
           echo "=== Writing cue data ==="
           echo '{
             "availableCueStacks": ${{ toJson(github.event.client_payload.cueData.allCues) }},
-            "selectedCueStackIndex": ${{ github.event.client_payload.metadata.selectedCueStackIndex }}
+            "selectedCueStackIndex": ${{ github.event.client_payload.metadata.selectedCueStackIndex }},
+            "columns": ${{ toJson(github.event.client_payload.cueData.columns) }}
           }' > cuetocue/cuetocue-data.json
           echo "✅ Cue data written successfully"
           
