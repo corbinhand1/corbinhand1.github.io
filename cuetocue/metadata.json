@@ -1,7 +1,6 @@
 {
-  "filename": "DF_Keynote_25.json",
-  "lastUpdated": "2025-01-15T11:00:00Z",
-  "syncStatus": "synced",
-  "appVersion": "1.0",
-  "notes": "REAL DATA - Your actual cue data from DF_Keynote_25.json"
+  "totalCueStacks" : 6,
+  "filename" : "DF_Keynote_25.json",
+  "selectedCueStackIndex" : 0,
+  "lastUpdated" : "2025-10-11T04:57:42Z"
 }
