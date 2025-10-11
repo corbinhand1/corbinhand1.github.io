@@ -297,70 +297,157 @@
 
         // Load cue data
         async function loadCueData() {
+            console.log('🔄 loadCueData() called');
             try {
+                console.log('📡 Fetching cue data and metadata...');
                 const [cueResponse, metadataResponse] = await Promise.all([
                     fetch('cuetocue-data.json'),
                     fetch('metadata.json')
                 ]);
 
+                console.log('📊 Response status:', {
+                    cueResponse: cueResponse.status,
+                    metadataResponse: metadataResponse.status,
+                    cueResponseOk: cueResponse.ok,
+                    metadataResponseOk: metadataResponse.ok
+                });
+
                 if (!cueResponse.ok || !metadataResponse.ok) {
-                    throw new Error('Failed to load data');
+                    throw new Error(`Failed to load data - Cue: ${cueResponse.status}, Metadata: ${metadataResponse.status}`);
                 }
 
+                console.log('✅ Responses OK, parsing JSON...');
                 cueData = await cueResponse.json();
                 metadata = await metadataResponse.json();
 
+                console.log('📋 Parsed cue data:', {
+                    hasCueData: !!cueData,
+                    cueDataKeys: cueData ? Object.keys(cueData) : 'null',
+                    availableCueStacks: cueData?.availableCueStacks?.length || 0,
+                    selectedCueStackIndex: cueData?.selectedCueStackIndex
+                });
+
+                console.log('📄 Parsed metadata:', {
+                    hasMetadata: !!metadata,
+                    metadataKeys: metadata ? Object.keys(metadata) : 'null',
+                    filename: metadata?.filename,
+                    lastUpdated: metadata?.lastUpdated
+                });
+
+                console.log('🎯 Calling updateDisplay()...');
                 updateDisplay();
+                console.log('✅ loadCueData() completed successfully');
             } catch (error) {
-                console.error('Error loading cue data:', error);
+                console.error('❌ Error loading cue data:', error);
+                console.error('❌ Error details:', {
+                    message: error.message,
+                    stack: error.stack
+                });
                 showError('Failed to load cue data. Please try again later.');
             }
         }
 
         // Update display with loaded data
         function updateDisplay() {
-            if (!cueData || !metadata) return;
+            console.log('🎨 updateDisplay() called');
+            console.log('🔍 Data check:', {
+                hasCueData: !!cueData,
+                hasMetadata: !!metadata,
+                cueDataType: typeof cueData,
+                metadataType: typeof metadata
+            });
 
+            if (!cueData || !metadata) {
+                console.warn('⚠️ Missing data - cueData:', !!cueData, 'metadata:', !!metadata);
+                return;
+            }
+
+            console.log('📝 Updating header...');
             // Update header
             document.getElementById('currentShow').textContent = metadata.filename || 'Unknown';
             document.getElementById('lastUpdated').textContent = 
                 `Last updated: ${new Date(metadata.lastUpdated).toLocaleString()}`;
 
+            console.log('📋 Header updated:', {
+                currentShow: metadata.filename || 'Unknown',
+                lastUpdated: metadata.lastUpdated
+            });
+
             // Update cue stack selector
+            console.log('🎯 Updating cue stack selector...');
             const cueStackSelect = document.getElementById('cueStackSelect');
             cueStackSelect.innerHTML = '';
             
-            cueData.availableCueStacks.forEach((stack, index) => {
-                const option = document.createElement('option');
-                option.value = index;
-                option.textContent = stack.name;
-                if (index === cueData.selectedCueStackIndex) {
-                    option.selected = true;
-                }
-                cueStackSelect.appendChild(option);
+            console.log('📊 Cue stacks info:', {
+                availableCueStacks: cueData.availableCueStacks?.length || 0,
+                selectedCueStackIndex: cueData.selectedCueStackIndex,
+                stacks: cueData.availableCueStacks?.map(s => s.name) || []
             });
+            
+            if (cueData.availableCueStacks && cueData.availableCueStacks.length > 0) {
+                cueData.availableCueStacks.forEach((stack, index) => {
+                    console.log(`📦 Adding stack ${index}:`, stack.name);
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = stack.name;
+                    if (index === cueData.selectedCueStackIndex) {
+                        option.selected = true;
+                        console.log(`✅ Selected stack ${index}: ${stack.name}`);
+                    }
+                    cueStackSelect.appendChild(option);
+                });
+            } else {
+                console.warn('⚠️ No cue stacks available');
+            }
 
             // Update cue table
+            console.log('📊 Calling updateCueTable()...');
             updateCueTable();
 
             // Add event listener for cue stack changes
             cueStackSelect.addEventListener('change', updateCueTable);
+            console.log('✅ updateDisplay() completed');
         }
 
         // Update cue table based on selected stack
         function updateCueTable() {
-            if (!cueData) return;
+            console.log('📊 updateCueTable() called');
+            
+            if (!cueData) {
+                console.warn('⚠️ No cue data available for table update');
+                return;
+            }
 
             const cueStackSelect = document.getElementById('cueStackSelect');
             const selectedIndex = parseInt(cueStackSelect.value);
+            console.log('🎯 Selected stack index:', selectedIndex);
+
             const selectedStack = cueData.availableCueStacks[selectedIndex];
+            console.log('📦 Selected stack:', {
+                index: selectedIndex,
+                stack: selectedStack,
+                hasStack: !!selectedStack,
+                stackName: selectedStack?.name,
+                cuesCount: selectedStack?.cues?.length || 0
+            });
 
-            if (!selectedStack) return;
+            if (!selectedStack) {
+                console.warn('⚠️ No stack found for index:', selectedIndex);
+                return;
+            }
 
+            console.log('📋 Building cue table with', selectedStack.cues.length, 'cues');
             const tbody = document.getElementById('cueTableBody');
             tbody.innerHTML = '';
 
-            selectedStack.cues.forEach(cue => {
+            selectedStack.cues.forEach((cue, index) => {
+                console.log(`📝 Adding cue ${index}:`, {
+                    cueNumber: cue.cueNumber,
+                    description: cue.description,
+                    time: cue.time,
+                    notes: cue.notes
+                });
+                
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td class="cue-number">${cue.cueNumber}</td>
@@ -370,6 +457,8 @@
                 `;
                 tbody.appendChild(row);
             });
+            
+            console.log('✅ updateCueTable() completed - added', selectedStack.cues.length, 'cues');
         }
 
         // Show error message
@@ -382,12 +471,22 @@
         }
 
         // Initialize
+        console.log('🚀 Initializing Cue to Cue Viewer...');
+        console.log('⏰ Setting up time updates...');
         updateTime();
         setInterval(updateTime, 1000);
+        
+        console.log('📡 Loading initial cue data...');
         loadCueData();
 
         // Reload data every 30 seconds
-        setInterval(loadCueData, 30000);
+        console.log('🔄 Setting up auto-refresh every 30 seconds...');
+        setInterval(() => {
+            console.log('⏰ Auto-refresh triggered');
+            loadCueData();
+        }, 30000);
+        
+        console.log('✅ Cue to Cue Viewer initialized');
     </script>
 </body>
 </html>
