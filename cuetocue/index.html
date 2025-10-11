@@ -6,8 +6,32 @@
     <title>Cue to Cue Viewer</title>
     
     <!-- PDF Generation Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    
+    <!-- Fallback CDN sources -->
+    <script>
+        // Check if libraries loaded, if not try alternative CDN
+        if (typeof html2canvas === 'undefined') {
+            console.log('🔄 html2canvas not loaded, trying alternative CDN...');
+            const script1 = document.createElement('script');
+            script1.src = 'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js';
+            script1.onerror = function() {
+                console.error('❌ Failed to load html2canvas from all CDNs');
+            };
+            document.head.appendChild(script1);
+        }
+        
+        if (typeof jsPDF === 'undefined') {
+            console.log('🔄 jsPDF not loaded, trying alternative CDN...');
+            const script2 = document.createElement('script');
+            script2.src = 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js';
+            script2.onerror = function() {
+                console.error('❌ Failed to load jsPDF from all CDNs');
+            };
+            document.head.appendChild(script2);
+        }
+    </script>
     
     <style>
         * {
@@ -1977,13 +2001,13 @@
             // Check if required libraries are loaded
             if (typeof html2canvas === 'undefined') {
                 console.error('❌ html2canvas library not loaded');
-                alert('PDF generation library not loaded. Please refresh the page and try again.');
+                alert('PDF generation library is still loading. Please wait a moment and try again, or refresh the page.');
                 return;
             }
             
             if (typeof jsPDF === 'undefined') {
                 console.error('❌ jsPDF library not loaded');
-                alert('PDF generation library not loaded. Please refresh the page and try again.');
+                alert('PDF generation library is still loading. Please wait a moment and try again, or refresh the page.');
                 return;
             }
             
@@ -1996,6 +2020,20 @@
                 alert('No cue stacks selected for printing.');
                 return;
             }
+            
+            // Show loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.style.position = 'fixed';
+            loadingDiv.style.top = '50%';
+            loadingDiv.style.left = '50%';
+            loadingDiv.style.transform = 'translate(-50%, -50%)';
+            loadingDiv.style.background = 'rgba(0, 0, 0, 0.8)';
+            loadingDiv.style.color = 'white';
+            loadingDiv.style.padding = '20px';
+            loadingDiv.style.borderRadius = '10px';
+            loadingDiv.style.zIndex = '10000';
+            loadingDiv.innerHTML = '🔄 Generating PDF...<br><small>Please wait</small>';
+            document.body.appendChild(loadingDiv);
             
             // Create a temporary div to render the content
             const tempDiv = document.createElement('div');
@@ -2162,6 +2200,7 @@
                 
                 // Clean up
                 document.body.removeChild(tempDiv);
+                document.body.removeChild(loadingDiv);
                 
                 console.log('✅ PDF generated and downloaded successfully');
             }).catch(error => {
@@ -2170,6 +2209,9 @@
                 // Clean up
                 if (document.body.contains(tempDiv)) {
                     document.body.removeChild(tempDiv);
+                }
+                if (document.body.contains(loadingDiv)) {
+                    document.body.removeChild(loadingDiv);
                 }
                 
                 // Show more specific error message
