@@ -27,11 +27,7 @@ jobs:
           
           # Write cue data - CORRECTED PAYLOAD STRUCTURE
           echo "=== Writing cue data ==="
-          echo '{
-            "availableCueStacks": ${{ toJson(github.event.client_payload.cueData.cueData.availableCueStacks) }},
-            "selectedCueStackIndex": ${{ github.event.client_payload.cueData.metadata.selectedCueStackIndex }},
-            "columns": ${{ toJson(github.event.client_payload.cueData.cueData.columns) }}
-          }' > cuetocue/cuetocue-data.json
+          echo '${{ toJson(github.event.client_payload.cueData.cueData) }}' > cuetocue/cuetocue-data.json
           echo "✅ Cue data written successfully"
           
           # Write metadata - CORRECTED PAYLOAD STRUCTURE  
