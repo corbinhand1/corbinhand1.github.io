@@ -16,11 +16,21 @@
             console.log('html2canvas available:', typeof html2canvas !== 'undefined');
             console.log('jsPDF available:', typeof jsPDF !== 'undefined');
             console.log('window.jsPDF available:', typeof window.jsPDF !== 'undefined');
+            console.log('window.jspdf available:', typeof window.jspdf !== 'undefined');
+            console.log('window.jspdf.jsPDF available:', typeof window.jspdf?.jsPDF !== 'undefined');
             
-            // jsPDF UMD might export to window.jsPDF
-            if (typeof jsPDF === 'undefined' && typeof window.jsPDF !== 'undefined') {
-                console.log('📄 jsPDF found as window.jsPDF, creating global reference');
-                window.jsPDF = window.jsPDF;
+            // jsPDF UMD exports to window.jspdf.jsPDF, create global reference
+            if (typeof window.jspdf !== 'undefined' && typeof window.jspdf.jsPDF !== 'undefined') {
+                console.log('📄 jsPDF found as window.jspdf.jsPDF, creating global reference');
+                window.jsPDF = window.jspdf.jsPDF;
+            } else if (typeof jsPDF !== 'undefined') {
+                console.log('📄 jsPDF found as global jsPDF');
+                window.jsPDF = jsPDF;
+            } else if (typeof window.jsPDF !== 'undefined') {
+                console.log('📄 jsPDF found as window.jsPDF');
+                // Already available as window.jsPDF
+            } else {
+                console.error('❌ jsPDF library not found in any expected location');
             }
         });
     </script>
@@ -1988,10 +1998,10 @@
                 
                 const imgData = canvas.toDataURL('image/png', 0.8); // Reduced quality to avoid size issues
                 
-                // Handle jsPDF variable - it might be window.jsPDF
-                const jsPDFClass = typeof jsPDF !== 'undefined' ? jsPDF : window.jsPDF;
+                // Handle jsPDF variable - check multiple possible locations
+                const jsPDFClass = window.jsPDF || window.jspdf?.jsPDF || jsPDF;
                 if (!jsPDFClass) {
-                    throw new Error('jsPDF library not found');
+                    throw new Error('jsPDF library not found. Expected locations: window.jsPDF, window.jspdf.jsPDF, or global jsPDF');
                 }
                 
                 const pdf = new jsPDFClass(printSettings.orientation === 'landscape' ? 'landscape' : 'portrait', 'mm', 'a4');
