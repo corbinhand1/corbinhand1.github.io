@@ -20,8 +20,9 @@
         }
 
         .container {
-            max-width: 1200px;
+            width: 100%;
             margin: 0 auto;
+            padding: 0 20px;
         }
 
         .header {
@@ -162,6 +163,68 @@
             background: rgba(255, 255, 255, 0.05);
         }
 
+        .filter-controls {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .filter-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #ffffff;
+            font-size: 0.9rem;
+            min-width: 120px;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .filter-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .clear-filters {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-left: auto;
+        }
+
+        .clear-filters:hover {
+            background: #45a049;
+        }
+
         .cue-number {
             font-weight: bold;
             color: #4CAF50;
@@ -250,6 +313,12 @@
             <select class="cue-stack-dropdown" id="cueStackSelect">
                 <option value="">Loading cue stacks...</option>
             </select>
+        </div>
+
+        <div class="filter-controls">
+            <div class="filter-row" id="filterControls">
+                <!-- Filter inputs will be dynamically generated here -->
+            </div>
         </div>
 
         <div class="cue-table-container">
@@ -427,7 +496,141 @@
                 console.log('💾 Saved cue stack selection:', this.value);
                 updateCueTable();
             });
+            // Update filter controls
+            updateFilterControls();
+            
             console.log('✅ updateDisplay() completed');
+        }
+
+        // Update filter controls based on available columns
+        function updateFilterControls() {
+            console.log('🔍 Updating filter controls...');
+            
+            if (!cueData || !cueData.columns) {
+                console.warn('⚠️ No column data available for filters');
+                return;
+            }
+
+            const filterControls = document.getElementById('filterControls');
+            filterControls.innerHTML = '';
+
+            // Create filter inputs for each column
+            cueData.columns.forEach(column => {
+                const filterGroup = document.createElement('div');
+                filterGroup.className = 'filter-group';
+                
+                const label = document.createElement('div');
+                label.className = 'filter-label';
+                label.textContent = column.name;
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'filter-input';
+                input.placeholder = `Filter ${column.name}...`;
+                input.dataset.column = column.name;
+                
+                // Add event listener for filtering
+                input.addEventListener('input', applyFilters);
+                
+                filterGroup.appendChild(label);
+                filterGroup.appendChild(input);
+                filterControls.appendChild(filterGroup);
+            });
+
+            // Add clear filters button
+            const clearButton = document.createElement('button');
+            clearButton.className = 'clear-filters';
+            clearButton.textContent = 'Clear All Filters';
+            clearButton.addEventListener('click', clearAllFilters);
+            filterControls.appendChild(clearButton);
+
+            console.log('✅ Filter controls updated');
+        }
+
+        // Apply filters to the table
+        function applyFilters() {
+            console.log('🔍 Applying filters...');
+            
+            if (!cueData) return;
+
+            const cueStackSelect = document.getElementById('cueStackSelect');
+            const selectedIndex = parseInt(cueStackSelect.value);
+            const selectedStack = cueData.availableCueStacks[selectedIndex];
+            
+            if (!selectedStack) return;
+
+            // Get all filter values
+            const filters = {};
+            const filterInputs = document.querySelectorAll('.filter-input');
+            filterInputs.forEach(input => {
+                const columnName = input.dataset.column;
+                const value = input.value.toLowerCase().trim();
+                if (value) {
+                    filters[columnName] = value;
+                }
+            });
+
+            console.log('🔍 Active filters:', filters);
+
+            // Filter cues based on active filters
+            const filteredCues = selectedStack.cues.filter(cue => {
+                return Object.entries(filters).every(([columnName, filterValue]) => {
+                    const cueValue = (cue[columnName] || '').toString().toLowerCase();
+                    return cueValue.includes(filterValue);
+                });
+            });
+
+            console.log(`🔍 Filtered ${selectedStack.cues.length} cues to ${filteredCues.length}`);
+
+            // Update table with filtered data
+            updateTableWithCues(filteredCues);
+        }
+
+        // Update table with specific cues
+        function updateTableWithCues(cues) {
+            const columns = cueData.columns || [];
+            const tbody = document.getElementById('cueTableBody');
+            tbody.innerHTML = '';
+
+            cues.forEach((cue, index) => {
+                console.log(`📝 Adding filtered cue ${index}:`, cue);
+                
+                const row = document.createElement('tr');
+                
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    const value = cue[col.name] || '';
+                    td.textContent = value;
+                    
+                    // Add special styling for certain columns
+                    if (col.name === '#') {
+                        td.className = 'cue-number';
+                    } else if (col.name === 'Description') {
+                        td.className = 'cue-description';
+                    } else if (col.name === 'Preset') {
+                        td.className = 'cue-time';
+                    }
+                    
+                    row.appendChild(td);
+                });
+                
+                tbody.appendChild(row);
+            });
+
+            console.log('✅ Table updated with filtered cues');
+        }
+
+        // Clear all filters
+        function clearAllFilters() {
+            console.log('🧹 Clearing all filters...');
+            
+            const filterInputs = document.querySelectorAll('.filter-input');
+            filterInputs.forEach(input => {
+                input.value = '';
+            });
+            
+            // Refresh the table with all cues
+            updateCueTable();
         }
 
         // Update cue table based on selected stack
@@ -475,33 +678,9 @@
             thead.appendChild(headerRow);
 
             console.log('📋 Building cue table with', selectedStack.cues.length, 'cues');
-            const tbody = document.getElementById('cueTableBody');
-            tbody.innerHTML = '';
-
-            selectedStack.cues.forEach((cue, index) => {
-                console.log(`📝 Adding cue ${index}:`, cue);
-                
-                const row = document.createElement('tr');
-                
-                columns.forEach(col => {
-                    const td = document.createElement('td');
-                    const value = cue[col.name] || '';
-                    td.textContent = value;
-                    
-                    // Add special styling for certain columns
-                    if (col.name === '#') {
-                        td.className = 'cue-number';
-                    } else if (col.name === 'Description') {
-                        td.className = 'cue-description';
-                    } else if (col.name === 'Preset') {
-                        td.className = 'cue-time';
-                    }
-                    
-                    row.appendChild(td);
-                });
-                
-                tbody.appendChild(row);
-            });
+            
+            // Use the shared function to update the table
+            updateTableWithCues(selectedStack.cues);
 
             console.log('✅ updateCueTable() completed - added', selectedStack.cues.length, 'cues');
         }
