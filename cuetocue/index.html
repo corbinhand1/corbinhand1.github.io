@@ -295,6 +295,13 @@
         // Load cue data
         async function loadCueData() {
             console.log('🔄 loadCueData() called');
+            
+            // Show loading indicator
+            const cueStackSelect = document.getElementById('cueStackSelect');
+            if (cueStackSelect) {
+                cueStackSelect.innerHTML = '<option value="">Updating...</option>';
+            }
+            
             try {
                 console.log('📡 Fetching cue data and metadata...');
                 const [cueResponse, metadataResponse] = await Promise.all([
