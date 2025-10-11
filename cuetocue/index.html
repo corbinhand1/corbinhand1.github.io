@@ -116,22 +116,6 @@
             margin-top: 5px;
         }
 
-        /* Custom text colors for specific words */
-        .text-video {
-            color: #FF6B6B !important;
-            font-weight: 600;
-        }
-        
-        .text-demo {
-            color: #4ECDC4 !important;
-            font-weight: 600;
-        }
-        
-        .text-timer {
-            color: #45B7D1 !important;
-            font-weight: 600;
-        }
-        
         .cue-table-container {
             background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
@@ -209,6 +193,12 @@
             backdrop-filter: blur(10px);
         }
 
+        .column-visibility-label {
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
         .column-toggle-btn {
             background: #4CAF50;
             color: white;
@@ -224,6 +214,27 @@
 
         .column-toggle-btn:hover {
             background: #45a049;
+        }
+
+        .color-settings-btn {
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            transition: all 0.2s ease;
+        }
+
+        .color-settings-btn:hover {
+            background: #FF5252;
+            transform: translateY(-1px);
         }
 
         .column-modal {
@@ -344,6 +355,189 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
+        /* Color Picker Modal Styles */
+        .color-modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .color-modal-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .color-modal-header {
+            padding: 24px 24px 16px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .color-modal-header h3 {
+            margin: 0 0 8px 0;
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .color-modal-description {
+            color: #8e8e93;
+            font-size: 0.9rem;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .color-modal-body {
+            padding: 24px;
+        }
+
+        .color-setting-group {
+            margin-bottom: 20px;
+        }
+
+        .color-setting-group h4 {
+            color: #ffffff;
+            font-size: 1rem;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+        }
+
+        .color-setting-description {
+            color: #8e8e93;
+            font-size: 0.85rem;
+            margin: 0 0 16px 0;
+            line-height: 1.4;
+        }
+
+        .color-override {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 16px;
+            background-color: rgba(58, 58, 60, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .color-override:hover {
+            background-color: rgba(58, 58, 60, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .color-override .keyword {
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 500;
+            flex: 1;
+            margin-right: 16px;
+        }
+
+        .color-override .color-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .color-override .original-color {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .color-override .original-color:hover {
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-override .custom-color {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            padding: 0;
+            background: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .color-override .custom-color:hover {
+            border-color: #007AFF;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-override .custom-color::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .color-override .custom-color::-webkit-color-swatch {
+            border: none;
+            border-radius: 50%;
+        }
+
+        .color-modal-footer {
+            padding: 16px 24px 24px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .primary-btn, .secondary-btn {
+            background-color: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            min-width: 100px;
+        }
+
+        .primary-btn:hover {
+            background-color: #0056CC;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        }
+
+        .secondary-btn {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .secondary-btn:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
         .cue-number {
             font-weight: bold;
             color: #4CAF50;
@@ -423,10 +617,13 @@
             </div>
 
             <div class="column-controls">
-                <span style="color: #ffffff; font-size: 1rem;">Column Visibility</span>
+                <span class="column-visibility-label">Column Visibility</span>
                 <button class="column-toggle-btn" id="columnToggleBtn">
                     <span>⚙️</span>
                     <span>Select Columns</span>
+                </button>
+                <button class="color-settings-btn" id="colorSettingsBtn" title="Color & Display Settings">
+                    <span>🎨</span>
                 </button>
             </div>
         </div>
@@ -465,10 +662,39 @@
         </div>
     </div>
 
+    <!-- Color Picker Modal -->
+    <div class="color-modal" id="colorModal">
+        <div class="color-modal-content">
+            <div class="color-modal-header">
+                <h3>Color & Display Settings</h3>
+                <p class="color-modal-description">Customize highlight colors for better visibility</p>
+                <button class="close-modal" id="closeColorModal">&times;</button>
+            </div>
+            <div class="color-modal-body">
+                <div class="color-setting-group">
+                    <h4>Highlight Color Overrides</h4>
+                    <p class="color-setting-description">Override the default highlight colors for specific keywords. Click the original color to reset.</p>
+                    <div id="colorOverridesContainer">
+                        <!-- Color overrides will be populated here -->
+                    </div>
+                </div>
+            </div>
+            <div class="color-modal-footer">
+                <button id="resetColorsBtn" class="secondary-btn">Reset All Colors</button>
+                <button id="closeColorModalBtn" class="primary-btn">Done</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let cueData = null;
         let metadata = null;
         let visibleColumns = new Set(); // Track which columns are visible
+        
+        // Color highlighting state
+        let highlightColors = []; // Array of {keyword, color} objects
+        let colorOverrides = {}; // Object to store user color overrides
+        let originalHighlightColors = []; // Store original colors for reset
 
         // Update time displays
         function updateTime() {
@@ -522,11 +748,26 @@
                 cueData = await cueResponse.json();
                 metadata = await metadataResponse.json();
 
+                // Extract highlight colors from cue data
+                if (cueData && cueData.highlightColors) {
+                    highlightColors = cueData.highlightColors;
+                    console.log('🎨 Loaded highlight colors:', highlightColors);
+                } else {
+                    // Default highlight colors if none provided
+                    highlightColors = [
+                        { keyword: 'video', color: '007AFF' },
+                        { keyword: 'demo', color: 'FF3B30' },
+                        { keyword: 'timer', color: '34C759' }
+                    ];
+                    console.log('🎨 Using default highlight colors:', highlightColors);
+                }
+
                 console.log('📋 Parsed cue data:', {
                     hasCueData: !!cueData,
                     cueDataKeys: cueData ? Object.keys(cueData) : 'null',
                     availableCueStacks: cueData?.availableCueStacks?.length || 0,
-                    selectedCueStackIndex: cueData?.selectedCueStackIndex
+                    selectedCueStackIndex: cueData?.selectedCueStackIndex,
+                    highlightColors: highlightColors.length
                 });
 
                 console.log('📄 Parsed metadata:', {
@@ -705,44 +946,8 @@
 
             console.log('✅ updateCueTable() completed - added', selectedStack.cues.length, 'cues');
             
-            // Apply custom text colors after table is built
-            applyCustomTextColors();
-        }
-        
-        // Apply custom colors to specific words in table cells
-        function applyCustomTextColors() {
-            console.log('🎨 Applying custom text colors...');
-            
-            const tbody = document.getElementById('cueTableBody');
-            if (!tbody) return;
-            
-            const rows = tbody.querySelectorAll('tr');
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                cells.forEach(cell => {
-                    const text = cell.textContent;
-                    if (!text) return;
-                    
-                    // Apply colors to specific words
-                    let updatedHTML = text;
-                    
-                    // Color Video words
-                    updatedHTML = updatedHTML.replace(/\b(Video|VIDEO|video)\b/g, '<span class="text-video">$1</span>');
-                    
-                    // Color Demo words
-                    updatedHTML = updatedHTML.replace(/\b(Demo|DEMO|demo)\b/g, '<span class="text-demo">$1</span>');
-                    
-                    // Color Timer words
-                    updatedHTML = updatedHTML.replace(/\b(Timer|TIMER|timer)\b/g, '<span class="text-timer">$1</span>');
-                    
-                    // Only update if changes were made
-                    if (updatedHTML !== text) {
-                        cell.innerHTML = updatedHTML;
-                    }
-                });
-            });
-            
-            console.log('✅ Custom text colors applied');
+            // Apply row highlighting after table is built
+            refreshTableColors();
         }
 
         // Column Visibility Functions
@@ -871,6 +1076,180 @@
             `;
         }
 
+        // Color Picker Functions
+        function initializeColorPicker() {
+            console.log('🎨 Initializing color picker...');
+            
+            // Load saved color overrides
+            const savedOverrides = localStorage.getItem('colorOverrides');
+            if (savedOverrides) {
+                colorOverrides = JSON.parse(savedOverrides);
+                console.log('💾 Loaded saved color overrides:', colorOverrides);
+            }
+            
+            // Set up color picker event listeners
+            const colorSettingsBtn = document.getElementById('colorSettingsBtn');
+            const colorModal = document.getElementById('colorModal');
+            const closeColorModal = document.getElementById('closeColorModal');
+            const closeColorModalBtn = document.getElementById('closeColorModalBtn');
+            const resetColorsBtn = document.getElementById('resetColorsBtn');
+            
+            colorSettingsBtn.addEventListener('click', openColorModal);
+            closeColorModal.addEventListener('click', closeColorModal);
+            closeColorModalBtn.addEventListener('click', closeColorModal);
+            resetColorsBtn.addEventListener('click', resetAllColors);
+            
+            // Close modal when clicking outside
+            colorModal.addEventListener('click', function(e) {
+                if (e.target === colorModal) {
+                    closeColorModal();
+                }
+            });
+            
+            console.log('✅ Color picker initialized');
+        }
+        
+        function openColorModal() {
+            console.log('🎨 Opening color picker modal...');
+            
+            if (!highlightColors || highlightColors.length === 0) {
+                console.warn('⚠️ No highlight colors available');
+                return;
+            }
+            
+            updateColorOverrides();
+            document.getElementById('colorModal').style.display = 'block';
+        }
+        
+        function closeColorModal() {
+            console.log('🎨 Closing color picker modal...');
+            document.getElementById('colorModal').style.display = 'none';
+        }
+        
+        function updateColorOverrides() {
+            if (!highlightColors || !Array.isArray(highlightColors)) return;
+            
+            // Store original colors if not already stored
+            if (originalHighlightColors.length === 0) {
+                originalHighlightColors = [...highlightColors];
+            }
+            
+            const container = document.getElementById('colorOverridesContainer');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            highlightColors.forEach(highlight => {
+                const overrideKey = `${highlight.keyword}_${highlight.color}`;
+                const currentOverride = colorOverrides[overrideKey];
+                
+                const overrideDiv = document.createElement('div');
+                overrideDiv.className = 'color-override';
+                overrideDiv.dataset.keyword = highlight.keyword;
+                overrideDiv.dataset.originalColor = highlight.color;
+                overrideDiv.dataset.overrideKey = overrideKey;
+                
+                const keywordSpan = document.createElement('span');
+                keywordSpan.className = 'keyword';
+                keywordSpan.textContent = highlight.keyword;
+                
+                const colorControls = document.createElement('div');
+                colorControls.className = 'color-controls';
+                
+                // Original color indicator
+                const originalColor = document.createElement('div');
+                originalColor.className = 'original-color';
+                originalColor.style.backgroundColor = '#' + highlight.color;
+                originalColor.title = 'Reset to original color';
+                originalColor.onclick = () => {
+                    delete colorOverrides[overrideKey];
+                    saveColorSettings();
+                    updateColorOverrides();
+                    refreshTableColors();
+                };
+                
+                // Custom color picker
+                const customColor = document.createElement('input');
+                customColor.type = 'color';
+                customColor.className = 'custom-color';
+                customColor.value = currentOverride ? '#' + currentOverride : '#' + highlight.color;
+                customColor.title = 'Customize highlight color';
+                customColor.onchange = (e) => {
+                    const newColor = e.target.value.substring(1); // Remove # prefix
+                    if (newColor !== highlight.color) {
+                        colorOverrides[overrideKey] = newColor;
+                    } else {
+                        delete colorOverrides[overrideKey];
+                    }
+                    saveColorSettings();
+                    refreshTableColors();
+                };
+                
+                colorControls.appendChild(originalColor);
+                colorControls.appendChild(customColor);
+                
+                overrideDiv.appendChild(keywordSpan);
+                overrideDiv.appendChild(colorControls);
+                container.appendChild(overrideDiv);
+            });
+        }
+        
+        function resetAllColors() {
+            console.log('🔄 Resetting all colors to defaults...');
+            colorOverrides = {};
+            saveColorSettings();
+            updateColorOverrides();
+            refreshTableColors();
+        }
+        
+        function saveColorSettings() {
+            localStorage.setItem('colorOverrides', JSON.stringify(colorOverrides));
+        }
+        
+        function refreshTableColors() {
+            console.log('🎨 Refreshing table colors...');
+            const tbody = document.getElementById('cueTableBody');
+            if (!tbody) return;
+            
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(row => {
+                applyRowHighlighting(row);
+            });
+        }
+        
+        function applyRowHighlighting(row) {
+            if (!highlightColors || !Array.isArray(highlightColors)) return;
+            
+            // Reset all cell colors in the row first
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                cell.style.color = '';
+            });
+            
+            // Check each cell for highlight keywords and apply row-level highlighting
+            cells.forEach(cell => {
+                const cellText = cell.textContent;
+                if (!cellText) return;
+                
+                for (const highlight of highlightColors) {
+                    if (highlight.keyword && highlight.color && 
+                        cellText.toLowerCase().includes(highlight.keyword.toLowerCase())) {
+                        
+                        // Check if user has overridden this color
+                        const overrideKey = `${highlight.keyword}_${highlight.color}`;
+                        const colorToApply = colorOverrides[overrideKey] || highlight.color;
+                        
+                        // Apply color to all cells in the row
+                        cells.forEach(cell => {
+                            cell.style.color = '#' + colorToApply;
+                        });
+                        
+                        return; // Exit after first match
+                    }
+                }
+            });
+        }
+        
         // Initialize
         console.log('🚀 Initializing Cue to Cue Viewer...');
         console.log('⏰ Setting up time updates...');
@@ -879,6 +1258,9 @@
         
         console.log('🔧 Initializing column visibility controls...');
         initializeColumnVisibility();
+        
+        console.log('🎨 Initializing color picker...');
+        initializeColorPicker();
         
         console.log('📡 Loading initial cue data...');
         loadCueData();
