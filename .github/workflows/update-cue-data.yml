@@ -28,7 +28,11 @@ jobs:
           # Write cue data with proper error handling
           echo "=== Writing cue data ==="
           if [ -n "${{ github.event.client_payload.cueData }}" ]; then
-            echo '${{ toJson(github.event.client_payload.cueData) }}' > cuetocue/cuetocue-data.json
+            # Transform the data structure to match website expectations
+            echo '{
+              "availableCueStacks": ${{ toJson(github.event.client_payload.cueData.allCues) }},
+              "selectedCueStackIndex": ${{ github.event.client_payload.metadata.selectedCueStackIndex }}
+            }' > cuetocue/cuetocue-data.json
             echo "✅ Cue data written successfully"
           else
             echo "❌ No cue data in payload"
