@@ -1,0 +1,29 @@
+name: Test Workflow
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  test-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Test workflow
+        run: |
+          mkdir -p cuetocue
+          echo '{"test": "push-triggered", "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > cuetocue/test-data.json
+          echo "✅ Test data written"
+          
+      - name: Commit test data
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add cuetocue/test-data.json
+          git commit -m "Test workflow commit" || echo "No changes to commit"
+          git push || echo "Nothing to push"
+          echo "✅ Test workflow completed"
