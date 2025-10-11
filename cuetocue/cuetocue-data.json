@@ -1,30 +1,1692 @@
 {
   "availableCueStacks": [
     {
-      "id": "real-stack-1",
+      "id": "E0F55E31-C85F-46AF-BEA2-4F5225880AA2",
       "name": "DF 25 Main Keynote",
       "cues": [
         {
-          "cueNumber": "1",
-          "description": "House lights fade to black",
-          "time": "00:00:00",
-          "notes": "Start of show - ensure audience is seated"
+          "cueNumber": "",
+          "description": "9:25a - Doors, Walk in Music, Walk in Lx, Preset 10",
+          "time": "0",
+          "notes": "Rock"
         },
         {
-          "cueNumber": "2",
-          "description": "Stage lights up - warm wash",
-          "time": "00:00:05",
-          "notes": "Reveal stage setup"
+          "cueNumber": "",
+          "description": "9:55a - ROLL RECORDS & Transition to APM",
+          "time": "0",
+          "notes": "APM"
         },
         {
-          "cueNumber": "3",
-          "description": "Spotlight on center stage",
-          "time": "00:00:10",
-          "notes": "Actor entrance"
+          "cueNumber": "",
+          "description": "9:57:30a - Preset 3 & FLS",
+          "time": "3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Preset 99 & LX 104",
+          "time": "99",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Preset 4",
+          "time": "4",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[Patrick Dem]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "53",
+          "description": "DEMO: Vibes 1 [Let me show you in a demo]",
+          "time": "Mac 5",
+          "notes": ""
+        },
+        {
+          "cueNumber": "55",
+          "description": "DEMO: Vibes 2 - B-ROLL  ",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "57",
+          "description": "DEMO: Vibes 3 [this is agentforce vibes]",
+          "time": "Mac 5",
+          "notes": ""
+        },
+        {
+          "cueNumber": "59",
+          "description": "DEMO: PRESET 8",
+          "time": "8",
+          "notes": ""
+        },
+        {
+          "cueNumber": "59.1",
+          "description": "DEMO: Sticker a1 [follow]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "63",
+          "description": "Preset 4",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "119",
+          "description": "Preset 4",
+          "time": "4",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[sanjna Dem]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "121",
+          "description": "DEMO: Preset 8 [Lets see how agentsforce powers Williams Son...]",
+          "time": "8",
+          "notes": ""
+        },
+        {
+          "cueNumber": "123",
+          "description": "DEMO: Will 1 [Williams Sonoma cares about delivering top tier service]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "125",
+          "description": "DEMO: Will 2 [lets see hwo this interactino was built]",
+          "time": "Mac 7",
+          "notes": ""
+        },
+        {
+          "cueNumber": "129",
+          "description": "DEMO: Will 3 [lets see what the service rep sees in agentforce service]",
+          "time": "Mac 3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "TBD WILL 3.1",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "131",
+          "description": "DEMO: Preset 8 [Williams-Sonoma is delivering personalized, inspiring, and thoughtfully]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "131.1",
+          "description": "DEMO: Sticker B3",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "205",
+          "description": "Preset 4",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[Leah Mcogovern-Hare; Pandora]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "207",
+          "description": "DEMO: Preset 8 [Now I want to show youa demo of Pandor's Transformation]",
+          "time": "8",
+          "notes": ""
+        },
+        {
+          "cueNumber": "209",
+          "description": "DEMO: Pandora 1 [We are goign to start on Pandoras Website]",
+          "time": "iPhone 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "211",
+          "description": "DEMO: Pandora 2 & Mac 3 Audio Hot [It\u2019s a delicate bracelet so I want to make sure I know how to clean it]",
+          "time": "iPhone 3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "213",
+          "description": "DEMO: Pandora 3 & Video 213 [an in store associate is in Slack and getting ready]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "215",
+          "description": "DEMO: Preset 8  ",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "215.1",
+          "description": "DEMO: Sticker c3 [follow]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "305",
+          "description": "Preset 4",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[MaryAnn PepsiCo]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "307",
+          "description": "DEMO: Preset 8 [Now what I want to show you right now] ",
+          "time": "8",
+          "notes": ""
+        },
+        {
+          "cueNumber": "309",
+          "description": "DEMO: Pepsi 1 [It Starts on pepsi's wesite] ",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "311",
+          "description": "DEMO: Pepsi 2 [Sellers now have the time to focus on what they love]",
+          "time": "Mac 3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "312",
+          "description": "DEMO: Pepsi 3 [This is how Agentforce elevates every seller]",
+          "time": "8",
+          "notes": ""
+        },
+        {
+          "cueNumber": "313",
+          "description": "DEMO: Pepsi 4 [Now Lets see hwo field  techs support these]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "315",
+          "description": "DEMO: Pepsi 5 [Field technicians are critical to PepsiCo\u2019s success]",
+          "time": "iPhone 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "317",
+          "description": "DEMO: Preset 8 [THAT is how PepsiCo elevates every FSL technicians]",
+          "time": "8",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "318",
+          "description": "Preset 4 [",
+          "time": "4",
+          "notes": ""
+        },
+        {
+          "cueNumber": "319",
+          "description": "DEMO: IT 1",
+          "time": "Mac 3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "320",
+          "description": "DEMO:  IT 2",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "320.1",
+          "description": "DEMO: IT 3 ",
+          "time": "Mac 3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "321",
+          "description": "DEMO: PRESET 8",
+          "time": "8",
+          "notes": ""
+        },
+        {
+          "cueNumber": "321.1",
+          "description": "DEMO: Sticker E2",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "323",
+          "description": "Preset 4 [",
+          "time": "4",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "411",
+          "description": "Preset 4 [",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[Shibani Fedex]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "413",
+          "description": "DEMO: Preset 8 [fedex works with small businesses all over the world]",
+          "time": "8",
+          "notes": ""
+        },
+        {
+          "cueNumber": "415",
+          "description": "DEMO: Fedex 1 [Right on cue...a customer is reaching out with a question]",
+          "time": "iPhone 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "417",
+          "description": "DEMO: Fedex 2 [The answer to this question lives within this thick playbook]",
+          "time": "8",
+          "notes": ""
+        },
+        {
+          "cueNumber": "419",
+          "description": "DEMO: Fedex 3 [I'm going to take this customer question and ask Agentforce]",
+          "time": "iPhone 3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "421",
+          "description": "DEMO: Fedex 4 [Context Indexing let's us parse out the unstructured data]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "423",
+          "description": "DEMO: Cue camera shot {Shout out to demo driver Miles}",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "427",
+          "description": "DEMO: Fedex 5 & iPhone 3 Hot [??????",
+          "time": "iPhone 3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "429",
+          "description": "DEMO: Preset 8 [?????",
+          "time": "8",
+          "notes": ""
+        },
+        {
+          "cueNumber": "429.1",
+          "description": "DEMO: Sticker F3 ",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "507",
+          "description": "Preset 4",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[Simon Dell]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "509",
+          "description": "DEMO: Preset 8 ",
+          "time": "8",
+          "notes": ""
+        },
+        {
+          "cueNumber": "511",
+          "description": "DEMO: Dell 1 [Lets take this doc and upload it]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "523",
+          "description": "DEMO: Preset 8 [ ????",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "523.1",
+          "description": "DEMO: Sticker G3",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "F6A79125-A397-489A-9ED5-BA003B104B6D",
+      "name": "Agentforce",
+      "cues": [
+        {
+          "cueNumber": "",
+          "description": "9:25a - Doors, Walk in Music, Walk in Lx, Preset 30",
+          "time": "30",
+          "notes": "Rock"
+        },
+        {
+          "cueNumber": "",
+          "description": "9:55a - ROLL RECORDS & Transition to APM",
+          "time": "",
+          "notes": "APM"
+        },
+        {
+          "cueNumber": "",
+          "description": "9:57:30a - Preset 23 & FLS",
+          "time": "23",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "228",
+          "description": "10:00:00 Ryan VO & LX + D3  | Cue 228",
+          "time": "",
+          "notes": "Ryan VO"
+        },
+        {
+          "cueNumber": "",
+          "description": "Ryan Mic Hot  ",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "228.1",
+          "description": "Preset 24 [on camera shot]",
+          "time": "24",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[ryan has 3 slides to golden hoodie]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[Adam welcomes Angela to stage]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "231.1",
+          "description": "Preset 29 [to go Full screen]",
+          "time": "29",
+          "notes": ""
+        },
+        {
+          "cueNumber": "232",
+          "description": "LX + Audio | Cue 232  & Confetti [on GOLDEN HOODIE}",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Fade Music after Photo",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "233",
+          "description": "LX + Vid | Cue 233 & Preset 25",
+          "time": "25",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "234",
+          "description": "LX | Cue 234 & Preset 24 [out of vid]",
+          "time": "24",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[adam has about 7 slides to Nanxy]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "244",
+          "description": "adam intros - NANXY mic hot and mute adam",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[nanxy has 2 slides to dem]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[nanxy intros Eswar]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "247",
+          "description": "DEMO: iPhone 1 [Eswar, do you want to show us?]",
+          "time": "iPhone 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "249",
+          "description": "Preset 28 & D3| Cue 249 [ can you tell us more about how you built that agent?]",
+          "time": "28",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "welcome Aron Kale & Angel Le",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "250",
+          "description": "DEMO: Mac 1 & 250 [Let's see it in a demo]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "251",
+          "description": "DEMO: iPhone 1 [And once I activate it, we can see that agent running live]",
+          "time": "iPhone 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "252",
+          "description": "Preset 24 [ And that's how Equinox builds truly reliable agents. ]",
+          "time": "24",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "aron  intros - MADHAV mic hot and mute and mute aron & Angela",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[3 slides to dem/]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "260",
+          "description": "DEMO: Mac 1 [lets ceck it out in a demo]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "261",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "264",
+          "description": "Preset 24 [And that's how Agentforce enables these Context-Aware experiences]",
+          "time": "24",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "madhav intros - SANJANA mic hot and mute madha",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[3 slides to dem]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "267",
+          "description": "DEMO: WS 1 [how about I show you in a demo]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "268",
+          "description": "DEMO: WS 2 & iPhone 3 Audio Hot [so lets give the agent a call]",
+          "time": "m1 + ip3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "269",
+          "description": "DEMO: WS 3 [And that's how Agentforce creates these multi-channel experiences] ",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "271",
+          "description": "Preset 28  & D3 | Cue 271 [So we have Sameer here from Williams Sonoma - Sameer thanks so much for being here]",
+          "time": "28",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "sanjana intros - LEAH mic hot and mute sanjna",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "273",
+          "description": "Preset 24  & D3 | Cue 273c[interview wrap]",
+          "time": "24",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[3 slides to dem.]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "leah  intros - JOHN mic hot and mute leah",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "276",
+          "description": "DEMO: Mac 1 [so lets see it in a demo]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "John Will intro AVI",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "277",
+          "description": "Preset 28 [ Avi, can you tell us a little more about it?]",
+          "time": "28",
+          "notes": ""
+        },
+        {
+          "cueNumber": "278",
+          "description": "DEMO: Mac 1 [Lets Jump Into Agentforce Grid]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "avi  intros - ADAM mic hot and mute avi",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "279",
+          "description": "Preset 24 [Alright Adam, back to you]",
+          "time": "24",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Preset 23, Mute Speaker, Walk Out Lighting [cover imag]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Adance to Survey Graphic",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Survey VO",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Preset 30 - Rolling Graphics ",
+          "time": "30",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Stop Records",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "7865CA63-ACEB-4703-A969-133833E79785",
+      "name": "Fins",
+      "cues": [
+        {
+          "cueNumber": "",
+          "description": "9:25a - Doors, Walk in Music, Walk in Lx, Preset 30",
+          "time": "30",
+          "notes": "Rock"
+        },
+        {
+          "cueNumber": "",
+          "description": "9:55a - ROLL RECORDS & Transition to APM",
+          "time": "",
+          "notes": "APM"
+        },
+        {
+          "cueNumber": "",
+          "description": "11:07:30a - Preset 23 & FLS",
+          "time": "23",
+          "notes": ""
+        },
+        {
+          "cueNumber": "228",
+          "description": "11:10:00 - Graphic Advance + Ryan VO+ D3 | Cue 228",
+          "time": "",
+          "notes": "Ryan VO"
+        },
+        {
+          "cueNumber": "",
+          "description": "Ryan Mic Hot  ",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "228.1",
+          "description": "Preset 24 [on camera shot]",
+          "time": "24",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[ryan has 3 slides to golden hoodie]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[Adam welcomes Angela to stage]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "231.1",
+          "description": "Preset 29 [to go Full screen]",
+          "time": "29",
+          "notes": ""
+        },
+        {
+          "cueNumber": "232",
+          "description": "LX + Audio | Cue 232  & Confetti [on GOLDEN HOODIE}",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Fade Music after Photo",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "233",
+          "description": "Sizzle Video 233 & Preset 25",
+          "time": "25",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "234",
+          "description": "Preset 24 [out of vid]",
+          "time": "24",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[adam has about 7 slides to Nanxy]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "244",
+          "description": "adam intros - NANXY mic hot and mute adam",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[nanxy has 2 slides to dem]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[nanxy intros Eswar]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "247",
+          "description": "DEMO: iPhone 1 [Eswar, do you want to show us?]",
+          "time": "iPhone 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "249",
+          "description": "Preset 28 & D3| Cue 249 [ can you tell us more about how you built that agent?]",
+          "time": "28",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "welcome Aron Kale & Angel Le",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "250",
+          "description": "DEMO: Mac 1 & 250 [Let's see it in a demo]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "251",
+          "description": "DEMO: iPhone 1 [And once I activate it, we can see that agent running live]",
+          "time": "iPhone 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "252",
+          "description": "Preset 24 [ And that's how Equinox builds truly reliable agents. ]",
+          "time": "24",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "aron  intros - MADHAV mic hot and mute and mute aron & Angela",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[3 slides to dem/]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "260",
+          "description": "DEMO: Mac 1 [lets ceck it out in a demo]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "261",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "264",
+          "description": "Preset 24 [And that's how Agentforce enables these Context-Aware experiences]",
+          "time": "24",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "madhav intros - SANJANA mic hot and mute madha",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[3 slides to dem]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "267",
+          "description": "DEMO: WS 1 [how about I show you in a demo]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "268",
+          "description": "DEMO: WS 2 & iPhone 3 Audio Hot [so lets give the agent a call]",
+          "time": "m1 + ip3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "269",
+          "description": "DEMO: WS 3 [And that's how Agentforce creates these multi-channel experiences] ",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "271",
+          "description": "Preset 28 [So we have Sameer here from Williams Sonoma - Sameer thanks so much for being here]",
+          "time": "28",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "sanjana intros - LEAH mic hot and mute sanjna",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "273",
+          "description": "Preset 24 [interview wrap]",
+          "time": "24",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[3 slides to dem.]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "leah  intros - JOHN mic hot and mute leah",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "276",
+          "description": "DEMO: Mac 1 [so lets see it in a demo]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "John Will intro AVI",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "277",
+          "description": "Preset 28 [ Avi, can you tell us a little more about it?]",
+          "time": "28",
+          "notes": ""
+        },
+        {
+          "cueNumber": "278",
+          "description": "DEMO: Mac 1 [Lets Jump Into Agentforce Grid]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "279",
+          "description": "Preset 24 [",
+          "time": "24",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "E8D8821B-52B4-4D06-875C-658EF1B60A01",
+      "name": "Luminary",
+      "cues": [
+        {
+          "cueNumber": "101",
+          "description": "Doors, Walk in Music, Walk in Lx, Preset 10",
+          "time": "1",
+          "notes": "Rock"
+        },
+        {
+          "cueNumber": "",
+          "description": "12:55p ROLL RECORDS & Swap to Safe Music",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "12:59 - Preset 3.1 & Session Title",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Preset 99 & Lx to Vid",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "102",
+          "description": "2:00p - Preset 6 & Tony Video",
+          "time": "6",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Graphic Advance",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "27 Min Timer + LX Up + Speaker VOG & Preset 4",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "4",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Preset 8 [for Interview]",
+          "time": "8",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "preset 4 [on wrap]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Walk Out Music and Lighting & Preset 3.1",
+          "time": "1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Mute The speakers",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "walk out vog",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Stop Records",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "295AE310-ACF6-412E-A72B-5CED88F1E38A",
+      "name": "Template",
+      "cues": [
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "186DCBCF-A813-4910-B8D4-0E3C5B26CEEC",
+      "name": "Example Keynote",
+      "cues": [
+        {
+          "cueNumber": "101",
+          "description": "9:25a - Doors, Walk in Music, Walk in Lx, Preset 10",
+          "time": "0",
+          "notes": "Rock"
+        },
+        {
+          "cueNumber": "",
+          "description": "9:55a - ROLL RECORDS & Transition to APM",
+          "time": "0",
+          "notes": "APM"
+        },
+        {
+          "cueNumber": "102",
+          "description": "9:57:30a - Preset 3 & FLS",
+          "time": "3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "102.01",
+          "description": "Preset 99 & LX 104",
+          "time": "99",
+          "notes": ""
+        },
+        {
+          "cueNumber": "102.1",
+          "description": "Preset 5 & VT Opening",
+          "time": "5",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Connor Mic Hot Out of VID",
+          "time": "6",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Connor VO & LX 105 [1 sac after note]",
+          "time": "1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Preset 4 [on welcome]",
+          "time": "4",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Timer 13 Minutes",
+          "time": "1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[17 slides to lx chnage and new speaker]",
+          "time": "0",
+          "notes": ""
+        },
+        {
+          "cueNumber": "122",
+          "description": "LX | Cue 122 [on become agentforce co alide]",
+          "time": "2",
+          "notes": ""
+        },
+        {
+          "cueNumber": "123",
+          "description": "connor intros - KAYLIN mic hot and mute connor",
+          "time": "2",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "17 Minute Timer",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[kaylin has 11 slides to vid]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "135",
+          "description": "VT Prudential + LX 135 & Preset 5 [START OF VIDEO]",
+          "time": "5",
+          "notes": ""
+        },
+        {
+          "cueNumber": "136",
+          "description": "LX | 136 & Preset 4 [on vid End]",
+          "time": "4",
+          "notes": ""
+        },
+        {
+          "cueNumber": "137",
+          "description": "DEMO: Preset 7 [Prudentail is an agenforce aiming to aleviate]",
+          "time": "7",
+          "notes": ""
+        },
+        {
+          "cueNumber": "138",
+          "description": "DEMO: driver shout out",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "139",
+          "description": "DEMO: Work 1 [after driver shout out]",
+          "time": "iPhone 3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "140",
+          "description": "DEMO: Work 2 [Now, to build this, we have our admin, Jonathan here at the demo desk. He\u2019s in Agent Builder...]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "141",
+          "description": "DEMO: Work 3 [Now that we just gave agentforce these capabilities, let\u2019s see it in action]",
+          "time": "iPhone 3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "142",
+          "description": "DEMO: Work 4 [Let\u2019s fast forward..my meeting just wrapped]",
+          "time": "iPhone 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "143",
+          "description": "Preset 7 [This is how prudential or any brand can scale]",
+          "time": "7",
+          "notes": ""
+        },
+        {
+          "cueNumber": "144",
+          "description": "kaylin intros - CONNOR mic hot and mute kaylin",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "145",
+          "description": "Preset 4 [after trabsiiton",
+          "time": "4",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[connor has 2 slides to next speaker]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "146",
+          "description": "LX | Cue 146",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "connor intros - CORY mic hot and mute connor",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "147",
+          "description": "9 Minute Timer",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[5 slides to dem]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "152",
+          "description": "DEMO: Preset 7 [ lets hop back in..]",
+          "time": "7",
+          "notes": ""
+        },
+        {
+          "cueNumber": "153",
+          "description": "DEMO: Learn 1 [lets jump back into the demo, prudential site ]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "154",
+          "description": "DEMO: Learn 2 [lets show you how with data cloud]",
+          "time": "Mac 3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "155",
+          "description": "DEMO: Learn 3 [lets continue the journey with financial services cloud]",
+          "time": "Mac 1",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "156",
+          "description": "Preset 7 [and thats the real shift]",
+          "time": "7",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "cory intros - CONNOR mic hot and mute cory",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "158",
+          "description": "Preset 4 [after speaker swap]",
+          "time": "4",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "11 Minute Timer",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "159",
+          "description": "connor intros - LEAH mic hot and mute connor",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[leah has 11 slides to dem]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "171",
+          "description": "DEMO: Preset 7 [Let's revisit the story we've been following... Prudential]",
+          "time": "7",
+          "notes": ""
+        },
+        {
+          "cueNumber": "172",
+          "description": "DEMO: Collab 1 [ The wholesaler starts their day in Financial Services Cloud] ",
+          "time": "Mac 3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "174",
+          "description": "Preset 7 [So your teams don\u2019t just react. They respond, refine]",
+          "time": "7",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "leah intros - CONNOR mic hot and mute leah",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "GRAPHIC ADVANCE",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "175",
+          "description": "Preset 4 [Back to you connor]",
+          "time": "4",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "4 Minute Timer",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "[5 slides to wrap]",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "180",
+          "description": "Walk Out Music & Walk Out LX & Travler Go",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Preset 3",
+          "time": "3",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Survey VOG",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Stop Records",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "Rockbot Music ",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
+        },
+        {
+          "cueNumber": "",
+          "description": "",
+          "time": "",
+          "notes": ""
         }
       ]
     }
   ],
   "selectedCueStackIndex": 0,
-  "cacheBust": "2025-01-15T10:45:00Z"
+  "cacheBust": "2025-01-15T11:00:00Z"
 }
