@@ -25,44 +25,22 @@ jobs:
         run: |
           mkdir -p cuetocue
           
-          # Write cue data with proper error handling
+          # Write cue data - SIMPLIFIED APPROACH
           echo "=== Writing cue data ==="
-          if [ -n "${{ github.event.client_payload.cueData }}" ]; then
-            # Transform the data structure to match website expectations
-            echo '{
-              "availableCueStacks": ${{ toJson(github.event.client_payload.cueData.allCues) }},
-              "selectedCueStackIndex": ${{ github.event.client_payload.metadata.selectedCueStackIndex }}
-            }' > cuetocue/cuetocue-data.json
-            echo "✅ Cue data written successfully"
-          else
-            echo "❌ No cue data in payload"
-            exit 1
-          fi
+          echo '${{ toJson(github.event.client_payload.cueData.allCues) }}' > cuetocue/cuetocue-data.json
+          echo "✅ Cue data written successfully"
           
-          # Write metadata with proper error handling
+          # Write metadata - SIMPLIFIED APPROACH  
           echo "=== Writing metadata ==="
-          if [ -n "${{ github.event.client_payload.metadata }}" ]; then
-            echo '${{ toJson(github.event.client_payload.metadata) }}' > cuetocue/metadata.json
-            echo "✅ Metadata written successfully"
-          else
-            echo "❌ No metadata in payload"
-            exit 1
-          fi
+          echo '${{ toJson(github.event.client_payload.metadata) }}' > cuetocue/metadata.json
+          echo "✅ Metadata written successfully"
           
-          # Verify files were created
-          echo "=== Verifying files ==="
-          if [ -f "cuetocue/cuetocue-data.json" ] && [ -f "cuetocue/metadata.json" ]; then
-            echo "✅ Both files created successfully"
-            echo "Cue data file size: $(wc -c < cuetocue/cuetocue-data.json) bytes"
-            echo "Metadata file size: $(wc -c < cuetocue/metadata.json) bytes"
-          else
-            echo "❌ Files not created properly"
-            exit 1
-          fi
-          
-          # Show content preview
+          # Show what was written
+          echo "=== Files created ==="
+          echo "Cue data file size: $(wc -c < cuetocue/cuetocue-data.json) bytes"
+          echo "Metadata file size: $(wc -c < cuetocue/metadata.json) bytes"
           echo "=== Cue data preview ==="
-          head -5 cuetocue/cuetocue-data.json
+          head -10 cuetocue/cuetocue-data.json
           echo "=== Metadata preview ==="
           cat cuetocue/metadata.json
           
