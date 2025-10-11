@@ -185,18 +185,30 @@
         .column-controls {
             flex: 1;
             display: flex;
-            align-items: center;
-            gap: 15px;
+            justify-content: flex-end;
             padding: 20px;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
             backdrop-filter: blur(10px);
         }
 
+        .column-controls-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
         .column-visibility-label {
             color: #ffffff;
             font-size: 1rem;
             font-weight: 500;
+        }
+
+        .column-controls-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
 
         .column-toggle-btn {
@@ -617,14 +629,18 @@
             </div>
 
             <div class="column-controls">
-                <span class="column-visibility-label">Column Visibility</span>
-                <button class="column-toggle-btn" id="columnToggleBtn">
-                    <span>⚙️</span>
-                    <span>Select Columns</span>
-                </button>
-                <button class="color-settings-btn" id="colorSettingsBtn" title="Color & Display Settings">
-                    <span>🎨</span>
-                </button>
+                <div class="column-controls-group">
+                    <span class="column-visibility-label">Column Visibility</span>
+                    <div class="column-controls-buttons">
+                        <button class="column-toggle-btn" id="columnToggleBtn">
+                            <span>⚙️</span>
+                            <span>Select Columns</span>
+                        </button>
+                        <button class="color-settings-btn" id="colorSettingsBtn" title="Color & Display Settings">
+                            <span>🎨</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
