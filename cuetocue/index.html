@@ -301,8 +301,8 @@
             try {
                 console.log('📡 Fetching cue data and metadata...');
                 const [cueResponse, metadataResponse] = await Promise.all([
-                    fetch('cuetocue-data.json'),
-                    fetch('metadata.json')
+                    fetch(`cuetocue-data.json?v=${Date.now()}`),
+                    fetch(`metadata.json?v=${Date.now()}`)
                 ]);
 
                 console.log('📊 Response status:', {
