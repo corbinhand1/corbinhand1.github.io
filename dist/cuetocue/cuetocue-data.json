@@ -2,86 +2,70 @@
   "availableCueStacks": [
     {
       "name": "Main Show Cues",
-      "description": "Primary cue stack for the main performance"
+      "description": "Primary cue stack for the main performance",
+      "cues": [
+        {
+          "cueNumber": "1",
+          "description": "House lights fade to black",
+          "time": "00:00:00",
+          "notes": "Start of show - ensure audience is seated"
+        },
+        {
+          "cueNumber": "2",
+          "description": "Stage lights up - warm wash",
+          "time": "00:00:05",
+          "notes": "Reveal stage setup"
+        },
+        {
+          "cueNumber": "3",
+          "description": "Spotlight on center stage",
+          "time": "00:00:10",
+          "notes": "Actor entrance"
+        },
+        {
+          "cueNumber": "4",
+          "description": "Music cue - intro track",
+          "time": "00:00:15",
+          "notes": "Fade in background music"
+        },
+        {
+          "cueNumber": "5",
+          "description": "Scene change - lights to blue",
+          "time": "00:05:30",
+          "notes": "Transition to next scene"
+        }
+      ]
     },
     {
       "name": "Tech Rehearsal Cues",
-      "description": "Technical rehearsal cue stack"
-    },
-    {
-      "name": "Emergency Cues",
-      "description": "Emergency and safety cue stack"
+      "description": "Technical rehearsal cue stack",
+      "cues": [
+        {
+          "cueNumber": "T1",
+          "description": "Test all house lights",
+          "time": "00:00:00",
+          "notes": "Full brightness test"
+        },
+        {
+          "cueNumber": "T2",
+          "description": "Test stage wash",
+          "time": "00:00:10",
+          "notes": "Warm and cool wash test"
+        },
+        {
+          "cueNumber": "T3",
+          "description": "Test spotlights",
+          "time": "00:00:20",
+          "notes": "All spot positions"
+        }
+      ]
     }
   ],
-  "currentCueStackIndex": 0,
-  "activeCueIndex": 2,
-  "selectedCueIndex": 1,
-  "countdownTime": 300,
-  "countUpTime": 180,
-  "columns": [
-    {
-      "name": "Cue #",
-      "width": 80
-    },
-    {
-      "name": "Description",
-      "width": 300
-    },
-    {
-      "name": "Time",
-      "width": 100
-    },
-    {
-      "name": "Notes",
-      "width": 250
-    }
-  ],
-  "cues": [
-    {
-      "values": ["1", "House lights fade to black", "00:00:00", "Start of show - ensure audience is seated"],
-      "isStruckThrough": false
-    },
-    {
-      "values": ["2", "Stage lights up - warm wash", "00:00:05", "Reveal stage setup"],
-      "isStruckThrough": false
-    },
-    {
-      "values": ["3", "Spotlight on center stage", "00:00:10", "Actor entrance"],
-      "isStruckThrough": false
-    },
-    {
-      "values": ["4", "Music cue - intro track", "00:00:15", "Fade in background music"],
-      "isStruckThrough": false
-    },
-    {
-      "values": ["5", "Scene change - lights to blue", "00:05:30", "Transition to next scene"],
-      "isStruckThrough": false
-    },
-    {
-      "values": ["6", "Fog machine activation", "00:05:35", "Atmospheric effect"],
-      "isStruckThrough": false
-    },
-    {
-      "values": ["7", "Spotlight follow actor", "00:05:40", "Actor moves stage left"],
-      "isStruckThrough": false
-    },
-    {
-      "values": ["8", "Music fade out", "00:10:15", "End of scene"],
-      "isStruckThrough": false
-    },
-    {
-      "values": ["9", "Blackout", "00:10:20", "Scene transition"],
-      "isStruckThrough": false
-    },
-    {
-      "values": ["10", "Curtain call lights", "00:15:00", "End of show"],
-      "isStruckThrough": false
-    }
-  ],
+  "selectedCueStackIndex": 0,
   "metadata": {
     "lastUpdated": "2024-01-15T10:30:00Z",
     "version": "1.0",
-    "showName": "Nebula Creative Production",
+    "showName": "Sample Show",
     "venue": "Main Theater"
   }
 }
