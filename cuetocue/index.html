@@ -9,6 +9,22 @@
     <script src="html2canvas.min.js"></script>
     <script src="jspdf.umd.min.js"></script>
     
+    <script>
+        // Wait for libraries to load and verify they're available
+        window.addEventListener('load', function() {
+            console.log('🔍 Checking PDF libraries...');
+            console.log('html2canvas available:', typeof html2canvas !== 'undefined');
+            console.log('jsPDF available:', typeof jsPDF !== 'undefined');
+            console.log('window.jsPDF available:', typeof window.jsPDF !== 'undefined');
+            
+            // jsPDF UMD might export to window.jsPDF
+            if (typeof jsPDF === 'undefined' && typeof window.jsPDF !== 'undefined') {
+                console.log('📄 jsPDF found as window.jsPDF, creating global reference');
+                window.jsPDF = window.jsPDF;
+            }
+        });
+    </script>
+    
     <style>
         * {
             margin: 0;
@@ -1971,7 +1987,14 @@
                 console.log('📄 Canvas created, generating PDF...');
                 
                 const imgData = canvas.toDataURL('image/png', 0.8); // Reduced quality to avoid size issues
-                const pdf = new jsPDF(printSettings.orientation === 'landscape' ? 'landscape' : 'portrait', 'mm', 'a4');
+                
+                // Handle jsPDF variable - it might be window.jsPDF
+                const jsPDFClass = typeof jsPDF !== 'undefined' ? jsPDF : window.jsPDF;
+                if (!jsPDFClass) {
+                    throw new Error('jsPDF library not found');
+                }
+                
+                const pdf = new jsPDFClass(printSettings.orientation === 'landscape' ? 'landscape' : 'portrait', 'mm', 'a4');
                 
                 const pageWidth = pdf.internal.pageSize.getWidth();
                 const pageHeight = pdf.internal.pageSize.getHeight();
