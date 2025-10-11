@@ -11,14 +11,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         
+      - name: Debug payload
+        run: |
+          echo "=== DEBUG: GitHub Event Payload ==="
+          echo "Event type: ${{ github.event_name }}"
+          echo "Client payload keys: ${{ toJson(github.event.client_payload) }}"
+          echo "Cue data type: ${{ github.event.client_payload.cueData }}"
+          echo "Metadata type: ${{ github.event.client_payload.metadata }}"
+          
       - name: Update cue data
         run: |
           mkdir -p cuetocue
+          echo "=== Writing cue data ==="
           echo '${{ github.event.client_payload.cueData }}' > cuetocue/cuetocue-data.json
+          echo "=== Writing metadata ==="
           echo '${{ github.event.client_payload.metadata }}' > cuetocue/metadata.json
-          echo "Debug - Cue data content:"
+          echo "=== Debug - Cue data content ==="
           cat cuetocue/cuetocue-data.json
-          echo "Debug - Metadata content:"
+          echo "=== Debug - Metadata content ==="
           cat cuetocue/metadata.json
           
       - name: Commit changes
