@@ -1,26 +1,29 @@
-[
-  {
-    "id": "real-stack-1",
-    "name": "DF 25 Main Keynote",
-    "cues": [
-      {
-        "cueNumber": "1",
-        "description": "House lights fade to black",
-        "time": "00:00:00",
-        "notes": "Start of show - ensure audience is seated"
-      },
-      {
-        "cueNumber": "2",
-        "description": "Stage lights up - warm wash",
-        "time": "00:00:05",
-        "notes": "Reveal stage setup"
-      },
-      {
-        "cueNumber": "3",
-        "description": "Spotlight on center stage",
-        "time": "00:00:10",
-        "notes": "Actor entrance"
-      }
-    ]
-  }
-]
+{
+  "availableCueStacks": [
+    {
+      "id": "real-stack-1",
+      "name": "DF 25 Main Keynote",
+      "cues": [
+        {
+          "cueNumber": "1",
+          "description": "House lights fade to black",
+          "time": "00:00:00",
+          "notes": "Start of show - ensure audience is seated"
+        },
+        {
+          "cueNumber": "2",
+          "description": "Stage lights up - warm wash",
+          "time": "00:00:05",
+          "notes": "Reveal stage setup"
+        },
+        {
+          "cueNumber": "3",
+          "description": "Spotlight on center stage",
+          "time": "00:00:10",
+          "notes": "Actor entrance"
+        }
+      ]
+    }
+  ],
+  "selectedCueStackIndex": 0
+}
