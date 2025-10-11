@@ -249,6 +249,27 @@
             transform: translateY(-1px);
         }
 
+        .print-btn {
+            background: #9C27B0;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            transition: all 0.2s ease;
+        }
+
+        .print-btn:hover {
+            background: #7B1FA2;
+            transform: translateY(-1px);
+        }
+
         .column-modal {
             display: none;
             position: fixed;
@@ -550,6 +571,234 @@
             transform: translateY(-1px);
         }
 
+        /* Print Modal Styles */
+        .print-modal {
+            display: none;
+            position: fixed;
+            z-index: 1002;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .print-modal-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            margin: 3% auto;
+            padding: 0;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .print-modal-header {
+            padding: 24px 24px 16px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .print-modal-header h3 {
+            margin: 0 0 8px 0;
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .print-modal-description {
+            color: #8e8e93;
+            font-size: 0.9rem;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .print-modal-body {
+            padding: 24px;
+        }
+
+        .print-setting-group {
+            margin-bottom: 24px;
+        }
+
+        .print-setting-group h4 {
+            color: #ffffff;
+            font-size: 1rem;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+        }
+
+        .print-setting-description {
+            color: #8e8e93;
+            font-size: 0.85rem;
+            margin: 0 0 16px 0;
+            line-height: 1.4;
+        }
+
+        .cue-stack-selection {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .cue-stack-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .cue-stack-item:last-child {
+            border-bottom: none;
+        }
+
+        .cue-stack-item label {
+            color: #ffffff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .layout-options {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .layout-option {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .layout-option label {
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .segmented-control {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .segmented-control input[type="radio"] {
+            display: none;
+        }
+
+        .segmented-control label {
+            flex: 1;
+            padding: 8px 16px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            color: #8e8e93;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .segmented-control input[type="radio"]:checked + label {
+            background: #007AFF;
+            color: #ffffff;
+        }
+
+        .font-size-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .font-size-control input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .font-size-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #007AFF;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .font-size-control span {
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: 500;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .print-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            color: #ffffff;
+            font-size: 0.9rem;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            display: none;
+        }
+
+        .checkmark {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-label input[type="checkbox"]:checked + .checkmark {
+            background: #007AFF;
+            border-color: #007AFF;
+        }
+
+        .checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .print-modal-footer {
+            padding: 16px 24px 24px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
         .cue-number {
             font-weight: bold;
             color: #4CAF50;
@@ -639,6 +888,9 @@
                         <button class="color-settings-btn" id="colorSettingsBtn" title="Color & Display Settings">
                             <span>🎨</span>
                         </button>
+                        <button class="print-btn" id="printBtn" title="Print Cue Data">
+                            <span>🖨️</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -702,6 +954,84 @@
         </div>
     </div>
 
+    <!-- Print Settings Modal -->
+    <div class="print-modal" id="printModal">
+        <div class="print-modal-content">
+            <div class="print-modal-header">
+                <h3>Print Settings</h3>
+                <p class="print-modal-description">Configure print options for your cue data</p>
+                <button class="close-modal" id="closePrintModal">&times;</button>
+            </div>
+            <div class="print-modal-body">
+                <div class="print-setting-group">
+                    <h4>Cue Stacks to Print</h4>
+                    <p class="print-setting-description">Select which cue stacks to include in the printout</p>
+                    <div class="cue-stack-selection" id="cueStackSelection">
+                        <!-- Cue stack checkboxes will be populated here -->
+                    </div>
+                </div>
+                
+                <div class="print-setting-group">
+                    <h4>Layout Options</h4>
+                    <div class="layout-options">
+                        <div class="layout-option">
+                            <label>Content Layout:</label>
+                            <div class="segmented-control">
+                                <input type="radio" id="layoutColumns" name="printLayout" value="columns" checked>
+                                <label for="layoutColumns">Columns</label>
+                                <input type="radio" id="layoutCompact" name="printLayout" value="compact">
+                                <label for="layoutCompact">Compact List</label>
+                            </div>
+                        </div>
+                        
+                        <div class="layout-option">
+                            <label>Orientation:</label>
+                            <div class="segmented-control">
+                                <input type="radio" id="orientationPortrait" name="printOrientation" value="portrait" checked>
+                                <label for="orientationPortrait">Portrait</label>
+                                <input type="radio" id="orientationLandscape" name="printOrientation" value="landscape">
+                                <label for="orientationLandscape">Landscape</label>
+                            </div>
+                        </div>
+                        
+                        <div class="layout-option">
+                            <label>Print Font Size:</label>
+                            <div class="font-size-control">
+                                <input type="range" id="printFontSize" min="8" max="18" value="12" step="1">
+                                <span id="fontSizeValue">12</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="print-setting-group">
+                    <h4>Print Options</h4>
+                    <div class="print-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="printWithColors" checked>
+                            <span class="checkmark"></span>
+                            Print with Colors
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showColumnHeaders" checked>
+                            <span class="checkmark"></span>
+                            Show Column Headers
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showPageNumbers" checked>
+                            <span class="checkmark"></span>
+                            Show Page Numbers
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="print-modal-footer">
+                <button id="cancelPrintBtn" class="secondary-btn">Cancel</button>
+                <button id="printNowBtn" class="primary-btn">Print Now</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let cueData = null;
         let metadata = null;
@@ -711,6 +1041,17 @@
         let highlightColors = []; // Array of {keyword, color} objects
         let colorOverrides = {}; // Object to store user color overrides
         let originalHighlightColors = []; // Store original colors for reset
+        
+        // Print functionality state
+        let printSettings = {
+            selectedStacks: new Set(),
+            layout: 'columns',
+            orientation: 'portrait',
+            fontSize: 12,
+            printWithColors: true,
+            showHeaders: true,
+            showPageNumbers: true
+        };
 
         // Update time displays
         function updateTime() {
@@ -1301,6 +1642,344 @@
             });
         }
         
+        // Print Functions
+        function initializePrintModal() {
+            console.log('🖨️ Initializing print modal...');
+            
+            // Load saved print settings
+            const savedSettings = localStorage.getItem('printSettings');
+            if (savedSettings) {
+                const parsed = JSON.parse(savedSettings);
+                printSettings = { ...printSettings, ...parsed };
+                printSettings.selectedStacks = new Set(parsed.selectedStacks || []);
+                console.log('💾 Loaded saved print settings:', printSettings);
+            }
+            
+            // Set up print modal event listeners
+            const printBtn = document.getElementById('printBtn');
+            const printModal = document.getElementById('printModal');
+            const closePrintModal = document.getElementById('closePrintModal');
+            const cancelPrintBtn = document.getElementById('cancelPrintBtn');
+            const printNowBtn = document.getElementById('printNowBtn');
+            const printFontSize = document.getElementById('printFontSize');
+            const fontSizeValue = document.getElementById('fontSizeValue');
+            
+            printBtn.addEventListener('click', openPrintModal);
+            closePrintModal.addEventListener('click', closePrintModal);
+            cancelPrintBtn.addEventListener('click', closePrintModal);
+            printNowBtn.addEventListener('click', performPrint);
+            
+            // Font size slider
+            printFontSize.addEventListener('input', function() {
+                const value = this.value;
+                fontSizeValue.textContent = value;
+                printSettings.fontSize = parseInt(value);
+            });
+            
+            // Layout options
+            document.querySelectorAll('input[name="printLayout"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        printSettings.layout = this.value;
+                    }
+                });
+            });
+            
+            // Orientation options
+            document.querySelectorAll('input[name="printOrientation"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        printSettings.orientation = this.value;
+                    }
+                });
+            });
+            
+            // Print options checkboxes
+            document.getElementById('printWithColors').addEventListener('change', function() {
+                printSettings.printWithColors = this.checked;
+            });
+            
+            document.getElementById('showColumnHeaders').addEventListener('change', function() {
+                printSettings.showHeaders = this.checked;
+            });
+            
+            document.getElementById('showPageNumbers').addEventListener('change', function() {
+                printSettings.showPageNumbers = this.checked;
+            });
+            
+            // Close modal when clicking outside
+            printModal.addEventListener('click', function(e) {
+                if (e.target === printModal) {
+                    closePrintModal();
+                }
+            });
+            
+            console.log('✅ Print modal initialized');
+        }
+        
+        function openPrintModal() {
+            console.log('🖨️ Opening print modal...');
+            
+            if (!cueData || !cueData.availableCueStacks) {
+                console.warn('⚠️ No cue data available for printing');
+                return;
+            }
+            
+            populateCueStackSelection();
+            updatePrintSettingsUI();
+            document.getElementById('printModal').style.display = 'block';
+        }
+        
+        function closePrintModal() {
+            console.log('🖨️ Closing print modal...');
+            document.getElementById('printModal').style.display = 'none';
+        }
+        
+        function populateCueStackSelection() {
+            const container = document.getElementById('cueStackSelection');
+            container.innerHTML = '';
+            
+            cueData.availableCueStacks.forEach((stack, index) => {
+                const stackItem = document.createElement('div');
+                stackItem.className = 'cue-stack-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `stack-${index}`;
+                checkbox.checked = printSettings.selectedStacks.has(index);
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        printSettings.selectedStacks.add(index);
+                    } else {
+                        printSettings.selectedStacks.delete(index);
+                    }
+                });
+                
+                const label = document.createElement('label');
+                label.htmlFor = `stack-${index}`;
+                label.textContent = stack.name;
+                
+                stackItem.appendChild(checkbox);
+                stackItem.appendChild(label);
+                container.appendChild(stackItem);
+            });
+        }
+        
+        function updatePrintSettingsUI() {
+            // Update font size
+            document.getElementById('printFontSize').value = printSettings.fontSize;
+            document.getElementById('fontSizeValue').textContent = printSettings.fontSize;
+            
+            // Update layout
+            document.querySelector(`input[name="printLayout"][value="${printSettings.layout}"]`).checked = true;
+            
+            // Update orientation
+            document.querySelector(`input[name="printOrientation"][value="${printSettings.orientation}"]`).checked = true;
+            
+            // Update checkboxes
+            document.getElementById('printWithColors').checked = printSettings.printWithColors;
+            document.getElementById('showColumnHeaders').checked = printSettings.showHeaders;
+            document.getElementById('showPageNumbers').checked = printSettings.showPageNumbers;
+        }
+        
+        function performPrint() {
+            console.log('🖨️ Performing print...');
+            
+            if (printSettings.selectedStacks.size === 0) {
+                alert('Please select at least one cue stack to print.');
+                return;
+            }
+            
+            // Save settings
+            savePrintSettings();
+            
+            // Generate print content
+            const printContent = generatePrintContent();
+            
+            // Open print dialog
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            
+            // Wait for content to load, then print
+            printWindow.onload = function() {
+                printWindow.print();
+                printWindow.close();
+            };
+            
+            closePrintModal();
+        }
+        
+        function generatePrintContent() {
+            const selectedStacks = Array.from(printSettings.selectedStacks)
+                .map(index => cueData.availableCueStacks[index])
+                .filter(stack => stack);
+            
+            let html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Cue to Cue - Print</title>
+                    <style>
+                        @media print {
+                            @page {
+                                size: ${printSettings.orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait'};
+                                margin: 1in;
+                            }
+                        }
+                        
+                        body {
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            font-size: ${printSettings.fontSize}px;
+                            line-height: 1.4;
+                            color: #000;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        
+                        .print-header {
+                            text-align: center;
+                            margin-bottom: 20px;
+                            border-bottom: 2px solid #000;
+                            padding-bottom: 10px;
+                        }
+                        
+                        .print-title {
+                            font-size: ${printSettings.fontSize + 4}px;
+                            font-weight: bold;
+                            margin: 0;
+                        }
+                        
+                        .print-meta {
+                            font-size: ${printSettings.fontSize - 2}px;
+                            color: #666;
+                            margin: 5px 0 0 0;
+                        }
+                        
+                        .cue-stack-section {
+                            margin-bottom: 30px;
+                            page-break-inside: avoid;
+                        }
+                        
+                        .cue-stack-title {
+                            font-size: ${printSettings.fontSize + 2}px;
+                            font-weight: bold;
+                            margin-bottom: 15px;
+                            border-bottom: 1px solid #ccc;
+                            padding-bottom: 5px;
+                        }
+                        
+                        .cue-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 20px;
+                        }
+                        
+                        .cue-table th {
+                            background: #f5f5f5;
+                            border: 1px solid #000;
+                            padding: 8px;
+                            text-align: left;
+                            font-weight: bold;
+                        }
+                        
+                        .cue-table td {
+                            border: 1px solid #000;
+                            padding: 6px 8px;
+                            vertical-align: top;
+                        }
+                        
+                        .cue-table tr:nth-child(even) {
+                            background: #f9f9f9;
+                        }
+                        
+                        .page-break {
+                            page-break-before: always;
+                        }
+                        
+                        .page-number {
+                            position: fixed;
+                            bottom: 0.5in;
+                            right: 0.5in;
+                            font-size: ${printSettings.fontSize - 2}px;
+                            color: #666;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-header">
+                        <h1 class="print-title">Cue to Cue</h1>
+                        <p class="print-meta">
+                            Printed on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
+                            ${metadata ? ` • ${metadata.filename}` : ''}
+                        </p>
+                    </div>
+            `;
+            
+            selectedStacks.forEach((stack, stackIndex) => {
+                if (stackIndex > 0) {
+                    html += '<div class="page-break"></div>';
+                }
+                
+                html += `
+                    <div class="cue-stack-section">
+                        <h2 class="cue-stack-title">${stack.name}</h2>
+                        <table class="cue-table">
+                `;
+                
+                if (printSettings.showHeaders && stack.cues.length > 0) {
+                    html += '<thead><tr>';
+                    const columns = cueData.columns || [];
+                    columns.forEach(col => {
+                        html += `<th>${col.name}</th>`;
+                    });
+                    html += '</tr></thead>';
+                }
+                
+                html += '<tbody>';
+                stack.cues.forEach(cue => {
+                    html += '<tr>';
+                    const columns = cueData.columns || [];
+                    columns.forEach(col => {
+                        let cellContent = cue[col.name] || '';
+                        let cellStyle = '';
+                        
+                        // Apply colors if enabled
+                        if (printSettings.printWithColors && highlightColors.length > 0) {
+                            for (const highlight of highlightColors) {
+                                if (cellContent.toLowerCase().includes(highlight.keyword.toLowerCase())) {
+                                    const colorToApply = colorOverrides[`${highlight.keyword}_${highlight.color}`] || highlight.color;
+                                    cellStyle = `color: #${colorToApply}; font-weight: bold;`;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        html += `<td style="${cellStyle}">${cellContent}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table></div>';
+            });
+            
+            if (printSettings.showPageNumbers) {
+                html += '<div class="page-number">Page <span class="page-number-content"></span></div>';
+            }
+            
+            html += '</body></html>';
+            
+            return html;
+        }
+        
+        function savePrintSettings() {
+            const settingsToSave = {
+                ...printSettings,
+                selectedStacks: Array.from(printSettings.selectedStacks)
+            };
+            localStorage.setItem('printSettings', JSON.stringify(settingsToSave));
+        }
+        
         // Initialize
         console.log('🚀 Initializing Cue to Cue Viewer...');
         console.log('⏰ Setting up time updates...');
@@ -1312,6 +1991,9 @@
         
         console.log('🎨 Initializing color picker...');
         initializeColorPicker();
+        
+        console.log('🖨️ Initializing print modal...');
+        initializePrintModal();
         
         console.log('📡 Loading initial cue data...');
         loadCueData();
