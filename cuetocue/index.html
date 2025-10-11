@@ -163,66 +163,150 @@
             background: rgba(255, 255, 255, 0.05);
         }
 
-        .filter-controls {
+        .column-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
             backdrop-filter: blur(10px);
         }
 
-        .filter-row {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .filter-label {
-            font-size: 0.9rem;
-            color: #ffffff;
-            font-weight: bold;
-        }
-
-        .filter-input {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            padding: 8px 12px;
-            color: #ffffff;
-            font-size: 0.9rem;
-            min-width: 120px;
-        }
-
-        .filter-input:focus {
-            outline: none;
-            border-color: #4CAF50;
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .filter-input::placeholder {
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .clear-filters {
+        .column-toggle-btn {
             background: #4CAF50;
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 8px 16px;
+            padding: 10px 20px;
             cursor: pointer;
             font-size: 0.9rem;
-            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .clear-filters:hover {
+        .column-toggle-btn:hover {
             background: #45a049;
+        }
+
+        .column-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .column-modal-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .column-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .column-modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal:hover {
+            color: #ff6b6b;
+        }
+
+        .column-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .column-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .column-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .column-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: #4CAF50;
+        }
+
+        .column-label {
+            color: #ffffff;
+            font-size: 0.9rem;
+            flex: 1;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .modal-btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #45a049;
+        }
+
+        .modal-btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .modal-btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .cue-number {
@@ -315,10 +399,14 @@
             </select>
         </div>
 
-        <div class="filter-controls">
-            <div class="filter-row" id="filterControls">
-                <!-- Filter inputs will be dynamically generated here -->
+        <div class="column-controls">
+            <div>
+                <span style="color: #ffffff; font-size: 1rem;">Column Visibility</span>
             </div>
+            <button class="column-toggle-btn" id="columnToggleBtn">
+                <span>⚙️</span>
+                <span>Select Columns</span>
+            </button>
         </div>
 
         <div class="cue-table-container">
@@ -337,9 +425,28 @@
         </div>
     </div>
 
+    <!-- Column Visibility Modal -->
+    <div id="columnModal" class="column-modal">
+        <div class="column-modal-content">
+            <div class="column-modal-header">
+                <h2 class="column-modal-title">Select Columns to Display</h2>
+                <button class="close-modal" id="closeModal">&times;</button>
+            </div>
+            <div class="column-grid" id="columnGrid">
+                <!-- Column checkboxes will be dynamically generated here -->
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" id="selectAllColumns">Select All</button>
+                <button class="modal-btn modal-btn-secondary" id="deselectAllColumns">Deselect All</button>
+                <button class="modal-btn modal-btn-primary" id="applyColumnChanges">Apply Changes</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let cueData = null;
         let metadata = null;
+        let visibleColumns = new Set(); // Track which columns are visible
 
         // Update time displays
         function updateTime() {
@@ -496,141 +603,7 @@
                 console.log('💾 Saved cue stack selection:', this.value);
                 updateCueTable();
             });
-            // Update filter controls
-            updateFilterControls();
-            
             console.log('✅ updateDisplay() completed');
-        }
-
-        // Update filter controls based on available columns
-        function updateFilterControls() {
-            console.log('🔍 Updating filter controls...');
-            
-            if (!cueData || !cueData.columns) {
-                console.warn('⚠️ No column data available for filters');
-                return;
-            }
-
-            const filterControls = document.getElementById('filterControls');
-            filterControls.innerHTML = '';
-
-            // Create filter inputs for each column
-            cueData.columns.forEach(column => {
-                const filterGroup = document.createElement('div');
-                filterGroup.className = 'filter-group';
-                
-                const label = document.createElement('div');
-                label.className = 'filter-label';
-                label.textContent = column.name;
-                
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'filter-input';
-                input.placeholder = `Filter ${column.name}...`;
-                input.dataset.column = column.name;
-                
-                // Add event listener for filtering
-                input.addEventListener('input', applyFilters);
-                
-                filterGroup.appendChild(label);
-                filterGroup.appendChild(input);
-                filterControls.appendChild(filterGroup);
-            });
-
-            // Add clear filters button
-            const clearButton = document.createElement('button');
-            clearButton.className = 'clear-filters';
-            clearButton.textContent = 'Clear All Filters';
-            clearButton.addEventListener('click', clearAllFilters);
-            filterControls.appendChild(clearButton);
-
-            console.log('✅ Filter controls updated');
-        }
-
-        // Apply filters to the table
-        function applyFilters() {
-            console.log('🔍 Applying filters...');
-            
-            if (!cueData) return;
-
-            const cueStackSelect = document.getElementById('cueStackSelect');
-            const selectedIndex = parseInt(cueStackSelect.value);
-            const selectedStack = cueData.availableCueStacks[selectedIndex];
-            
-            if (!selectedStack) return;
-
-            // Get all filter values
-            const filters = {};
-            const filterInputs = document.querySelectorAll('.filter-input');
-            filterInputs.forEach(input => {
-                const columnName = input.dataset.column;
-                const value = input.value.toLowerCase().trim();
-                if (value) {
-                    filters[columnName] = value;
-                }
-            });
-
-            console.log('🔍 Active filters:', filters);
-
-            // Filter cues based on active filters
-            const filteredCues = selectedStack.cues.filter(cue => {
-                return Object.entries(filters).every(([columnName, filterValue]) => {
-                    const cueValue = (cue[columnName] || '').toString().toLowerCase();
-                    return cueValue.includes(filterValue);
-                });
-            });
-
-            console.log(`🔍 Filtered ${selectedStack.cues.length} cues to ${filteredCues.length}`);
-
-            // Update table with filtered data
-            updateTableWithCues(filteredCues);
-        }
-
-        // Update table with specific cues
-        function updateTableWithCues(cues) {
-            const columns = cueData.columns || [];
-            const tbody = document.getElementById('cueTableBody');
-            tbody.innerHTML = '';
-
-            cues.forEach((cue, index) => {
-                console.log(`📝 Adding filtered cue ${index}:`, cue);
-                
-                const row = document.createElement('tr');
-                
-                columns.forEach(col => {
-                    const td = document.createElement('td');
-                    const value = cue[col.name] || '';
-                    td.textContent = value;
-                    
-                    // Add special styling for certain columns
-                    if (col.name === '#') {
-                        td.className = 'cue-number';
-                    } else if (col.name === 'Description') {
-                        td.className = 'cue-description';
-                    } else if (col.name === 'Preset') {
-                        td.className = 'cue-time';
-                    }
-                    
-                    row.appendChild(td);
-                });
-                
-                tbody.appendChild(row);
-            });
-
-            console.log('✅ Table updated with filtered cues');
-        }
-
-        // Clear all filters
-        function clearAllFilters() {
-            console.log('🧹 Clearing all filters...');
-            
-            const filterInputs = document.querySelectorAll('.filter-input');
-            filterInputs.forEach(input => {
-                input.value = '';
-            });
-            
-            // Refresh the table with all cues
-            updateCueTable();
         }
 
         // Update cue table based on selected stack
@@ -660,9 +633,11 @@
                 return;
             }
 
-            // Get column structure
-            const columns = cueData.columns || [];
+            // Get column structure and filter by visibility
+            const allColumns = cueData.columns || [];
+            const columns = allColumns.filter(col => visibleColumns.size === 0 || visibleColumns.has(col.name));
             console.log('📊 Column structure:', columns.map(c => c.name));
+            console.log('📊 Visible columns:', Array.from(visibleColumns));
 
             // Update table headers
             const thead = document.getElementById('cueTableHead');
@@ -678,11 +653,152 @@
             thead.appendChild(headerRow);
 
             console.log('📋 Building cue table with', selectedStack.cues.length, 'cues');
-            
-            // Use the shared function to update the table
-            updateTableWithCues(selectedStack.cues);
+            const tbody = document.getElementById('cueTableBody');
+            tbody.innerHTML = '';
+
+            selectedStack.cues.forEach((cue, index) => {
+                console.log(`📝 Adding cue ${index}:`, cue);
+                
+                const row = document.createElement('tr');
+                
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    const value = cue[col.name] || '';
+                    td.textContent = value;
+                    
+                    // Add special styling for certain columns
+                    if (col.name === '#') {
+                        td.className = 'cue-number';
+                    } else if (col.name === 'Description') {
+                        td.className = 'cue-description';
+                    } else if (col.name === 'Preset') {
+                        td.className = 'cue-time';
+                    }
+                    
+                    row.appendChild(td);
+                });
+                
+                tbody.appendChild(row);
+            });
 
             console.log('✅ updateCueTable() completed - added', selectedStack.cues.length, 'cues');
+        }
+
+        // Column Visibility Functions
+        function initializeColumnVisibility() {
+            console.log('🔧 Initializing column visibility controls...');
+            
+            // Load saved column preferences
+            const savedColumns = localStorage.getItem('visibleColumns');
+            if (savedColumns) {
+                visibleColumns = new Set(JSON.parse(savedColumns));
+                console.log('💾 Loaded saved column preferences:', Array.from(visibleColumns));
+            }
+            
+            // Set up modal event listeners
+            const columnToggleBtn = document.getElementById('columnToggleBtn');
+            const columnModal = document.getElementById('columnModal');
+            const closeModal = document.getElementById('closeModal');
+            const selectAllBtn = document.getElementById('selectAllColumns');
+            const deselectAllBtn = document.getElementById('deselectAllColumns');
+            const applyBtn = document.getElementById('applyColumnChanges');
+            
+            columnToggleBtn.addEventListener('click', openColumnModal);
+            closeModal.addEventListener('click', closeColumnModal);
+            selectAllBtn.addEventListener('click', selectAllColumns);
+            deselectAllBtn.addEventListener('click', deselectAllColumns);
+            applyBtn.addEventListener('click', applyColumnChanges);
+            
+            // Close modal when clicking outside
+            columnModal.addEventListener('click', function(e) {
+                if (e.target === columnModal) {
+                    closeColumnModal();
+                }
+            });
+            
+            console.log('✅ Column visibility controls initialized');
+        }
+        
+        function openColumnModal() {
+            console.log('🔧 Opening column visibility modal...');
+            
+            if (!cueData || !cueData.columns) {
+                console.warn('⚠️ No column data available');
+                return;
+            }
+            
+            const columnGrid = document.getElementById('columnGrid');
+            columnGrid.innerHTML = '';
+            
+            // Create checkboxes for each column
+            cueData.columns.forEach(column => {
+                const columnItem = document.createElement('div');
+                columnItem.className = 'column-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'column-checkbox';
+                checkbox.id = `col-${column.name}`;
+                checkbox.value = column.name;
+                
+                // Check if column should be visible
+                const isVisible = visibleColumns.size === 0 || visibleColumns.has(column.name);
+                checkbox.checked = isVisible;
+                
+                const label = document.createElement('label');
+                label.className = 'column-label';
+                label.htmlFor = `col-${column.name}`;
+                label.textContent = column.name;
+                
+                columnItem.appendChild(checkbox);
+                columnItem.appendChild(label);
+                columnGrid.appendChild(columnItem);
+            });
+            
+            document.getElementById('columnModal').style.display = 'block';
+            console.log('✅ Column modal opened');
+        }
+        
+        function closeColumnModal() {
+            document.getElementById('columnModal').style.display = 'none';
+            console.log('🔧 Column modal closed');
+        }
+        
+        function selectAllColumns() {
+            const checkboxes = document.querySelectorAll('.column-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = true);
+            console.log('✅ All columns selected');
+        }
+        
+        function deselectAllColumns() {
+            const checkboxes = document.querySelectorAll('.column-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = false);
+            console.log('✅ All columns deselected');
+        }
+        
+        function applyColumnChanges() {
+            console.log('🔧 Applying column visibility changes...');
+            
+            const checkboxes = document.querySelectorAll('.column-checkbox');
+            visibleColumns.clear();
+            
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    visibleColumns.add(checkbox.value);
+                }
+            });
+            
+            // Save preferences to localStorage
+            localStorage.setItem('visibleColumns', JSON.stringify(Array.from(visibleColumns)));
+            console.log('💾 Saved column preferences:', Array.from(visibleColumns));
+            
+            // Update the table
+            updateCueTable();
+            
+            // Close modal
+            closeColumnModal();
+            
+            console.log('✅ Column visibility changes applied');
         }
 
         // Show error message
@@ -699,6 +815,9 @@
         console.log('⏰ Setting up time updates...');
         updateTime();
         setInterval(updateTime, 1000);
+        
+        console.log('🔧 Initializing column visibility controls...');
+        initializeColumnVisibility();
         
         console.log('📡 Loading initial cue data...');
         loadCueData();
