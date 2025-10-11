@@ -5,32 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cue to Cue Viewer</title>
     
-    <!-- PDF Generation Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <!-- PDF Generation Libraries - Multiple CDN sources -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" onerror="loadHtml2CanvasFallback()"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" onerror="loadJsPDFFallback()"></script>
     
-    <!-- Fallback CDN sources -->
     <script>
-        // Check if libraries loaded, if not try alternative CDN
-        if (typeof html2canvas === 'undefined') {
-            console.log('🔄 html2canvas not loaded, trying alternative CDN...');
-            const script1 = document.createElement('script');
-            script1.src = 'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js';
-            script1.onerror = function() {
-                console.error('❌ Failed to load html2canvas from all CDNs');
+        // Fallback functions for library loading
+        function loadHtml2CanvasFallback() {
+            console.log('🔄 html2canvas failed, trying fallback...');
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js';
+            script.onerror = function() {
+                console.error('❌ All html2canvas CDNs failed');
+                window.html2canvasFailed = true;
             };
-            document.head.appendChild(script1);
+            document.head.appendChild(script);
         }
         
-        if (typeof jsPDF === 'undefined') {
-            console.log('🔄 jsPDF not loaded, trying alternative CDN...');
-            const script2 = document.createElement('script');
-            script2.src = 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js';
-            script2.onerror = function() {
-                console.error('❌ Failed to load jsPDF from all CDNs');
+        function loadJsPDFFallback() {
+            console.log('🔄 jsPDF failed, trying fallback...');
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js';
+            script.onerror = function() {
+                console.error('❌ All jsPDF CDNs failed');
+                window.jsPDFFailed = true;
             };
-            document.head.appendChild(script2);
+            document.head.appendChild(script);
         }
+        
+        // Wait for libraries to load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof html2canvas === 'undefined' && !window.html2canvasFailed) {
+                    console.log('⏳ html2canvas still loading, waiting...');
+                }
+                if (typeof jsPDF === 'undefined' && !window.jsPDFFailed) {
+                    console.log('⏳ jsPDF still loading, waiting...');
+                }
+            }, 2000);
+        });
     </script>
     
     <style>
@@ -1822,11 +1835,12 @@
             // Save settings
             savePrintSettings();
             
-            // Try PDF generation first, fallback to browser print if it fails
-            try {
+            // Check if PDF libraries are available, otherwise use browser print
+            if (typeof html2canvas !== 'undefined' && typeof jsPDF !== 'undefined') {
+                console.log('📄 PDF libraries available, generating PDF...');
                 generateAndDownloadPDF();
-            } catch (error) {
-                console.error('❌ PDF generation failed, falling back to browser print:', error);
+            } else {
+                console.log('🖨️ PDF libraries not available, using browser print...');
                 fallbackToBrowserPrint();
             }
             
@@ -1998,16 +2012,38 @@
         function generateAndDownloadPDF() {
             console.log('📄 Generating PDF...');
             
-            // Check if required libraries are loaded
+            // Check if required libraries are loaded with retry logic
             if (typeof html2canvas === 'undefined') {
                 console.error('❌ html2canvas library not loaded');
-                alert('PDF generation library is still loading. Please wait a moment and try again, or refresh the page.');
+                
+                // Try to wait a bit and check again
+                setTimeout(function() {
+                    if (typeof html2canvas === 'undefined') {
+                        alert('PDF generation library failed to load. Using browser print instead.');
+                        fallbackToBrowserPrint();
+                        return;
+                    } else {
+                        // Library loaded, try again
+                        generateAndDownloadPDF();
+                    }
+                }, 1000);
                 return;
             }
             
             if (typeof jsPDF === 'undefined') {
                 console.error('❌ jsPDF library not loaded');
-                alert('PDF generation library is still loading. Please wait a moment and try again, or refresh the page.');
+                
+                // Try to wait a bit and check again
+                setTimeout(function() {
+                    if (typeof jsPDF === 'undefined') {
+                        alert('PDF generation library failed to load. Using browser print instead.');
+                        fallbackToBrowserPrint();
+                        return;
+                    } else {
+                        // Library loaded, try again
+                        generateAndDownloadPDF();
+                    }
+                }, 1000);
                 return;
             }
             
