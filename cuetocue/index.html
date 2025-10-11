@@ -1798,18 +1798,204 @@
             // Save settings
             savePrintSettings();
             
-            // Generate PDF and download
-            generateAndDownloadPDF();
+            // Try PDF generation first, fallback to browser print if it fails
+            try {
+                generateAndDownloadPDF();
+            } catch (error) {
+                console.error('❌ PDF generation failed, falling back to browser print:', error);
+                fallbackToBrowserPrint();
+            }
             
             closePrintModal();
+        }
+        
+        function fallbackToBrowserPrint() {
+            console.log('🖨️ Using browser print fallback...');
+            
+            const selectedStacks = Array.from(printSettings.selectedStacks)
+                .map(index => cueData.availableCueStacks[index])
+                .filter(stack => stack);
+            
+            // Create a new window for printing
+            const printWindow = window.open('', '_blank');
+            
+            let html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Cue to Cue - Print</title>
+                    <style>
+                        @media print {
+                            @page {
+                                size: ${printSettings.orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait'};
+                                margin: 1in;
+                            }
+                        }
+                        
+                        body {
+                            font-family: Arial, sans-serif;
+                            font-size: ${printSettings.fontSize}px;
+                            line-height: 1.4;
+                            color: #000;
+                            margin: 0;
+                            padding: 20px;
+                        }
+                        
+                        .print-header {
+                            text-align: center;
+                            margin-bottom: 20px;
+                            border-bottom: 2px solid #000;
+                            padding-bottom: 10px;
+                        }
+                        
+                        .print-title {
+                            font-size: ${printSettings.fontSize + 4}px;
+                            font-weight: bold;
+                            margin: 0;
+                        }
+                        
+                        .print-meta {
+                            font-size: ${printSettings.fontSize - 2}px;
+                            color: #666;
+                            margin: 5px 0 0 0;
+                        }
+                        
+                        .cue-stack-section {
+                            margin-bottom: 30px;
+                            page-break-inside: avoid;
+                        }
+                        
+                        .cue-stack-title {
+                            font-size: ${printSettings.fontSize + 2}px;
+                            font-weight: bold;
+                            margin-bottom: 15px;
+                            border-bottom: 1px solid #ccc;
+                            padding-bottom: 5px;
+                        }
+                        
+                        .cue-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 20px;
+                        }
+                        
+                        .cue-table th {
+                            background: #f5f5f5;
+                            border: 1px solid #000;
+                            padding: 8px;
+                            text-align: left;
+                            font-weight: bold;
+                        }
+                        
+                        .cue-table td {
+                            border: 1px solid #000;
+                            padding: 6px 8px;
+                            vertical-align: top;
+                        }
+                        
+                        .cue-table tr:nth-child(even) {
+                            background: #f9f9f9;
+                        }
+                        
+                        .page-break {
+                            page-break-before: always;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-header">
+                        <h1 class="print-title">Cue to Cue</h1>
+                        <p class="print-meta">
+                            Printed on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
+                            ${metadata ? ` • ${metadata.filename}` : ''}
+                        </p>
+                    </div>
+            `;
+            
+            selectedStacks.forEach((stack, stackIndex) => {
+                if (stackIndex > 0) {
+                    html += '<div class="page-break"></div>';
+                }
+                
+                html += `
+                    <div class="cue-stack-section">
+                        <h2 class="cue-stack-title">${stack.name}</h2>
+                        <table class="cue-table">
+                `;
+                
+                if (printSettings.showHeaders && stack.cues.length > 0) {
+                    html += '<thead><tr>';
+                    const columns = cueData.columns || [];
+                    columns.forEach(col => {
+                        html += `<th>${col.name}</th>`;
+                    });
+                    html += '</tr></thead>';
+                }
+                
+                html += '<tbody>';
+                stack.cues.forEach(cue => {
+                    html += '<tr>';
+                    const columns = cueData.columns || [];
+                    columns.forEach(col => {
+                        let cellContent = cue[col.name] || '';
+                        let cellStyle = '';
+                        
+                        // Apply colors if enabled
+                        if (printSettings.printWithColors && highlightColors.length > 0) {
+                            for (const highlight of highlightColors) {
+                                if (cellContent.toLowerCase().includes(highlight.keyword.toLowerCase())) {
+                                    const colorToApply = colorOverrides[`${highlight.keyword}_${highlight.color}`] || highlight.color;
+                                    cellStyle = `color: #${colorToApply}; font-weight: bold;`;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        html += `<td style="${cellStyle}">${cellContent}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table></div>';
+            });
+            
+            html += '</body></html>';
+            
+            printWindow.document.write(html);
+            printWindow.document.close();
+            
+            // Wait for content to load, then print
+            printWindow.onload = function() {
+                printWindow.print();
+                printWindow.close();
+            };
         }
         
         function generateAndDownloadPDF() {
             console.log('📄 Generating PDF...');
             
+            // Check if required libraries are loaded
+            if (typeof html2canvas === 'undefined') {
+                console.error('❌ html2canvas library not loaded');
+                alert('PDF generation library not loaded. Please refresh the page and try again.');
+                return;
+            }
+            
+            if (typeof jsPDF === 'undefined') {
+                console.error('❌ jsPDF library not loaded');
+                alert('PDF generation library not loaded. Please refresh the page and try again.');
+                return;
+            }
+            
             const selectedStacks = Array.from(printSettings.selectedStacks)
                 .map(index => cueData.availableCueStacks[index])
                 .filter(stack => stack);
+            
+            if (selectedStacks.length === 0) {
+                console.error('❌ No cue stacks selected');
+                alert('No cue stacks selected for printing.');
+                return;
+            }
             
             // Create a temporary div to render the content
             const tempDiv = document.createElement('div');
@@ -1822,6 +2008,7 @@
             tempDiv.style.fontFamily = 'Arial, sans-serif';
             tempDiv.style.fontSize = printSettings.fontSize + 'px';
             tempDiv.style.color = 'black';
+            tempDiv.style.lineHeight = '1.4';
             
             // Add header
             const header = document.createElement('div');
@@ -1866,6 +2053,7 @@
                 table.style.width = '100%';
                 table.style.borderCollapse = 'collapse';
                 table.style.marginBottom = '20px';
+                table.style.fontSize = printSettings.fontSize + 'px';
                 
                 // Add headers if enabled
                 if (printSettings.showHeaders && stack.cues.length > 0) {
@@ -1881,6 +2069,7 @@
                         th.style.padding = '8px';
                         th.style.textAlign = 'left';
                         th.style.fontWeight = 'bold';
+                        th.style.fontSize = printSettings.fontSize + 'px';
                         headerRow.appendChild(th);
                     });
                     
@@ -1904,6 +2093,7 @@
                         td.style.border = '1px solid black';
                         td.style.padding = '6px 8px';
                         td.style.verticalAlign = 'top';
+                        td.style.fontSize = printSettings.fontSize + 'px';
                         
                         // Apply colors if enabled
                         if (printSettings.printWithColors && highlightColors.length > 0) {
@@ -1931,32 +2121,39 @@
             // Add to document temporarily
             document.body.appendChild(tempDiv);
             
+            console.log('📄 Rendering content to canvas...');
+            
             // Use html2canvas and jsPDF to generate PDF
             html2canvas(tempDiv, {
-                scale: 2,
+                scale: 1.5, // Reduced scale to avoid memory issues
                 useCORS: true,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                allowTaint: true,
+                foreignObjectRendering: false,
+                logging: false
             }).then(canvas => {
-                const imgData = canvas.toDataURL('image/png');
+                console.log('📄 Canvas created, generating PDF...');
+                
+                const imgData = canvas.toDataURL('image/png', 0.8); // Reduced quality to avoid size issues
                 const pdf = new jsPDF(printSettings.orientation === 'landscape' ? 'landscape' : 'portrait', 'mm', 'a4');
                 
-                const imgWidth = pdf.internal.pageSize.getWidth();
-                const imgHeight = pdf.internal.pageSize.getHeight();
+                const pageWidth = pdf.internal.pageSize.getWidth();
                 const pageHeight = pdf.internal.pageSize.getHeight();
+                const imgWidth = pageWidth - 20; // Leave margins
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 
-                let heightLeft = imgHeight;
-                let position = 0;
+                // Calculate how many pages we need
+                const totalPages = Math.ceil(imgHeight / (pageHeight - 20));
                 
-                // Add first page
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+                console.log(`📄 Generating ${totalPages} page(s)...`);
                 
-                // Add additional pages if needed
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
+                for (let i = 0; i < totalPages; i++) {
+                    if (i > 0) {
+                        pdf.addPage();
+                    }
+                    
+                    const yOffset = -(i * (pageHeight - 20));
+                    pdf.addImage(imgData, 'PNG', 10, 10 + yOffset, imgWidth, imgHeight);
                 }
                 
                 // Download the PDF
@@ -1966,11 +2163,24 @@
                 // Clean up
                 document.body.removeChild(tempDiv);
                 
-                console.log('✅ PDF generated and downloaded');
+                console.log('✅ PDF generated and downloaded successfully');
             }).catch(error => {
                 console.error('❌ Error generating PDF:', error);
-                document.body.removeChild(tempDiv);
-                alert('Error generating PDF. Please try again.');
+                
+                // Clean up
+                if (document.body.contains(tempDiv)) {
+                    document.body.removeChild(tempDiv);
+                }
+                
+                // Show more specific error message
+                let errorMessage = 'Error generating PDF. ';
+                if (error.message) {
+                    errorMessage += error.message;
+                } else {
+                    errorMessage += 'Please try again or refresh the page.';
+                }
+                
+                alert(errorMessage);
             });
         }
         
