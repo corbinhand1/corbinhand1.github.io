@@ -5,514 +5,939 @@
       "name": "DF 25 Main Keynote",
       "cues": [
         {
-          "cueNumber": "",
-          "description": "9:25a - Doors, Walk in Music, Walk in Lx, Preset 10",
-          "time": "0",
-          "notes": "Rock"
-        },
-        {
-          "cueNumber": "",
-          "description": "9:55a - ROLL RECORDS & Transition to APM",
-          "time": "0",
-          "notes": "APM"
-        },
-        {
-          "cueNumber": "",
-          "description": "9:57:30a - Preset 3 & FLS",
-          "time": "3",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "Preset 99 & LX 104",
-          "time": "99",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "Preset 4",
-          "time": "4",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "[Patrick Dem]",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "53",
-          "description": "DEMO: Vibes 1 [Let me show you in a demo]",
-          "time": "Mac 5",
-          "notes": ""
-        },
-        {
-          "cueNumber": "55",
-          "description": "DEMO: Vibes 2 - B-ROLL  ",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "57",
-          "description": "DEMO: Vibes 3 [this is agentforce vibes]",
-          "time": "Mac 5",
-          "notes": ""
-        },
-        {
-          "cueNumber": "59",
-          "description": "DEMO: PRESET 8",
-          "time": "8",
-          "notes": ""
-        },
-        {
-          "cueNumber": "59.1",
-          "description": "DEMO: Sticker a1 [follow]",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "63",
-          "description": "Preset 4",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "119",
-          "description": "Preset 4",
-          "time": "4",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "[sanjna Dem]",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "121",
-          "description": "DEMO: Preset 8 [Lets see how agentsforce powers Williams Son...]",
-          "time": "8",
-          "notes": ""
-        },
-        {
-          "cueNumber": "123",
-          "description": "DEMO: Will 1 [Williams Sonoma cares about delivering top tier service]",
-          "time": "Mac 1",
-          "notes": ""
-        },
-        {
-          "cueNumber": "125",
-          "description": "DEMO: Will 2 [lets see hwo this interactino was built]",
-          "time": "Mac 7",
-          "notes": ""
-        },
-        {
-          "cueNumber": "129",
-          "description": "DEMO: Will 3 [lets see what the service rep sees in agentforce service]",
-          "time": "Mac 3",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "TBD WILL 3.1",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "131",
-          "description": "DEMO: Preset 8 [Williams-Sonoma is delivering personalized, inspiring, and thoughtfully]",
-          "time": "Mac 1",
-          "notes": ""
-        },
-        {
-          "cueNumber": "131.1",
-          "description": "DEMO: Sticker B3",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "205",
-          "description": "Preset 4",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "[Leah Mcogovern-Hare; Pandora]",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "207",
-          "description": "DEMO: Preset 8 [Now I want to show youa demo of Pandor's Transformation]",
-          "time": "8",
-          "notes": ""
-        },
-        {
-          "cueNumber": "209",
-          "description": "DEMO: Pandora 1 [We are goign to start on Pandoras Website]",
-          "time": "iPhone 1",
-          "notes": ""
-        },
-        {
-          "cueNumber": "211",
-          "description": "DEMO: Pandora 2 & Mac 3 Audio Hot [It\u2019s a delicate bracelet so I want to make sure I know how to clean it]",
-          "time": "iPhone 3",
-          "notes": ""
-        },
-        {
-          "cueNumber": "213",
-          "description": "DEMO: Pandora 3 & Video 213 [an in store associate is in Slack and getting ready]",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "215",
-          "description": "DEMO: Preset 8  ",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "215.1",
-          "description": "DEMO: Sticker c3 [follow]",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "305",
-          "description": "Preset 4",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "[MaryAnn PepsiCo]",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "307",
-          "description": "DEMO: Preset 8 [Now what I want to show you right now] ",
-          "time": "8",
-          "notes": ""
-        },
-        {
-          "cueNumber": "309",
-          "description": "DEMO: Pepsi 1 [It Starts on pepsi's wesite] ",
-          "time": "Mac 1",
-          "notes": ""
-        },
-        {
-          "cueNumber": "311",
-          "description": "DEMO: Pepsi 2 [Sellers now have the time to focus on what they love]",
-          "time": "Mac 3",
-          "notes": ""
-        },
-        {
-          "cueNumber": "312",
-          "description": "DEMO: Pepsi 3 [This is how Agentforce elevates every seller]",
-          "time": "8",
-          "notes": ""
-        },
-        {
-          "cueNumber": "313",
-          "description": "DEMO: Pepsi 4 [Now Lets see hwo field  techs support these]",
-          "time": "Mac 1",
-          "notes": ""
-        },
-        {
-          "cueNumber": "315",
-          "description": "DEMO: Pepsi 5 [Field technicians are critical to PepsiCo\u2019s success]",
-          "time": "iPhone 1",
-          "notes": ""
-        },
-        {
-          "cueNumber": "317",
-          "description": "DEMO: Preset 8 [THAT is how PepsiCo elevates every FSL technicians]",
-          "time": "8",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "318",
-          "description": "Preset 4 [",
-          "time": "4",
-          "notes": ""
-        },
-        {
-          "cueNumber": "319",
-          "description": "DEMO: IT 1",
-          "time": "Mac 3",
-          "notes": ""
-        },
-        {
-          "cueNumber": "320",
-          "description": "DEMO:  IT 2",
-          "time": "Mac 1",
-          "notes": ""
-        },
-        {
-          "cueNumber": "320.1",
-          "description": "DEMO: IT 3 ",
-          "time": "Mac 3",
-          "notes": ""
-        },
-        {
-          "cueNumber": "321",
-          "description": "DEMO: PRESET 8",
-          "time": "8",
-          "notes": ""
-        },
-        {
-          "cueNumber": "321.1",
-          "description": "DEMO: Sticker E2",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "323",
-          "description": "Preset 4 [",
-          "time": "4",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "411",
-          "description": "Preset 4 [",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "[Shibani Fedex]",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "413",
-          "description": "DEMO: Preset 8 [fedex works with small businesses all over the world]",
-          "time": "8",
-          "notes": ""
-        },
-        {
-          "cueNumber": "415",
-          "description": "DEMO: Fedex 1 [Right on cue...a customer is reaching out with a question]",
-          "time": "iPhone 1",
-          "notes": ""
-        },
-        {
-          "cueNumber": "417",
-          "description": "DEMO: Fedex 2 [The answer to this question lives within this thick playbook]",
-          "time": "8",
-          "notes": ""
-        },
-        {
-          "cueNumber": "419",
-          "description": "DEMO: Fedex 3 [I'm going to take this customer question and ask Agentforce]",
-          "time": "iPhone 3",
-          "notes": ""
-        },
-        {
-          "cueNumber": "421",
-          "description": "DEMO: Fedex 4 [Context Indexing let's us parse out the unstructured data]",
-          "time": "Mac 1",
-          "notes": ""
-        },
-        {
-          "cueNumber": "423",
-          "description": "DEMO: Cue camera shot {Shout out to demo driver Miles}",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "427",
-          "description": "DEMO: Fedex 5 & iPhone 3 Hot [??????",
-          "time": "iPhone 3",
-          "notes": ""
-        },
-        {
-          "cueNumber": "429",
-          "description": "DEMO: Preset 8 [?????",
-          "time": "8",
-          "notes": ""
-        },
-        {
-          "cueNumber": "429.1",
-          "description": "DEMO: Sticker F3 ",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "507",
-          "description": "Preset 4",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "[Simon Dell]",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "509",
-          "description": "DEMO: Preset 8 ",
-          "time": "8",
-          "notes": ""
-        },
-        {
-          "cueNumber": "511",
-          "description": "DEMO: Dell 1 [Lets take this doc and upload it]",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "523",
-          "description": "DEMO: Preset 8 [ ????",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "523.1",
-          "description": "DEMO: Sticker G3",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
-        },
-        {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "9:25a - Doors, Walk in Music, Walk in Lx, Preset 10",
+          "Preset": "0",
+          "Audio": "Rock",
+          "Video": "Lopping GFX",
+          "D3": "Walk In",
+          "L3": "1",
+          "LX": "Walk In Ombre",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "9:55a - ROLL RECORDS & Transition to APM",
+          "Preset": "0",
+          "Audio": "APM",
+          "Video": "0",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "9:57:30a - Preset 3 & FLS",
+          "Preset": "3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "Preset 99 & LX 104",
+          "Preset": "99",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "Opening Vid",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "Preset 4",
+          "Preset": "4",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "[Patrick Dem]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "53",
+          "Description": "DEMO: Vibes 1 [Let me show you in a demo]",
+          "Preset": "Mac 5",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "55",
+          "Description": "DEMO: Vibes 2 - B-ROLL  ",
+          "Preset": "",
+          "Audio": "",
+          "Video": "ipad Video",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "57",
+          "Description": "DEMO: Vibes 3 [this is agentforce vibes]",
+          "Preset": "Mac 5",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "59",
+          "Description": "DEMO: PRESET 8",
+          "Preset": "8",
+          "Audio": "",
+          "Video": "",
+          "D3": "Daytime Animation",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "59.1",
+          "Description": "DEMO: Sticker a1 [follow]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "a1",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "63",
+          "Description": "Preset 4",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "119",
+          "Description": "Preset 4",
+          "Preset": "4",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "[sanjna Dem]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "121",
+          "Description": "DEMO: Preset 8 [Lets see how agentsforce powers Williams Son...]",
+          "Preset": "8",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "123",
+          "Description": "DEMO: Will 1 [Williams Sonoma cares about delivering top tier service]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "125",
+          "Description": "DEMO: Will 2 [lets see hwo this interactino was built]",
+          "Preset": "Mac 7",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "129",
+          "Description": "DEMO: Will 3 [lets see what the service rep sees in agentforce service]",
+          "Preset": "Mac 3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "TBD WILL 3.1",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "131",
+          "Description": "DEMO: Preset 8 [Williams-Sonoma is delivering personalized, inspiring, and thoughtfully]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "131.1",
+          "Description": "DEMO: Sticker B3",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "B3",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "205",
+          "Description": "Preset 4",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "[Leah Mcogovern-Hare; Pandora]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "207",
+          "Description": "DEMO: Preset 8 [Now I want to show youa demo of Pandor's Transformation]",
+          "Preset": "8",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "209",
+          "Description": "DEMO: Pandora 1 [We are goign to start on Pandoras Website]",
+          "Preset": "iPhone 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "211",
+          "Description": "DEMO: Pandora 2 & Mac 3 Audio Hot [It\u2019s a delicate bracelet so I want to make sure I know how to clean it]",
+          "Preset": "iPhone 3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "213",
+          "Description": "DEMO: Pandora 3 & Video 213 [an in store associate is in Slack and getting ready]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "b roll video",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "215",
+          "Description": "DEMO: Preset 8  ",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "215.1",
+          "Description": "DEMO: Sticker c3 [follow]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "c3",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "305",
+          "Description": "Preset 4",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "[MaryAnn PepsiCo]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "307",
+          "Description": "DEMO: Preset 8 [Now what I want to show you right now] ",
+          "Preset": "8",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "309",
+          "Description": "DEMO: Pepsi 1 [It Starts on pepsi's wesite] ",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "311",
+          "Description": "DEMO: Pepsi 2 [Sellers now have the time to focus on what they love]",
+          "Preset": "Mac 3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "312",
+          "Description": "DEMO: Pepsi 3 [This is how Agentforce elevates every seller]",
+          "Preset": "8",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "313",
+          "Description": "DEMO: Pepsi 4 [Now Lets see hwo field  techs support these]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "315",
+          "Description": "DEMO: Pepsi 5 [Field technicians are critical to PepsiCo\u2019s success]",
+          "Preset": "iPhone 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "317",
+          "Description": "DEMO: Preset 8 [THAT is how PepsiCo elevates every FSL technicians]",
+          "Preset": "8",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "318",
+          "Description": "Preset 4 [",
+          "Preset": "4",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "319",
+          "Description": "DEMO: IT 1",
+          "Preset": "Mac 3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "320",
+          "Description": "DEMO:  IT 2",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "320.1",
+          "Description": "DEMO: IT 3 ",
+          "Preset": "Mac 3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "321",
+          "Description": "DEMO: PRESET 8",
+          "Preset": "8",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "321.1",
+          "Description": "DEMO: Sticker E2",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "E2",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "323",
+          "Description": "Preset 4 [",
+          "Preset": "4",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "411",
+          "Description": "Preset 4 [",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "[Shibani Fedex]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "413",
+          "Description": "DEMO: Preset 8 [fedex works with small businesses all over the world]",
+          "Preset": "8",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "415",
+          "Description": "DEMO: Fedex 1 [Right on cue...a customer is reaching out with a question]",
+          "Preset": "iPhone 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "417",
+          "Description": "DEMO: Fedex 2 [The answer to this question lives within this thick playbook]",
+          "Preset": "8",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "419",
+          "Description": "DEMO: Fedex 3 [I'm going to take this customer question and ask Agentforce]",
+          "Preset": "iPhone 3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "421",
+          "Description": "DEMO: Fedex 4 [Context Indexing let's us parse out the unstructured data]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "423",
+          "Description": "DEMO: Cue camera shot {Shout out to demo driver Miles}",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "427",
+          "Description": "DEMO: Fedex 5 & iPhone 3 Hot [??????",
+          "Preset": "iPhone 3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "429",
+          "Description": "DEMO: Preset 8 [?????",
+          "Preset": "8",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "429.1",
+          "Description": "DEMO: Sticker F3 ",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "F3",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "507",
+          "Description": "Preset 4",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "[Simon Dell]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "509",
+          "Description": "DEMO: Preset 8 ",
+          "Preset": "8",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "511",
+          "Description": "DEMO: Dell 1 [Lets take this doc and upload it]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "523",
+          "Description": "DEMO: Preset 8 [ ????",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "523.1",
+          "Description": "DEMO: Sticker G3",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "G3",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
+        },
+        {
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         }
       ]
     },
@@ -521,346 +946,631 @@
       "name": "Agentforce",
       "cues": [
         {
-          "cueNumber": "",
-          "description": "9:25a - Doors, Walk in Music, Walk in Lx, Preset 30",
-          "time": "30",
-          "notes": "Rock"
+          "#": "",
+          "Description": "9:25a - Doors, Walk in Music, Walk in Lx, Preset 30",
+          "Preset": "30",
+          "Audio": "Rock",
+          "Video": "Lopping GFX",
+          "D3": "Walk In",
+          "L3": "1",
+          "LX": "Walk In",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "9:55a - ROLL RECORDS & Transition to APM",
-          "time": "",
-          "notes": "APM"
+          "#": "",
+          "Description": "9:55a - ROLL RECORDS & Transition to APM",
+          "Preset": "",
+          "Audio": "APM",
+          "Video": "0",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "9:57:30a - Preset 23 & FLS",
-          "time": "23",
-          "notes": ""
+          "#": "",
+          "Description": "9:57:30a - Preset 23 & FLS",
+          "Preset": "23",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "228",
-          "description": "10:00:00 Ryan VO & LX + D3  | Cue 228",
-          "time": "",
-          "notes": "Ryan VO"
+          "#": "228",
+          "Description": "10:00:00 Ryan VO & LX + D3  | Cue 228",
+          "Preset": "",
+          "Audio": "Ryan VO",
+          "Video": "",
+          "D3": "Agentforce AW",
+          "L3": "",
+          "LX": "Show",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Ryan Mic Hot  ",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Ryan Mic Hot  ",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "228.1",
-          "description": "Preset 24 [on camera shot]",
-          "time": "24",
-          "notes": ""
+          "#": "228.1",
+          "Description": "Preset 24 [on camera shot]",
+          "Preset": "24",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[ryan has 3 slides to golden hoodie]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[ryan has 3 slides to golden hoodie]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[Adam welcomes Angela to stage]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[Adam welcomes Angela to stage]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "231.1",
-          "description": "Preset 29 [to go Full screen]",
-          "time": "29",
-          "notes": ""
+          "#": "231.1",
+          "Description": "Preset 29 [to go Full screen]",
+          "Preset": "29",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "232",
-          "description": "LX + Audio | Cue 232  & Confetti [on GOLDEN HOODIE}",
-          "time": "",
-          "notes": ""
+          "#": "232",
+          "Description": "LX + Audio | Cue 232  & Confetti [on GOLDEN HOODIE}",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Fade Music after Photo",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Fade Music after Photo",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "233",
-          "description": "LX + Vid | Cue 233 & Preset 25",
-          "time": "25",
-          "notes": ""
+          "#": "233",
+          "Description": "LX + Vid | Cue 233 & Preset 25",
+          "Preset": "25",
+          "Audio": "",
+          "Video": "Sizzle",
+          "D3": "",
+          "L3": "",
+          "LX": "Show Video",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "234",
-          "description": "LX | Cue 234 & Preset 24 [out of vid]",
-          "time": "24",
-          "notes": ""
+          "#": "234",
+          "Description": "LX | Cue 234 & Preset 24 [out of vid]",
+          "Preset": "24",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "Show",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[adam has about 7 slides to Nanxy]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[adam has about 7 slides to Nanxy]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "244",
-          "description": "adam intros - NANXY mic hot and mute adam",
-          "time": "",
-          "notes": ""
+          "#": "244",
+          "Description": "adam intros - NANXY mic hot and mute adam",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[nanxy has 2 slides to dem]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[nanxy has 2 slides to dem]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[nanxy intros Eswar]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[nanxy intros Eswar]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "247",
-          "description": "DEMO: iPhone 1 [Eswar, do you want to show us?]",
-          "time": "iPhone 1",
-          "notes": ""
+          "#": "247",
+          "Description": "DEMO: iPhone 1 [Eswar, do you want to show us?]",
+          "Preset": "iPhone 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "249",
-          "description": "Preset 28 & D3| Cue 249 [ can you tell us more about how you built that agent?]",
-          "time": "28",
-          "notes": ""
+          "#": "249",
+          "Description": "Preset 28 & D3| Cue 249 [ can you tell us more about how you built that agent?]",
+          "Preset": "28",
+          "Audio": "",
+          "Video": "",
+          "D3": "equinox",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "welcome Aron Kale & Angel Le",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "welcome Aron Kale & Angel Le",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "250",
-          "description": "DEMO: Mac 1 & 250 [Let's see it in a demo]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "250",
+          "Description": "DEMO: Mac 1 & 250 [Let's see it in a demo]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "251",
-          "description": "DEMO: iPhone 1 [And once I activate it, we can see that agent running live]",
-          "time": "iPhone 1",
-          "notes": ""
+          "#": "251",
+          "Description": "DEMO: iPhone 1 [And once I activate it, we can see that agent running live]",
+          "Preset": "iPhone 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "252",
-          "description": "Preset 24 [ And that's how Equinox builds truly reliable agents. ]",
-          "time": "24",
-          "notes": ""
+          "#": "252",
+          "Description": "Preset 24 [ And that's how Equinox builds truly reliable agents. ]",
+          "Preset": "24",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "aron  intros - MADHAV mic hot and mute and mute aron & Angela",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "aron  intros - MADHAV mic hot and mute and mute aron & Angela",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[3 slides to dem/]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[3 slides to dem/]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "260",
-          "description": "DEMO: Mac 1 [lets ceck it out in a demo]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "260",
+          "Description": "DEMO: Mac 1 [lets ceck it out in a demo]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "261",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "261",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "264",
-          "description": "Preset 24 [And that's how Agentforce enables these Context-Aware experiences]",
-          "time": "24",
-          "notes": ""
+          "#": "264",
+          "Description": "Preset 24 [And that's how Agentforce enables these Context-Aware experiences]",
+          "Preset": "24",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "madhav intros - SANJANA mic hot and mute madha",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "madhav intros - SANJANA mic hot and mute madha",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[3 slides to dem]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[3 slides to dem]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "267",
-          "description": "DEMO: WS 1 [how about I show you in a demo]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "267",
+          "Description": "DEMO: WS 1 [how about I show you in a demo]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "268",
-          "description": "DEMO: WS 2 & iPhone 3 Audio Hot [so lets give the agent a call]",
-          "time": "m1 + ip3",
-          "notes": ""
+          "#": "268",
+          "Description": "DEMO: WS 2 & iPhone 3 Audio Hot [so lets give the agent a call]",
+          "Preset": "m1 + ip3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "269",
-          "description": "DEMO: WS 3 [And that's how Agentforce creates these multi-channel experiences] ",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "269",
+          "Description": "DEMO: WS 3 [And that's how Agentforce creates these multi-channel experiences] ",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "271",
-          "description": "Preset 28  & D3 | Cue 271 [So we have Sameer here from Williams Sonoma - Sameer thanks so much for being here]",
-          "time": "28",
-          "notes": ""
+          "#": "271",
+          "Description": "Preset 28  & D3 | Cue 271 [So we have Sameer here from Williams Sonoma - Sameer thanks so much for being here]",
+          "Preset": "28",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "sanjana intros - LEAH mic hot and mute sanjna",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "sanjana intros - LEAH mic hot and mute sanjna",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "273",
-          "description": "Preset 24  & D3 | Cue 273c[interview wrap]",
-          "time": "24",
-          "notes": ""
+          "#": "273",
+          "Description": "Preset 24  & D3 | Cue 273c[interview wrap]",
+          "Preset": "24",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[3 slides to dem.]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[3 slides to dem.]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "leah  intros - JOHN mic hot and mute leah",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "leah  intros - JOHN mic hot and mute leah",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "276",
-          "description": "DEMO: Mac 1 [so lets see it in a demo]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "276",
+          "Description": "DEMO: Mac 1 [so lets see it in a demo]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "John Will intro AVI",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "John Will intro AVI",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "277",
-          "description": "Preset 28 [ Avi, can you tell us a little more about it?]",
-          "time": "28",
-          "notes": ""
+          "#": "277",
+          "Description": "Preset 28 [ Avi, can you tell us a little more about it?]",
+          "Preset": "28",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "278",
-          "description": "DEMO: Mac 1 [Lets Jump Into Agentforce Grid]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "278",
+          "Description": "DEMO: Mac 1 [Lets Jump Into Agentforce Grid]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "avi  intros - ADAM mic hot and mute avi",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "avi  intros - ADAM mic hot and mute avi",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "279",
-          "description": "Preset 24 [Alright Adam, back to you]",
-          "time": "24",
-          "notes": ""
+          "#": "279",
+          "Description": "Preset 24 [Alright Adam, back to you]",
+          "Preset": "24",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Preset 23, Mute Speaker, Walk Out Lighting [cover imag]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Preset 23, Mute Speaker, Walk Out Lighting [cover imag]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "Walk Out",
+          "L3": "",
+          "LX": "Walk Out",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Adance to Survey Graphic",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Adance to Survey Graphic",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Survey VO",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Survey VO",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Preset 30 - Rolling Graphics ",
-          "time": "30",
-          "notes": ""
+          "#": "",
+          "Description": "Preset 30 - Rolling Graphics ",
+          "Preset": "30",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Stop Records",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Stop Records",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         }
       ]
     },
@@ -869,310 +1579,565 @@
       "name": "Fins",
       "cues": [
         {
-          "cueNumber": "",
-          "description": "9:25a - Doors, Walk in Music, Walk in Lx, Preset 30",
-          "time": "30",
-          "notes": "Rock"
+          "#": "",
+          "Description": "9:25a - Doors, Walk in Music, Walk in Lx, Preset 30",
+          "Preset": "30",
+          "Audio": "Rock",
+          "Video": "Lopping GFX",
+          "D3": "Walk In",
+          "L3": "1",
+          "LX": "Walk In Ombre",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "9:55a - ROLL RECORDS & Transition to APM",
-          "time": "",
-          "notes": "APM"
+          "#": "",
+          "Description": "9:55a - ROLL RECORDS & Transition to APM",
+          "Preset": "",
+          "Audio": "APM",
+          "Video": "0",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "11:07:30a - Preset 23 & FLS",
-          "time": "23",
-          "notes": ""
+          "#": "",
+          "Description": "11:07:30a - Preset 23 & FLS",
+          "Preset": "23",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "228",
-          "description": "11:10:00 - Graphic Advance + Ryan VO+ D3 | Cue 228",
-          "time": "",
-          "notes": "Ryan VO"
+          "#": "228",
+          "Description": "11:10:00 - Graphic Advance + Ryan VO+ D3 | Cue 228",
+          "Preset": "",
+          "Audio": "Ryan VO",
+          "Video": "",
+          "D3": "Agentforce AW",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Ryan Mic Hot  ",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Ryan Mic Hot  ",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "228.1",
-          "description": "Preset 24 [on camera shot]",
-          "time": "24",
-          "notes": ""
+          "#": "228.1",
+          "Description": "Preset 24 [on camera shot]",
+          "Preset": "24",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[ryan has 3 slides to golden hoodie]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[ryan has 3 slides to golden hoodie]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[Adam welcomes Angela to stage]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[Adam welcomes Angela to stage]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "231.1",
-          "description": "Preset 29 [to go Full screen]",
-          "time": "29",
-          "notes": ""
+          "#": "231.1",
+          "Description": "Preset 29 [to go Full screen]",
+          "Preset": "29",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "232",
-          "description": "LX + Audio | Cue 232  & Confetti [on GOLDEN HOODIE}",
-          "time": "",
-          "notes": ""
+          "#": "232",
+          "Description": "LX + Audio | Cue 232  & Confetti [on GOLDEN HOODIE}",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Fade Music after Photo",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Fade Music after Photo",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "233",
-          "description": "Sizzle Video 233 & Preset 25",
-          "time": "25",
-          "notes": ""
+          "#": "233",
+          "Description": "Sizzle Video 233 & Preset 25",
+          "Preset": "25",
+          "Audio": "",
+          "Video": "Sizzle",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "234",
-          "description": "Preset 24 [out of vid]",
-          "time": "24",
-          "notes": ""
+          "#": "234",
+          "Description": "Preset 24 [out of vid]",
+          "Preset": "24",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[adam has about 7 slides to Nanxy]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[adam has about 7 slides to Nanxy]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "244",
-          "description": "adam intros - NANXY mic hot and mute adam",
-          "time": "",
-          "notes": ""
+          "#": "244",
+          "Description": "adam intros - NANXY mic hot and mute adam",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[nanxy has 2 slides to dem]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[nanxy has 2 slides to dem]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[nanxy intros Eswar]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[nanxy intros Eswar]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "247",
-          "description": "DEMO: iPhone 1 [Eswar, do you want to show us?]",
-          "time": "iPhone 1",
-          "notes": ""
+          "#": "247",
+          "Description": "DEMO: iPhone 1 [Eswar, do you want to show us?]",
+          "Preset": "iPhone 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "249",
-          "description": "Preset 28 & D3| Cue 249 [ can you tell us more about how you built that agent?]",
-          "time": "28",
-          "notes": ""
+          "#": "249",
+          "Description": "Preset 28 & D3| Cue 249 [ can you tell us more about how you built that agent?]",
+          "Preset": "28",
+          "Audio": "",
+          "Video": "",
+          "D3": "equinox",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "welcome Aron Kale & Angel Le",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "welcome Aron Kale & Angel Le",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "250",
-          "description": "DEMO: Mac 1 & 250 [Let's see it in a demo]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "250",
+          "Description": "DEMO: Mac 1 & 250 [Let's see it in a demo]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "251",
-          "description": "DEMO: iPhone 1 [And once I activate it, we can see that agent running live]",
-          "time": "iPhone 1",
-          "notes": ""
+          "#": "251",
+          "Description": "DEMO: iPhone 1 [And once I activate it, we can see that agent running live]",
+          "Preset": "iPhone 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "252",
-          "description": "Preset 24 [ And that's how Equinox builds truly reliable agents. ]",
-          "time": "24",
-          "notes": ""
+          "#": "252",
+          "Description": "Preset 24 [ And that's how Equinox builds truly reliable agents. ]",
+          "Preset": "24",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "aron  intros - MADHAV mic hot and mute and mute aron & Angela",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "aron  intros - MADHAV mic hot and mute and mute aron & Angela",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[3 slides to dem/]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[3 slides to dem/]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "260",
-          "description": "DEMO: Mac 1 [lets ceck it out in a demo]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "260",
+          "Description": "DEMO: Mac 1 [lets ceck it out in a demo]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "261",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "261",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "264",
-          "description": "Preset 24 [And that's how Agentforce enables these Context-Aware experiences]",
-          "time": "24",
-          "notes": ""
+          "#": "264",
+          "Description": "Preset 24 [And that's how Agentforce enables these Context-Aware experiences]",
+          "Preset": "24",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "madhav intros - SANJANA mic hot and mute madha",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "madhav intros - SANJANA mic hot and mute madha",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[3 slides to dem]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[3 slides to dem]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "267",
-          "description": "DEMO: WS 1 [how about I show you in a demo]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "267",
+          "Description": "DEMO: WS 1 [how about I show you in a demo]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "268",
-          "description": "DEMO: WS 2 & iPhone 3 Audio Hot [so lets give the agent a call]",
-          "time": "m1 + ip3",
-          "notes": ""
+          "#": "268",
+          "Description": "DEMO: WS 2 & iPhone 3 Audio Hot [so lets give the agent a call]",
+          "Preset": "m1 + ip3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "269",
-          "description": "DEMO: WS 3 [And that's how Agentforce creates these multi-channel experiences] ",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "269",
+          "Description": "DEMO: WS 3 [And that's how Agentforce creates these multi-channel experiences] ",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "271",
-          "description": "Preset 28 [So we have Sameer here from Williams Sonoma - Sameer thanks so much for being here]",
-          "time": "28",
-          "notes": ""
+          "#": "271",
+          "Description": "Preset 28 [So we have Sameer here from Williams Sonoma - Sameer thanks so much for being here]",
+          "Preset": "28",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "sanjana intros - LEAH mic hot and mute sanjna",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "sanjana intros - LEAH mic hot and mute sanjna",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "273",
-          "description": "Preset 24 [interview wrap]",
-          "time": "24",
-          "notes": ""
+          "#": "273",
+          "Description": "Preset 24 [interview wrap]",
+          "Preset": "24",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[3 slides to dem.]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[3 slides to dem.]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "leah  intros - JOHN mic hot and mute leah",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "leah  intros - JOHN mic hot and mute leah",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "276",
-          "description": "DEMO: Mac 1 [so lets see it in a demo]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "276",
+          "Description": "DEMO: Mac 1 [so lets see it in a demo]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "John Will intro AVI",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "John Will intro AVI",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "277",
-          "description": "Preset 28 [ Avi, can you tell us a little more about it?]",
-          "time": "28",
-          "notes": ""
+          "#": "277",
+          "Description": "Preset 28 [ Avi, can you tell us a little more about it?]",
+          "Preset": "28",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "278",
-          "description": "DEMO: Mac 1 [Lets Jump Into Agentforce Grid]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "278",
+          "Description": "DEMO: Mac 1 [Lets Jump Into Agentforce Grid]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "279",
-          "description": "Preset 24 [",
-          "time": "24",
-          "notes": ""
+          "#": "279",
+          "Description": "Preset 24 [",
+          "Preset": "24",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         }
       ]
     },
@@ -1181,118 +2146,213 @@
       "name": "Luminary",
       "cues": [
         {
-          "cueNumber": "101",
-          "description": "Doors, Walk in Music, Walk in Lx, Preset 10",
-          "time": "1",
-          "notes": "Rock"
+          "#": "101",
+          "Description": "Doors, Walk in Music, Walk in Lx, Preset 10",
+          "Preset": "1",
+          "Audio": "Rock",
+          "Video": "Lopping GFX",
+          "D3": "Walk In",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "12:55p ROLL RECORDS & Swap to Safe Music",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "12:55p ROLL RECORDS & Swap to Safe Music",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "12:59 - Preset 3.1 & Session Title",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "12:59 - Preset 3.1 & Session Title",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Preset 99 & Lx to Vid",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Preset 99 & Lx to Vid",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "102",
-          "description": "2:00p - Preset 6 & Tony Video",
-          "time": "6",
-          "notes": ""
+          "#": "102",
+          "Description": "2:00p - Preset 6 & Tony Video",
+          "Preset": "6",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Graphic Advance",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Graphic Advance",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "27 Min Timer + LX Up + Speaker VOG & Preset 4",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "27 Min Timer + LX Up + Speaker VOG & Preset 4",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "4",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "4",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Preset 8 [for Interview]",
-          "time": "8",
-          "notes": ""
+          "#": "",
+          "Description": "Preset 8 [for Interview]",
+          "Preset": "8",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "preset 4 [on wrap]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "preset 4 [on wrap]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Walk Out Music and Lighting & Preset 3.1",
-          "time": "1",
-          "notes": ""
+          "#": "",
+          "Description": "Walk Out Music and Lighting & Preset 3.1",
+          "Preset": "1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Mute The speakers",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Mute The speakers",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "walk out vog",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "walk out vog",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Stop Records",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Stop Records",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         }
       ]
     },
@@ -1301,10 +2361,15 @@
       "name": "Template",
       "cues": [
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         }
       ]
     },
@@ -1313,380 +2378,737 @@
       "name": "Example Keynote",
       "cues": [
         {
-          "cueNumber": "101",
-          "description": "9:25a - Doors, Walk in Music, Walk in Lx, Preset 10",
-          "time": "0",
-          "notes": "Rock"
+          "#": "101",
+          "Description": "9:25a - Doors, Walk in Music, Walk in Lx, Preset 10",
+          "Preset": "0",
+          "Audio": "Rock",
+          "Video": "Lopping GFX",
+          "D3": "Walk In",
+          "L3": "1",
+          "LX": "Walk In Ombre",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "9:55a - ROLL RECORDS & Transition to APM",
-          "time": "0",
-          "notes": "APM"
+          "#": "",
+          "Description": "9:55a - ROLL RECORDS & Transition to APM",
+          "Preset": "0",
+          "Audio": "APM",
+          "Video": "0",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "102",
-          "description": "9:57:30a - Preset 3 & FLS",
-          "time": "3",
-          "notes": ""
+          "#": "102",
+          "Description": "9:57:30a - Preset 3 & FLS",
+          "Preset": "3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "102.01",
-          "description": "Preset 99 & LX 104",
-          "time": "99",
-          "notes": ""
+          "#": "102.01",
+          "Description": "Preset 99 & LX 104",
+          "Preset": "99",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "Opening Vid",
+          "Staging": ""
         },
         {
-          "cueNumber": "102.1",
-          "description": "Preset 5 & VT Opening",
-          "time": "5",
-          "notes": ""
+          "#": "102.1",
+          "Description": "Preset 5 & VT Opening",
+          "Preset": "5",
+          "Audio": "",
+          "Video": "Opening Video",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Connor Mic Hot Out of VID",
-          "time": "6",
-          "notes": ""
+          "#": "",
+          "Description": "Connor Mic Hot Out of VID",
+          "Preset": "6",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Connor VO & LX 105 [1 sac after note]",
-          "time": "1",
-          "notes": ""
+          "#": "",
+          "Description": "Connor VO & LX 105 [1 sac after note]",
+          "Preset": "1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Preset 4 [on welcome]",
-          "time": "4",
-          "notes": ""
+          "#": "",
+          "Description": "Preset 4 [on welcome]",
+          "Preset": "4",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Timer 13 Minutes",
-          "time": "1",
-          "notes": ""
+          "#": "",
+          "Description": "Timer 13 Minutes",
+          "Preset": "1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[17 slides to lx chnage and new speaker]",
-          "time": "0",
-          "notes": ""
+          "#": "",
+          "Description": "[17 slides to lx chnage and new speaker]",
+          "Preset": "0",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "122",
-          "description": "LX | Cue 122 [on become agentforce co alide]",
-          "time": "2",
-          "notes": ""
+          "#": "122",
+          "Description": "LX | Cue 122 [on become agentforce co alide]",
+          "Preset": "2",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "Show Blue",
+          "Staging": ""
         },
         {
-          "cueNumber": "123",
-          "description": "connor intros - KAYLIN mic hot and mute connor",
-          "time": "2",
-          "notes": ""
+          "#": "123",
+          "Description": "connor intros - KAYLIN mic hot and mute connor",
+          "Preset": "2",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "17 Minute Timer",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "17 Minute Timer",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[kaylin has 11 slides to vid]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[kaylin has 11 slides to vid]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "135",
-          "description": "VT Prudential + LX 135 & Preset 5 [START OF VIDEO]",
-          "time": "5",
-          "notes": ""
+          "#": "135",
+          "Description": "VT Prudential + LX 135 & Preset 5 [START OF VIDEO]",
+          "Preset": "5",
+          "Audio": "",
+          "Video": "Prudential",
+          "D3": "",
+          "L3": "",
+          "LX": "show blue video",
+          "Staging": ""
         },
         {
-          "cueNumber": "136",
-          "description": "LX | 136 & Preset 4 [on vid End]",
-          "time": "4",
-          "notes": ""
+          "#": "136",
+          "Description": "LX | 136 & Preset 4 [on vid End]",
+          "Preset": "4",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "show blue",
+          "Staging": ""
         },
         {
-          "cueNumber": "137",
-          "description": "DEMO: Preset 7 [Prudentail is an agenforce aiming to aleviate]",
-          "time": "7",
-          "notes": ""
+          "#": "137",
+          "Description": "DEMO: Preset 7 [Prudentail is an agenforce aiming to aleviate]",
+          "Preset": "7",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "138",
-          "description": "DEMO: driver shout out",
-          "time": "",
-          "notes": ""
+          "#": "138",
+          "Description": "DEMO: driver shout out",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "139",
-          "description": "DEMO: Work 1 [after driver shout out]",
-          "time": "iPhone 3",
-          "notes": ""
+          "#": "139",
+          "Description": "DEMO: Work 1 [after driver shout out]",
+          "Preset": "iPhone 3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "140",
-          "description": "DEMO: Work 2 [Now, to build this, we have our admin, Jonathan here at the demo desk. He\u2019s in Agent Builder...]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "140",
+          "Description": "DEMO: Work 2 [Now, to build this, we have our admin, Jonathan here at the demo desk. He\u2019s in Agent Builder...]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "141",
-          "description": "DEMO: Work 3 [Now that we just gave agentforce these capabilities, let\u2019s see it in action]",
-          "time": "iPhone 3",
-          "notes": ""
+          "#": "141",
+          "Description": "DEMO: Work 3 [Now that we just gave agentforce these capabilities, let\u2019s see it in action]",
+          "Preset": "iPhone 3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "142",
-          "description": "DEMO: Work 4 [Let\u2019s fast forward..my meeting just wrapped]",
-          "time": "iPhone 1",
-          "notes": ""
+          "#": "142",
+          "Description": "DEMO: Work 4 [Let\u2019s fast forward..my meeting just wrapped]",
+          "Preset": "iPhone 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "143",
-          "description": "Preset 7 [This is how prudential or any brand can scale]",
-          "time": "7",
-          "notes": ""
+          "#": "143",
+          "Description": "Preset 7 [This is how prudential or any brand can scale]",
+          "Preset": "7",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "144",
-          "description": "kaylin intros - CONNOR mic hot and mute kaylin",
-          "time": "",
-          "notes": ""
+          "#": "144",
+          "Description": "kaylin intros - CONNOR mic hot and mute kaylin",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "145",
-          "description": "Preset 4 [after trabsiiton",
-          "time": "4",
-          "notes": ""
+          "#": "145",
+          "Description": "Preset 4 [after trabsiiton",
+          "Preset": "4",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[connor has 2 slides to next speaker]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[connor has 2 slides to next speaker]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "146",
-          "description": "LX | Cue 146",
-          "time": "",
-          "notes": ""
+          "#": "146",
+          "Description": "LX | Cue 146",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "Show Lav",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "connor intros - CORY mic hot and mute connor",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "connor intros - CORY mic hot and mute connor",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "147",
-          "description": "9 Minute Timer",
-          "time": "",
-          "notes": ""
+          "#": "147",
+          "Description": "9 Minute Timer",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[5 slides to dem]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[5 slides to dem]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "152",
-          "description": "DEMO: Preset 7 [ lets hop back in..]",
-          "time": "7",
-          "notes": ""
+          "#": "152",
+          "Description": "DEMO: Preset 7 [ lets hop back in..]",
+          "Preset": "7",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "153",
-          "description": "DEMO: Learn 1 [lets jump back into the demo, prudential site ]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "153",
+          "Description": "DEMO: Learn 1 [lets jump back into the demo, prudential site ]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "154",
-          "description": "DEMO: Learn 2 [lets show you how with data cloud]",
-          "time": "Mac 3",
-          "notes": ""
+          "#": "154",
+          "Description": "DEMO: Learn 2 [lets show you how with data cloud]",
+          "Preset": "Mac 3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "155",
-          "description": "DEMO: Learn 3 [lets continue the journey with financial services cloud]",
-          "time": "Mac 1",
-          "notes": ""
+          "#": "155",
+          "Description": "DEMO: Learn 3 [lets continue the journey with financial services cloud]",
+          "Preset": "Mac 1",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "156",
-          "description": "Preset 7 [and thats the real shift]",
-          "time": "7",
-          "notes": ""
+          "#": "156",
+          "Description": "Preset 7 [and thats the real shift]",
+          "Preset": "7",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "cory intros - CONNOR mic hot and mute cory",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "cory intros - CONNOR mic hot and mute cory",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "158",
-          "description": "Preset 4 [after speaker swap]",
-          "time": "4",
-          "notes": ""
+          "#": "158",
+          "Description": "Preset 4 [after speaker swap]",
+          "Preset": "4",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "11 Minute Timer",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "11 Minute Timer",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "159",
-          "description": "connor intros - LEAH mic hot and mute connor",
-          "time": "",
-          "notes": ""
+          "#": "159",
+          "Description": "connor intros - LEAH mic hot and mute connor",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[leah has 11 slides to dem]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[leah has 11 slides to dem]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "171",
-          "description": "DEMO: Preset 7 [Let's revisit the story we've been following... Prudential]",
-          "time": "7",
-          "notes": ""
+          "#": "171",
+          "Description": "DEMO: Preset 7 [Let's revisit the story we've been following... Prudential]",
+          "Preset": "7",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "172",
-          "description": "DEMO: Collab 1 [ The wholesaler starts their day in Financial Services Cloud] ",
-          "time": "Mac 3",
-          "notes": ""
+          "#": "172",
+          "Description": "DEMO: Collab 1 [ The wholesaler starts their day in Financial Services Cloud] ",
+          "Preset": "Mac 3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "174",
-          "description": "Preset 7 [So your teams don\u2019t just react. They respond, refine]",
-          "time": "7",
-          "notes": ""
+          "#": "174",
+          "Description": "Preset 7 [So your teams don\u2019t just react. They respond, refine]",
+          "Preset": "7",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "leah intros - CONNOR mic hot and mute leah",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "leah intros - CONNOR mic hot and mute leah",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "GRAPHIC ADVANCE",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "GRAPHIC ADVANCE",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "175",
-          "description": "Preset 4 [Back to you connor]",
-          "time": "4",
-          "notes": ""
+          "#": "175",
+          "Description": "Preset 4 [Back to you connor]",
+          "Preset": "4",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "4 Minute Timer",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "4 Minute Timer",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "[5 slides to wrap]",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "[5 slides to wrap]",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "180",
-          "description": "Walk Out Music & Walk Out LX & Travler Go",
-          "time": "",
-          "notes": ""
+          "#": "180",
+          "Description": "Walk Out Music & Walk Out LX & Travler Go",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "Walk Out",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Preset 3",
-          "time": "3",
-          "notes": ""
+          "#": "",
+          "Description": "Preset 3",
+          "Preset": "3",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Survey VOG",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Survey VOG",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Stop Records",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Stop Records",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "Rockbot Music ",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "Rockbot Music ",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         },
         {
-          "cueNumber": "",
-          "description": "",
-          "time": "",
-          "notes": ""
+          "#": "",
+          "Description": "",
+          "Preset": "",
+          "Audio": "",
+          "Video": "",
+          "D3": "",
+          "L3": "",
+          "LX": "",
+          "Staging": ""
         }
       ]
     }
   ],
   "selectedCueStackIndex": 0,
-  "cacheBust": "2025-01-15T11:00:00Z"
+  "columns": [
+    {
+      "width": 50,
+      "name": "#",
+      "id": "396DD5E1-6EEF-490C-9146-3CFA55EBF6C0"
+    },
+    {
+      "width": 476.82421875,
+      "name": "Description",
+      "id": "1EA16112-C9DA-4AFE-A28B-FFCCB53A7602"
+    },
+    {
+      "width": 81.6953125,
+      "name": "Preset",
+      "id": "E79A9F3D-846E-4208-817C-D185894E47DD"
+    },
+    {
+      "width": 92.2265625,
+      "name": "Audio",
+      "id": "A4B23FF2-B9F5-4DAA-A919-2980FCB5B79E"
+    },
+    {
+      "width": 123.45703125,
+      "name": "Video",
+      "id": "21093291-456D-45E8-B535-248F6DDD98CF"
+    },
+    {
+      "width": 126.1875,
+      "name": "D3",
+      "id": "797079BC-D09E-4B95-8C36-1E34BFB6D612"
+    },
+    {
+      "width": 82.26953125,
+      "name": "L3",
+      "id": "B6D8119F-C9E1-4D3F-8AFA-B86DD3F41D23"
+    },
+    {
+      "width": 122.41015625,
+      "name": "LX",
+      "id": "CC09E8CF-2411-43FA-9494-DC59678A8A6A"
+    },
+    {
+      "width": 100,
+      "name": "Staging",
+      "id": "7DC6AD42-FD92-4298-8B3B-6A677AC81488"
+    }
+  ],
+  "cacheBust": "2025-01-15T11:15:00Z"
 }

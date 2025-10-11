@@ -254,17 +254,14 @@
 
         <div class="cue-table-container">
             <table class="cue-table">
-                <thead>
+                <thead id="cueTableHead">
                     <tr>
-                        <th>Cue #</th>
-                        <th>Description</th>
-                        <th>Time</th>
-                        <th>Notes</th>
+                        <td colspan="100" class="loading">Loading column headers...</td>
                     </tr>
                 </thead>
                 <tbody id="cueTableBody">
                     <tr>
-                        <td colspan="4" class="loading">Loading cue data...</td>
+                        <td colspan="100" class="loading">Loading cue data...</td>
                     </tr>
                 </tbody>
             </table>
@@ -436,28 +433,52 @@
                 return;
             }
 
+            // Get column structure
+            const columns = cueData.columns || [];
+            console.log('📊 Column structure:', columns.map(c => c.name));
+
+            // Update table headers
+            const thead = document.getElementById('cueTableHead');
+            thead.innerHTML = '';
+            const headerRow = document.createElement('tr');
+            
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col.name;
+                th.style.width = col.width ? `${col.width}px` : 'auto';
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
             console.log('📋 Building cue table with', selectedStack.cues.length, 'cues');
             const tbody = document.getElementById('cueTableBody');
             tbody.innerHTML = '';
 
             selectedStack.cues.forEach((cue, index) => {
-                console.log(`📝 Adding cue ${index}:`, {
-                    cueNumber: cue.cueNumber,
-                    description: cue.description,
-                    time: cue.time,
-                    notes: cue.notes
-                });
+                console.log(`📝 Adding cue ${index}:`, cue);
                 
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="cue-number">${cue.cueNumber}</td>
-                    <td class="cue-description">${cue.description}</td>
-                    <td class="cue-time">${cue.time}</td>
-                    <td class="cue-notes">${cue.notes}</td>
-                `;
+                
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    const value = cue[col.name] || '';
+                    td.textContent = value;
+                    
+                    // Add special styling for certain columns
+                    if (col.name === '#') {
+                        td.className = 'cue-number';
+                    } else if (col.name === 'Description') {
+                        td.className = 'cue-description';
+                    } else if (col.name === 'Preset') {
+                        td.className = 'cue-time';
+                    }
+                    
+                    row.appendChild(td);
+                });
+                
                 tbody.appendChild(row);
             });
-            
+
             console.log('✅ updateCueTable() completed - added', selectedStack.cues.length, 'cues');
         }
 
