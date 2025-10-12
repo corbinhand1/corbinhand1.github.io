@@ -432,14 +432,30 @@ struct HTMLStyles {
 
         /* Responsive */
         @media (max-width: 768px) {
-            .header-container h1 { font-size: 1.1rem; }
-            .clock { font-size: 1.5rem; }
+            .header-container {
+                padding: 3px 15px;
+                padding-top: max(3px, env(safe-area-inset-top) + 3px);
+            }
+            .header-container h1 { font-size: 1.1rem; margin-bottom: 8px; }
+            .clock { font-size: 1.6rem; }
+            .clocks-container {
+                padding: 10px;
+                margin-bottom: 15px;
+            }
             #cueTable th, #cueTable td { padding: 8px 6px; font-size: 0.85rem; }
         }
 
         @media (max-width: 480px) {
-            .header-container h1 { font-size: 1rem; }
-            .clock { font-size: 1.25rem; }
+            .header-container {
+                padding: 2px 12px;
+                padding-top: max(2px, env(safe-area-inset-top) + 2px);
+            }
+            .header-container h1 { font-size: 1rem; margin-bottom: 6px; }
+            .clock { font-size: 1.3rem; }
+            .clocks-container {
+                padding: 8px;
+                margin-bottom: 12px;
+            }
             #cueTable th, #cueTable td { padding: 6px 4px; font-size: 0.75rem; }
             
             /* Adjust connection status for small screens */
@@ -476,11 +492,6 @@ struct HTMLStyles {
 
         /* iPhone-specific clock sizing */
         @media (max-width: 480px) {
-            .clocks-container {
-                padding: 10px;
-                margin-bottom: 15px;
-            }
-            
             .clock-box {
                 margin: 0 5px;
                 min-width: 60px;
@@ -491,10 +502,6 @@ struct HTMLStyles {
                 margin-bottom: 3px;
             }
             
-            .clock {
-                font-size: 1rem;
-            }
-            
             .date {
                 font-size: 0.75rem;
                 margin-bottom: 3px;
@@ -503,9 +510,13 @@ struct HTMLStyles {
 
         /* Extra small iPhone adjustments */
         @media (max-width: 375px) {
+            .header-container {
+                padding: 2px 10px;
+                padding-top: max(2px, env(safe-area-inset-top) + 2px);
+            }
             .clocks-container {
-                padding: 8px;
-                margin-bottom: 12px;
+                padding: 6px;
+                margin-bottom: 10px;
             }
             
             .clock-box {
@@ -514,7 +525,7 @@ struct HTMLStyles {
             }
             
             .clock {
-                font-size: 0.9rem;
+                font-size: 1.1rem;
             }
             
             .clock-label {
