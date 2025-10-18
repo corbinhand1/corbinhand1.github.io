@@ -2,709 +2,2259 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Cue to Cue Viewer - Nebula Creative</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cue to Cue Viewer</title>
     
-    <!-- Password Protection System -->
-    <script src="password-config.js"></script>
-    <script src="password-system.js"></script>
+    <!-- PDF Generation Libraries - Self-hosted for reliability -->
+    <script src="html2canvas.min.js"></script>
+    <script src="jspdf.umd.min.js"></script>
+    
+    <script>
+        // Wait for libraries to load and verify they're available
+        window.addEventListener('load', function() {
+            console.log('🔍 Checking PDF libraries...');
+            console.log('html2canvas available:', typeof html2canvas !== 'undefined');
+            console.log('jsPDF available:', typeof jsPDF !== 'undefined');
+            console.log('window.jsPDF available:', typeof window.jsPDF !== 'undefined');
+            console.log('window.jspdf available:', typeof window.jspdf !== 'undefined');
+            console.log('window.jspdf.jsPDF available:', typeof window.jspdf?.jsPDF !== 'undefined');
+            
+            // jsPDF UMD exports to window.jspdf.jsPDF, create global reference
+            if (typeof window.jspdf !== 'undefined' && typeof window.jspdf.jsPDF !== 'undefined') {
+                console.log('📄 jsPDF found as window.jspdf.jsPDF, creating global reference');
+                window.jsPDF = window.jspdf.jsPDF;
+            } else if (typeof jsPDF !== 'undefined') {
+                console.log('📄 jsPDF found as global jsPDF');
+                window.jsPDF = jsPDF;
+            } else if (typeof window.jsPDF !== 'undefined') {
+                console.log('📄 jsPDF found as window.jsPDF');
+                // Already available as window.jsPDF
+            } else {
+                console.error('❌ jsPDF library not found in any expected location');
+            }
+        });
+    </script>
     
     <style>
-        /* Digital Clock Font */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Source+Code+Pro&display=swap');
-        
-        /* Reset and Base Styles */
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #121212;
-            color: #e0e0e0;
-            line-height: 1.6;
-            height: 100vh;
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-            padding-left: env(safe-area-inset-left);
-            padding-right: env(safe-area-inset-right);
-        }
-
-        /* Header Container */
-        .header-container {
-            background: rgba(18, 18, 18, 0.95);
-            padding: 5px 20px;
-            padding-top: max(5px, env(safe-area-inset-top) + 5px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            backdrop-filter: blur(10px);
-            flex-shrink: 0;
-            position: relative;
-            z-index: 1000;
-        }
-
-        /* Connection Status Indicator */
-        .connection-status {
-            position: absolute;
-            top: max(5px, env(safe-area-inset-top) + 5px);
-            right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 1001;
-        }
-
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background-color: #666;
-            transition: background-color 0.3s ease;
-        }
-
-        .status-dot.connected {
-            background-color: #4CAF50;
-            box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
-        }
-
-        .status-dot.disconnected {
-            background-color: #F44336;
-            box-shadow: 0 0 8px rgba(244, 67, 54, 0.6);
-        }
-
-        .status-text {
-            font-size: 0.8rem;
-            color: #e0e0e0;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Main Header */
-        .main-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 10px;
-            margin-bottom: 15px;
-        }
-
-        .header-title {
-            font-size: 1.8rem;
-            font-weight: 600;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
             color: #ffffff;
-            margin: 0;
+            min-height: 100vh;
+            padding: 10px;
         }
 
-        /* File Info */
-        .file-info {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 15px;
+        /* Mobile-first responsive design */
+        @media (max-width: 768px) {
+            body {
+                padding: 8px;
+            }
+        }
+
+        .container {
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        /* Mobile container */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 8px;
+            }
+        }
+
+        .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
         }
 
-        .file-name {
+        /* Mobile header adjustments */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+                padding: 12px;
+                margin-bottom: 15px;
+            }
+        }
+
+        .title-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* Mobile title section */
+        @media (max-width: 768px) {
+            .title-section {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+                width: 100%;
+            }
+        }
+
+        .title {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        /* Mobile title sizing */
+        @media (max-width: 768px) {
+            .title {
+                font-size: 1.5rem;
+                line-height: 1.2;
+            }
+        }
+
+        .current-time {
             font-size: 1rem;
-            font-weight: 600;
             color: #4CAF50;
-            font-family: 'Source Code Pro', monospace;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-weight: 500;
+        }
+
+        /* Mobile current time */
+        @media (max-width: 768px) {
+            .current-time {
+                font-size: 0.9rem;
+            }
+        }
+
+        .status-section {
+            text-align: right;
+        }
+
+        /* Mobile status section */
+        @media (max-width: 768px) {
+            .status-section {
+                text-align: left;
+                width: 100%;
+            }
+        }
+
+        .current-show {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .current-show-label {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .current-show-value {
+            color: #4CAF50;
+            font-weight: bold;
         }
 
         .last-updated {
-            font-size: 0.8rem;
-            color: #b0b0b0;
+            font-size: 0.9rem;
+            color: #FF9800;
         }
 
-        /* Clocks Container */
-        .clocks-container {
-            display: flex;
+        .time-displays {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
-            align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 30px;
         }
 
-        .clock-box {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 12px 16px;
+        .time-box {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            border-radius: 15px;
             text-align: center;
-            min-width: 120px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .clock-label {
-            font-size: 0.7rem;
-            color: #b0b0b0;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 500;
-        }
-
-        .clock {
-            font-family: 'Source Code Pro', monospace;
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #4CAF50;
-            margin-bottom: 2px;
-        }
-
-        .date {
-            font-size: 0.7rem;
-            color: #b0b0b0;
-        }
-
-        /* Column Header */
-        .column-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
+        .time-label {
+            font-size: 0.9rem;
+            color: #888;
             margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .time-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4CAF50;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .time-date {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .cue-table-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Mobile table container */
+        @media (max-width: 768px) {
+            .cue-table-container {
+                border-radius: 12px;
+                overflow-x: auto; /* Allow horizontal scrolling on mobile */
+            }
+        }
+
+        .cue-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .cue-table th {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            text-align: left;
+            font-weight: bold;
+            color: #ffffff;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cue-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+        }
+
+        .cue-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* Mobile controls row */
+        @media (max-width: 768px) {
+            .controls-row {
+                flex-direction: column;
+                gap: 12px;
+                margin-bottom: 15px;
+            }
         }
 
         .cue-stack-selector {
-            flex-shrink: 0;
+            flex: 1;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Mobile cue stack selector */
+        @media (max-width: 768px) {
+            .cue-stack-selector {
+                padding: 12px;
+            }
+        }
+
+        .cue-stack-label {
+            font-size: 1rem;
+            margin-bottom: 12px;
+            color: #ffffff;
+        }
+
+        /* Mobile cue stack label */
+        @media (max-width: 768px) {
+            .cue-stack-label {
+                font-size: 1.1rem;
+                margin-bottom: 10px;
+            }
         }
 
         .cue-stack-dropdown {
-            background: rgba(255, 255, 255, 0.1);
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
+            border-radius: 8px;
             color: #ffffff;
-            padding: 8px 12px;
-            font-size: 0.9rem;
-            min-width: 200px;
-            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        /* Mobile cue stack dropdown */
+        @media (max-width: 768px) {
+            .cue-stack-dropdown {
+                padding: 16px;
+                font-size: 1.1rem;
+                min-height: 48px; /* Minimum touch target size */
+            }
         }
 
         .cue-stack-dropdown option {
-            background: #1e1e1e;
+            background: #2d2d2d;
             color: #ffffff;
         }
 
-        .column-names {
+        .column-controls {
             flex: 1;
-            font-size: 0.9rem;
-            color: #b0b0b0;
+            display: flex;
+            justify-content: flex-end;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Mobile column controls */
+        @media (max-width: 768px) {
+            .column-controls {
+                padding: 12px;
+                justify-content: center;
+            }
+        }
+
+        .column-controls-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        /* Mobile column controls group */
+        @media (max-width: 768px) {
+            .column-controls-group {
+                align-items: center;
+                gap: 12px;
+            }
+        }
+
+        .column-visibility-label {
+            color: #ffffff;
+            font-size: 1rem;
             font-weight: 500;
         }
 
-        /* Table Container */
-        .table-container {
-            flex: 1;
-            overflow: auto;
-            background-color: #1e1e1e;
-            position: relative;
-            -webkit-overflow-scrolling: touch;
+        /* Mobile column visibility label */
+        @media (max-width: 768px) {
+            .column-visibility-label {
+                font-size: 1.1rem;
+            }
         }
 
-        /* Table Styles */
-        #cueTable {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            table-layout: fixed;
-            min-width: max-content;
+        .column-controls-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
         }
 
-        #cueTable thead {
-            position: sticky;
-            top: 0;
-            z-index: 10;
+        /* Mobile column controls buttons */
+        @media (max-width: 768px) {
+            .column-controls-buttons {
+                gap: 8px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
         }
 
-        #cueTable th {
-            background-color: #333333;
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 0.95rem;
-            padding: 6px 4px;
-            text-align: left;
-            border-right: 1px solid #444444;
-            border-bottom: 2px solid #444444;
-            position: relative;
-            user-select: none;
-            white-space: normal;
-            word-wrap: break-word;
-            vertical-align: middle;
-        }
-
-        #cueTable th:last-child {
-            border-right: none;
-        }
-
-        #cueTable td {
-            background-color: #1e1e1e;
-            color: #e0e0e0;
-            padding: 10px 8px;
-            font-size: 0.95rem;
-            border-right: 1px solid #2a2a2a;
-            border-bottom: 1px solid #2a2a2a;
-            white-space: normal;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            vertical-align: middle;
-        }
-
-        #cueTable td:last-child {
-            border-right: none;
-        }
-
-        #cueTable tbody tr:nth-child(even) td {
-            background-color: #2a2a2a;
-        }
-
-        #cueTable tbody tr:hover td {
-            background-color: #3a3a3a;
-        }
-
-        #cueTable tbody tr.selected td {
-            background-color: rgba(58, 122, 34, 0.5);
-        }
-
-        #cueTable tbody tr.next td {
-            background-color: rgba(186, 176, 32, 0.5);
-        }
-
-        .timer-cell {
-            font-family: 'Source Code Pro', monospace;
-            text-align: center;
-            background-color: #555555 !important;
-            border-radius: 4px;
-            padding: 6px !important;
-            letter-spacing: 0.5px;
-        }
-
-        .struck {
-            text-decoration: line-through;
-            opacity: 0.7;
-        }
-
-        /* Loading and Error States */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #b0b0b0;
-        }
-
-        .error {
-            background: rgba(244, 67, 54, 0.1);
-            border: 1px solid rgba(244, 67, 54, 0.3);
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px;
-            text-align: center;
-            color: #ffcdd2;
-        }
-
-        .refresh-button {
+        .column-toggle-btn {
             background: #4CAF50;
-            border: none;
-            border-radius: 6px;
             color: white;
-            padding: 10px 20px;
-            font-size: 14px;
-            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
             cursor: pointer;
-            margin-top: 10px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px; /* Minimum touch target size */
         }
 
-        .refresh-button:hover {
+        /* Mobile column toggle button */
+        @media (max-width: 768px) {
+            .column-toggle-btn {
+                padding: 14px 18px;
+                font-size: 1rem;
+                min-height: 48px;
+                flex: 1;
+                justify-content: center;
+            }
+        }
+
+        .column-toggle-btn:hover {
             background: #45a049;
         }
 
-        /* No Data State */
-        .no-data {
-            text-align: center;
-            padding: 60px 20px;
-            color: #b0b0b0;
+        .color-settings-btn {
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            transition: all 0.2s ease;
         }
 
-        .no-data h3 {
-            color: #ffffff;
-            margin-bottom: 10px;
-        }
-
-        .no-data p {
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-
-        /* Mobile Responsive */
+        /* Mobile color settings button */
         @media (max-width: 768px) {
-            .header-container {
-                padding: 5px 10px;
+            .color-settings-btn {
+                width: 48px;
+                height: 48px;
+                padding: 14px;
+                font-size: 1.1rem;
             }
+        }
 
-            .main-header {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 10px;
+        .color-settings-btn:hover {
+            background: #FF5252;
+            transform: translateY(-1px);
+        }
+
+        .print-btn {
+            background: #9C27B0;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            transition: all 0.2s ease;
+        }
+
+        /* Mobile print button */
+        @media (max-width: 768px) {
+            .print-btn {
+                width: 48px;
+                height: 48px;
+                padding: 14px;
+                font-size: 1.1rem;
             }
+        }
 
-            .file-info {
+        .print-btn:hover {
+            background: #7B1FA2;
+            transform: translateY(-1px);
+        }
+
+        .column-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .column-modal-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .column-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .column-modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal:hover {
+            color: #ff6b6b;
+        }
+
+        .column-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .column-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .column-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .column-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: #4CAF50;
+        }
+
+        .column-label {
+            color: #ffffff;
+            font-size: 0.9rem;
+            flex: 1;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .modal-btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #45a049;
+        }
+
+        .modal-btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .modal-btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Color Picker Modal Styles */
+        .color-modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .color-modal-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .color-modal-header {
+            padding: 24px 24px 16px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .color-modal-header h3 {
+            margin: 0 0 8px 0;
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .color-modal-description {
+            color: #8e8e93;
+            font-size: 0.9rem;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .color-modal-body {
+            padding: 24px;
+        }
+
+        .color-setting-group {
+            margin-bottom: 20px;
+        }
+
+        .color-setting-group h4 {
+            color: #ffffff;
+            font-size: 1rem;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+        }
+
+        .color-setting-description {
+            color: #8e8e93;
+            font-size: 0.85rem;
+            margin: 0 0 16px 0;
+            line-height: 1.4;
+        }
+
+        .color-override {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 16px;
+            background-color: rgba(58, 58, 60, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .color-override:hover {
+            background-color: rgba(58, 58, 60, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .color-override .keyword {
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 500;
+            flex: 1;
+            margin-right: 16px;
+        }
+
+        .color-override .color-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .color-override .original-color {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .color-override .original-color:hover {
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-override .custom-color {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            padding: 0;
+            background: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .color-override .custom-color:hover {
+            border-color: #007AFF;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-override .custom-color::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .color-override .custom-color::-webkit-color-swatch {
+            border: none;
+            border-radius: 50%;
+        }
+
+        .color-modal-footer {
+            padding: 16px 24px 24px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .primary-btn, .secondary-btn {
+            background-color: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            min-width: 100px;
+        }
+
+        .primary-btn:hover {
+            background-color: #0056CC;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        }
+
+        .secondary-btn {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .secondary-btn:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Print Modal Styles */
+        .print-modal {
+            display: none;
+            position: fixed;
+            z-index: 1002;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .print-modal-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            margin: 3% auto;
+            padding: 0;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .print-modal-header {
+            padding: 24px 24px 16px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .print-modal-header h3 {
+            margin: 0 0 8px 0;
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .print-modal-description {
+            color: #8e8e93;
+            font-size: 0.9rem;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .print-modal-body {
+            padding: 24px;
+        }
+
+        .print-setting-group {
+            margin-bottom: 24px;
+        }
+
+        .print-setting-group h4 {
+            color: #ffffff;
+            font-size: 1rem;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+        }
+
+        .print-setting-description {
+            color: #8e8e93;
+            font-size: 0.85rem;
+            margin: 0 0 16px 0;
+            line-height: 1.4;
+        }
+
+        .cue-stack-selection {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .cue-stack-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .cue-stack-item:last-child {
+            border-bottom: none;
+        }
+
+        .cue-stack-item label {
+            color: #ffffff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .layout-options {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .layout-option {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .layout-option label {
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .segmented-control {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .segmented-control input[type="radio"] {
+            display: none;
+        }
+
+        .segmented-control label {
+            flex: 1;
+            padding: 8px 16px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            color: #8e8e93;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .segmented-control input[type="radio"]:checked + label {
+            background: #007AFF;
+            color: #ffffff;
+        }
+
+        .font-size-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .font-size-control input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .font-size-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #007AFF;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .font-size-control span {
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: 500;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .print-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            color: #ffffff;
+            font-size: 0.9rem;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            display: none;
+        }
+
+        .checkmark {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-label input[type="checkbox"]:checked + .checkmark {
+            background: #007AFF;
+            border-color: #007AFF;
+        }
+
+        .checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .print-modal-footer {
+            padding: 16px 24px 24px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .cue-number {
+            font-weight: bold;
+            color: #4CAF50;
+            width: 80px;
+        }
+
+        .cue-description {
+            color: #ffffff;
+        }
+
+        .cue-time {
+            color: #FF9800;
+            font-family: 'SF Mono', Monaco, monospace;
+            width: 100px;
+        }
+
+        .cue-notes {
+            color: #888;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #f44336;
+        }
+
+        @media (max-width: 768px) {
+            .header {
                 flex-direction: column;
-                align-items: stretch;
                 text-align: center;
             }
-
-            .clocks-container {
-                justify-content: center;
-                flex-wrap: wrap;
+            
+            .time-displays {
+                grid-template-columns: 1fr;
             }
-
-            .clock-box {
-                min-width: 100px;
-                padding: 10px 12px;
-            }
-
-            .clock {
-                font-size: 1rem;
-            }
-
-            .column-header {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 10px;
-            }
-
-            .cue-stack-dropdown {
-                min-width: auto;
-            }
-
-            #cueTable {
-                font-size: 0.8rem;
-            }
-
-            #cueTable th,
-            #cueTable td {
-                padding: 6px 4px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .clocks-container {
-                gap: 10px;
-            }
-
-            .clock-box {
-                min-width: 80px;
-                padding: 8px 10px;
-            }
-
-            .clock {
+            
+            .cue-table {
                 font-size: 0.9rem;
             }
-
-            #cueTable {
-                font-size: 0.7rem;
-            }
-
-            #cueTable th,
-            #cueTable td {
-                padding: 4px 2px;
+            
+            .cue-table th,
+            .cue-table td {
+                padding: 8px;
             }
         }
     </style>
 </head>
 <body>
-    <div id="mainContent" style="display: none;">
-        <div class="header-container">
-        <div class="connection-status">
-            <div class="status-dot" id="statusDot"></div>
-            <span class="status-text" id="statusText">Offline</span>
-        </div>
-        
-        <div class="main-header">
-            <h1 class="header-title">Cue to Cue Viewer</h1>
-        </div>
-        
-        <div class="file-info" id="fileInfo" style="display: none;">
-            <div>
-                <div class="file-name" id="fileName">No file loaded</div>
-                <div class="last-updated" id="lastUpdated">Never updated</div>
+    <div class="container">
+        <div class="header">
+            <div class="title-section">
+                <div class="title">Cue to Cue Viewer</div>
+                <div class="current-time" id="currentTime">Loading...</div>
+            </div>
+            <div class="status-section">
+                <div class="current-show">
+                    <div class="current-show-label">CURRENT SHOW</div>
+                    <div class="current-show-value" id="currentShow">Loading...</div>
+                </div>
+                <div class="last-updated" id="lastUpdated">Loading...</div>
             </div>
         </div>
-        
-        <div class="clocks-container">
-            <div class="clock-box">
-                <div class="clock-label">Current Time</div>
-                <div class="clock" id="current-time">--:--:--</div>
-                <div class="date" id="current-date">--/--/----</div>
-            </div>
-            <div class="clock-box">
-                <div class="clock-label">Countdown</div>
-                <div class="clock" id="countdown">00:00</div>
-            </div>
-            <div class="clock-box">
-                <div class="clock-label">Count Up</div>
-                <div class="clock" id="countup">00:00</div>
-            </div>
-        </div>
-        
-        <div class="column-header">
+
+        <div class="controls-row">
             <div class="cue-stack-selector">
-                <select id="cueStackDropdown" class="cue-stack-dropdown">
+                <div class="cue-stack-label">Cue Stack</div>
+                <select class="cue-stack-dropdown" id="cueStackSelect">
                     <option value="">Loading cue stacks...</option>
                 </select>
             </div>
-            <div class="column-names" id="columnNames">Cue Stack</div>
+
+            <div class="column-controls">
+                <div class="column-controls-group">
+                    <span class="column-visibility-label">Column Visibility</span>
+                    <div class="column-controls-buttons">
+                        <button class="column-toggle-btn" id="columnToggleBtn">
+                            <span>⚙️</span>
+                            <span>Select Columns</span>
+                        </button>
+                        <button class="color-settings-btn" id="colorSettingsBtn" title="Color & Display Settings">
+                            <span>🎨</span>
+                        </button>
+                        <button class="print-btn" id="printBtn" title="Print Cue Data">
+                            <span>🖨️</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cue-table-container">
+            <table class="cue-table">
+                <thead id="cueTableHead">
+                    <tr>
+                        <td colspan="100" class="loading">Loading column headers...</td>
+                    </tr>
+                </thead>
+                <tbody id="cueTableBody">
+                    <tr>
+                        <td colspan="100" class="loading">Loading cue data...</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <div class="table-container">
-        <table id="cueTable">
-            <thead></thead>
-            <tbody></tbody>
-        </table>
+    <!-- Column Visibility Modal -->
+    <div id="columnModal" class="column-modal">
+        <div class="column-modal-content">
+            <div class="column-modal-header">
+                <h2 class="column-modal-title">Select Columns to Display</h2>
+                <button class="close-modal" id="closeModal">&times;</button>
+            </div>
+            <div class="column-grid" id="columnGrid">
+                <!-- Column checkboxes will be dynamically generated here -->
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" id="selectAllColumns">Select All</button>
+                <button class="modal-btn modal-btn-secondary" id="deselectAllColumns">Deselect All</button>
+                <button class="modal-btn modal-btn-primary" id="applyColumnChanges">Apply Changes</button>
+            </div>
+        </div>
     </div>
 
-    </div> <!-- End mainContent -->
+    <!-- Color Picker Modal -->
+    <div class="color-modal" id="colorModal">
+        <div class="color-modal-content">
+            <div class="color-modal-header">
+                <h3>Color & Display Settings</h3>
+                <p class="color-modal-description">Customize highlight colors for better visibility</p>
+                <button class="close-modal" id="closeColorModal">&times;</button>
+            </div>
+            <div class="color-modal-body">
+                <div class="color-setting-group">
+                    <h4>Highlight Color Overrides</h4>
+                    <p class="color-setting-description">Override the default highlight colors for specific keywords. Click the original color to reset.</p>
+                    <div id="colorOverridesContainer">
+                        <!-- Color overrides will be populated here -->
+                    </div>
+                </div>
+            </div>
+            <div class="color-modal-footer">
+                <button id="resetColorsBtn" class="secondary-btn">Reset All Colors</button>
+                <button id="closeColorModalBtn" class="primary-btn">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Settings Modal -->
+    <div class="print-modal" id="printModal">
+        <div class="print-modal-content">
+            <div class="print-modal-header">
+                <h3>Print Settings</h3>
+                <p class="print-modal-description">Configure print options for your cue data</p>
+                <button class="close-modal" id="closePrintModal">&times;</button>
+            </div>
+            <div class="print-modal-body">
+                <div class="print-setting-group">
+                    <h4>Cue Stacks to Print</h4>
+                    <p class="print-setting-description">Select which cue stacks to include in the printout</p>
+                    <div class="cue-stack-selection" id="cueStackSelection">
+                        <!-- Cue stack checkboxes will be populated here -->
+                    </div>
+                </div>
+                
+                <div class="print-setting-group">
+                    <h4>Layout Options</h4>
+                    <div class="layout-options">
+                        <div class="layout-option">
+                            <label>Content Layout:</label>
+                            <div class="segmented-control">
+                                <input type="radio" id="layoutColumns" name="printLayout" value="columns" checked>
+                                <label for="layoutColumns">Columns</label>
+                                <input type="radio" id="layoutCompact" name="printLayout" value="compact">
+                                <label for="layoutCompact">Compact List</label>
+                            </div>
+                        </div>
+                        
+                        <div class="layout-option">
+                            <label>Orientation:</label>
+                            <div class="segmented-control">
+                                <input type="radio" id="orientationPortrait" name="printOrientation" value="portrait" checked>
+                                <label for="orientationPortrait">Portrait</label>
+                                <input type="radio" id="orientationLandscape" name="printOrientation" value="landscape">
+                                <label for="orientationLandscape">Landscape</label>
+                            </div>
+                        </div>
+                        
+                        <div class="layout-option">
+                            <label>Print Font Size:</label>
+                            <div class="font-size-control">
+                                <input type="range" id="printFontSize" min="8" max="18" value="12" step="1">
+                                <span id="fontSizeValue">12</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="print-setting-group">
+                    <h4>Print Options</h4>
+                    <div class="print-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="printWithColors" checked>
+                            <span class="checkmark"></span>
+                            Print with Colors
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showColumnHeaders" checked>
+                            <span class="checkmark"></span>
+                            Show Column Headers
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showPageNumbers" checked>
+                            <span class="checkmark"></span>
+                            Show Page Numbers
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="print-modal-footer">
+                <button id="cancelPrintBtn" class="secondary-btn">Cancel</button>
+                <button id="printNowBtn" class="primary-btn">Print Now</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        class CueToCueViewer {
-            constructor() {
-                this.data = null;
-                this.metadata = null;
-                this.updateInterval = null;
-                this.init();
+        let cueData = null;
+        let metadata = null;
+        let visibleColumns = new Set(); // Track which columns are visible
+        
+        // Color highlighting state
+        let highlightColors = []; // Array of {keyword, color} objects
+        let colorOverrides = {}; // Object to store user color overrides
+        let originalHighlightColors = []; // Store original colors for reset
+        
+        // Print functionality state
+        let printSettings = {
+            selectedStacks: new Set(),
+            layout: 'columns',
+            orientation: 'portrait',
+            fontSize: 12,
+            printWithColors: true,
+            showHeaders: true,
+            showPageNumbers: true
+        };
+
+        // Update time displays
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const dateString = now.toLocaleDateString('en-US', { 
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+
+            // Update the header time display
+            document.getElementById('currentTime').textContent = `${timeString} • ${dateString}`;
+        }
+
+        // Load cue data
+        async function loadCueData() {
+            console.log('🔄 loadCueData() called');
+            
+            // Show loading indicator
+            const cueStackSelect = document.getElementById('cueStackSelect');
+            if (cueStackSelect) {
+                cueStackSelect.innerHTML = '<option value="">Updating...</option>';
             }
+            
+            try {
+                console.log('📡 Fetching cue data and metadata...');
+                const [cueResponse, metadataResponse] = await Promise.all([
+                    fetch(`cuetocue-data.json?v=${Date.now()}`),
+                    fetch(`metadata.json?v=${Date.now()}`)
+                ]);
 
-            async init() {
-                await this.loadData();
-                this.startAutoUpdate();
-            }
-
-            async loadData() {
-                try {
-                    // Load cue data
-                    const cueResponse = await fetch('./cuetocue-data.json');
-                    if (!cueResponse.ok) {
-                        throw new Error(`HTTP ${cueResponse.status}: ${cueResponse.statusText}`);
-                    }
-                    this.data = await cueResponse.json();
-                    
-                    // Load metadata
-                    try {
-                        const metaResponse = await fetch('./metadata.json');
-                        if (metaResponse.ok) {
-                            this.metadata = await metaResponse.json();
-                        }
-                    } catch (error) {
-                        console.warn('Could not load metadata:', error);
-                    }
-                    
-                    this.updateDisplay();
-                } catch (error) {
-                    console.error('Failed to load cue data:', error);
-                    this.showNoData();
-                }
-            }
-
-            updateDisplay() {
-                if (!this.data) return;
-
-                this.updateFileInfo();
-                this.updateClocks();
-                this.updateCueStackDropdown();
-                this.updateTable();
-            }
-
-            updateFileInfo() {
-                const fileInfo = document.getElementById('fileInfo');
-                const fileName = document.getElementById('fileName');
-                const lastUpdated = document.getElementById('lastUpdated');
-                
-                if (this.data.filename || this.metadata?.filename) {
-                    const filename = this.data.filename || this.metadata.filename;
-                    const updated = this.metadata?.lastUpdated || new Date().toISOString();
-                    
-                    fileName.textContent = filename;
-                    lastUpdated.textContent = `Last updated: ${new Date(updated).toLocaleString()}`;
-                    fileInfo.style.display = 'flex';
-                } else {
-                    fileInfo.style.display = 'none';
-                }
-            }
-
-            updateClocks() {
-                const now = new Date();
-                const timeString = now.toLocaleTimeString('en-US', { 
-                    hour12: false,
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                });
-                const dateString = now.toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
+                console.log('📊 Response status:', {
+                    cueResponse: cueResponse.status,
+                    metadataResponse: metadataResponse.status,
+                    cueResponseOk: cueResponse.ok,
+                    metadataResponseOk: metadataResponse.ok
                 });
 
-                document.getElementById('current-time').textContent = timeString;
-                document.getElementById('current-date').textContent = dateString;
-
-                // Update countdown and count-up timers
-                if (this.data.countdownTime !== undefined) {
-                    const countdownMinutes = Math.floor(this.data.countdownTime / 60);
-                    const countdownSeconds = this.data.countdownTime % 60;
-                    document.getElementById('countdown').textContent = 
-                        `${countdownMinutes.toString().padStart(2, '0')}:${countdownSeconds.toString().padStart(2, '0')}`;
+                if (!cueResponse.ok || !metadataResponse.ok) {
+                    throw new Error(`Failed to load data - Cue: ${cueResponse.status}, Metadata: ${metadataResponse.status}`);
                 }
 
-                if (this.data.countUpTime !== undefined) {
-                    const countupMinutes = Math.floor(this.data.countUpTime / 60);
-                    const countupSeconds = this.data.countUpTime % 60;
-                    document.getElementById('countup').textContent = 
-                        `${countupMinutes.toString().padStart(2, '0')}:${countupSeconds.toString().padStart(2, '0')}`;
+                console.log('✅ Responses OK, parsing JSON...');
+                cueData = await cueResponse.json();
+                metadata = await metadataResponse.json();
+
+                // Extract highlight colors from cue data
+                if (cueData && cueData.highlightColors) {
+                    highlightColors = cueData.highlightColors;
+                    console.log('🎨 Loaded highlight colors:', highlightColors);
+                } else {
+                    // Default highlight colors if none provided
+                    highlightColors = [
+                        { keyword: 'video', color: '007AFF' },
+                        { keyword: 'demo', color: 'FF3B30' },
+                        { keyword: 'timer', color: '34C759' }
+                    ];
+                    console.log('🎨 Using default highlight colors:', highlightColors);
                 }
+
+                console.log('📋 Parsed cue data:', {
+                    hasCueData: !!cueData,
+                    cueDataKeys: cueData ? Object.keys(cueData) : 'null',
+                    availableCueStacks: cueData?.availableCueStacks?.length || 0,
+                    selectedCueStackIndex: cueData?.selectedCueStackIndex,
+                    highlightColors: highlightColors.length
+                });
+
+                console.log('📄 Parsed metadata:', {
+                    hasMetadata: !!metadata,
+                    metadataKeys: metadata ? Object.keys(metadata) : 'null',
+                    filename: metadata?.filename,
+                    lastUpdated: metadata?.lastUpdated
+                });
+
+                console.log('🎯 Calling updateDisplay()...');
+                updateDisplay();
+                console.log('✅ loadCueData() completed successfully');
+            } catch (error) {
+                console.error('❌ Error loading cue data:', error);
+                console.error('❌ Error details:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+                showError('Failed to load cue data. Please try again later.');
+            }
+        }
+
+        // Update display with loaded data
+        function updateDisplay() {
+            console.log('🎨 updateDisplay() called');
+            console.log('🔍 Data check:', {
+                hasCueData: !!cueData,
+                hasMetadata: !!metadata,
+                cueDataType: typeof cueData,
+                metadataType: typeof metadata
+            });
+
+            if (!cueData || !metadata) {
+                console.warn('⚠️ Missing data - cueData:', !!cueData, 'metadata:', !!metadata);
+                return;
             }
 
-            updateCueStackDropdown() {
-                const dropdown = document.getElementById('cueStackDropdown');
-                dropdown.innerHTML = '';
+            console.log('📝 Updating header...');
+            // Update header
+            document.getElementById('currentShow').textContent = metadata.filename || 'Unknown';
+            document.getElementById('lastUpdated').textContent = 
+                `Last updated: ${new Date(metadata.lastUpdated).toLocaleString()}`;
 
-                if (this.data.availableCueStacks && this.data.availableCueStacks.length > 0) {
-                    this.data.availableCueStacks.forEach((stack, index) => {
-                        const option = document.createElement('option');
-                        option.value = index;
-                        option.textContent = stack.name;
-                        if (index === this.data.currentCueStackIndex) {
-                            option.selected = true;
-                        }
-                        dropdown.appendChild(option);
-                    });
+            console.log('📋 Header updated:', {
+                currentShow: metadata.filename || 'Unknown',
+                lastUpdated: metadata.lastUpdated
+            });
 
-                    dropdown.addEventListener('change', (e) => {
-                        this.data.currentCueStackIndex = parseInt(e.target.value);
-                        this.updateTable();
-                    });
-                } else {
+            // Update cue stack selector
+            console.log('🎯 Updating cue stack selector...');
+            const cueStackSelect = document.getElementById('cueStackSelect');
+            
+            // Preserve current selection (from localStorage or current value)
+            const savedSelection = localStorage.getItem('selectedCueStack');
+            const currentSelection = cueStackSelect.value || savedSelection;
+            console.log('💾 Preserving current selection:', currentSelection, '(saved:', savedSelection, ')');
+            
+            cueStackSelect.innerHTML = '';
+            
+            console.log('📊 Cue stacks info:', {
+                availableCueStacks: cueData.availableCueStacks?.length || 0,
+                selectedCueStackIndex: cueData.selectedCueStackIndex,
+                stacks: cueData.availableCueStacks?.map(s => s.name) || []
+            });
+            
+            if (cueData.availableCueStacks && cueData.availableCueStacks.length > 0) {
+                cueData.availableCueStacks.forEach((stack, index) => {
+                    console.log(`📦 Adding stack ${index}:`, stack.name);
                     const option = document.createElement('option');
-                    option.textContent = 'No cue stacks available';
-                    dropdown.appendChild(option);
-                }
+                    option.value = index;
+                    option.textContent = stack.name;
+                    
+                    // Restore previous selection if it exists, otherwise use default
+                    if (currentSelection && currentSelection === index.toString()) {
+                        option.selected = true;
+                        console.log(`🔄 Restored previous selection: ${index} - ${stack.name}`);
+                    } else if (!currentSelection && index === cueData.selectedCueStackIndex) {
+                        option.selected = true;
+                        console.log(`✅ Default selection: ${index} - ${stack.name}`);
+                    }
+                    
+                    cueStackSelect.appendChild(option);
+                });
+            } else {
+                console.warn('⚠️ No cue stacks available');
             }
 
-            updateTable() {
-                const table = document.getElementById('cueTable');
-                const thead = table.querySelector('thead');
-                const tbody = table.querySelector('tbody');
-                
-                if (!this.data || !this.data.cues || !this.data.columns) {
-                    tbody.innerHTML = '<tr><td colspan="100%" class="loading">No cue data available</td></tr>';
-                    return;
-                }
+            // Update cue table
+            console.log('📊 Calling updateCueTable()...');
+            updateCueTable();
 
-                // Build header
-                thead.innerHTML = '';
-                const headerRow = document.createElement('tr');
+            // Add event listener for cue stack changes
+            cueStackSelect.addEventListener('change', function() {
+                // Save selection to localStorage
+                localStorage.setItem('selectedCueStack', this.value);
+                console.log('💾 Saved cue stack selection:', this.value);
+                updateCueTable();
+            });
+            console.log('✅ updateDisplay() completed');
+        }
+
+        // Update cue table based on selected stack
+        function updateCueTable() {
+            console.log('📊 updateCueTable() called');
+            
+            if (!cueData) {
+                console.warn('⚠️ No cue data available for table update');
+                return;
+            }
+
+            const cueStackSelect = document.getElementById('cueStackSelect');
+            const selectedIndex = parseInt(cueStackSelect.value);
+            console.log('🎯 Selected stack index:', selectedIndex);
+
+            const selectedStack = cueData.availableCueStacks[selectedIndex];
+            console.log('📦 Selected stack:', {
+                index: selectedIndex,
+                stack: selectedStack,
+                hasStack: !!selectedStack,
+                stackName: selectedStack?.name,
+                cuesCount: selectedStack?.cues?.length || 0
+            });
+
+            if (!selectedStack) {
+                console.warn('⚠️ No stack found for index:', selectedIndex);
+                return;
+            }
+
+            // Get column structure and filter by visibility
+            const allColumns = cueData.columns || [];
+            const columns = allColumns.filter(col => visibleColumns.size === 0 || visibleColumns.has(col.name));
+            console.log('📊 Column structure:', columns.map(c => c.name));
+            console.log('📊 Visible columns:', Array.from(visibleColumns));
+
+            // Update table headers
+            const thead = document.getElementById('cueTableHead');
+            thead.innerHTML = '';
+            const headerRow = document.createElement('tr');
+            
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col.name;
+                th.style.width = col.width ? `${col.width}px` : 'auto';
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            console.log('📋 Building cue table with', selectedStack.cues.length, 'cues');
+            const tbody = document.getElementById('cueTableBody');
+            tbody.innerHTML = '';
+
+            selectedStack.cues.forEach((cue, index) => {
+                console.log(`📝 Adding cue ${index}:`, cue);
                 
-                this.data.columns.forEach((col, index) => {
-                    const th = document.createElement('th');
-                    th.style.width = col.width + 'px';
-                    th.style.minWidth = col.width + 'px';
-                    th.style.maxWidth = col.width + 'px';
-                    th.textContent = col.name;
-                    headerRow.appendChild(th);
+                const row = document.createElement('tr');
+                
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    const value = cue[col.name] || '';
+                    td.textContent = value;
+                    
+                    // Add special styling for certain columns
+                    if (col.name === '#') {
+                        td.className = 'cue-number';
+                    } else if (col.name === 'Description') {
+                        td.className = 'cue-description';
+                    } else if (col.name === 'Preset') {
+                        td.className = 'cue-time';
+                    }
+                    
+                    row.appendChild(td);
                 });
                 
-                thead.appendChild(headerRow);
+                tbody.appendChild(row);
+            });
 
-                // Build body
-                tbody.innerHTML = '';
-                this.data.cues.forEach((cue, rowIndex) => {
+            console.log('✅ updateCueTable() completed - added', selectedStack.cues.length, 'cues');
+            
+            // Apply row highlighting after table is built
+            refreshTableColors();
+        }
+
+        // Column Visibility Functions
+        function initializeColumnVisibility() {
+            console.log('🔧 Initializing column visibility controls...');
+            
+            // Load saved column preferences
+            const savedColumns = localStorage.getItem('visibleColumns');
+            if (savedColumns) {
+                visibleColumns = new Set(JSON.parse(savedColumns));
+                console.log('💾 Loaded saved column preferences:', Array.from(visibleColumns));
+            }
+            
+            // Set up modal event listeners
+            const columnToggleBtn = document.getElementById('columnToggleBtn');
+            const columnModal = document.getElementById('columnModal');
+            const closeModal = document.getElementById('closeModal');
+            const selectAllBtn = document.getElementById('selectAllColumns');
+            const deselectAllBtn = document.getElementById('deselectAllColumns');
+            const applyBtn = document.getElementById('applyColumnChanges');
+            
+            columnToggleBtn.addEventListener('click', openColumnModal);
+            closeModal.addEventListener('click', closeColumnModal);
+            selectAllBtn.addEventListener('click', selectAllColumns);
+            deselectAllBtn.addEventListener('click', deselectAllColumns);
+            applyBtn.addEventListener('click', applyColumnChanges);
+            
+            // Close modal when clicking outside
+            columnModal.addEventListener('click', function(e) {
+                if (e.target === columnModal) {
+                    closeColumnModal();
+                }
+            });
+            
+            console.log('✅ Column visibility controls initialized');
+        }
+        
+        function openColumnModal() {
+            console.log('🔧 Opening column visibility modal...');
+            
+            if (!cueData || !cueData.columns) {
+                console.warn('⚠️ No column data available');
+                return;
+            }
+            
+            const columnGrid = document.getElementById('columnGrid');
+            columnGrid.innerHTML = '';
+            
+            // Create checkboxes for each column
+            cueData.columns.forEach(column => {
+                const columnItem = document.createElement('div');
+                columnItem.className = 'column-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'column-checkbox';
+                checkbox.id = `col-${column.name}`;
+                checkbox.value = column.name;
+                
+                // Check if column should be visible
+                const isVisible = visibleColumns.size === 0 || visibleColumns.has(column.name);
+                checkbox.checked = isVisible;
+                
+                const label = document.createElement('label');
+                label.className = 'column-label';
+                label.htmlFor = `col-${column.name}`;
+                label.textContent = column.name;
+                
+                columnItem.appendChild(checkbox);
+                columnItem.appendChild(label);
+                columnGrid.appendChild(columnItem);
+            });
+            
+            document.getElementById('columnModal').style.display = 'block';
+            console.log('✅ Column modal opened');
+        }
+        
+        function closeColumnModal() {
+            document.getElementById('columnModal').style.display = 'none';
+            console.log('🔧 Column modal closed');
+        }
+        
+        function selectAllColumns() {
+            const checkboxes = document.querySelectorAll('.column-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = true);
+            console.log('✅ All columns selected');
+        }
+        
+        function deselectAllColumns() {
+            const checkboxes = document.querySelectorAll('.column-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = false);
+            console.log('✅ All columns deselected');
+        }
+        
+        function applyColumnChanges() {
+            console.log('🔧 Applying column visibility changes...');
+            
+            const checkboxes = document.querySelectorAll('.column-checkbox');
+            visibleColumns.clear();
+            
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    visibleColumns.add(checkbox.value);
+                }
+            });
+            
+            // Save preferences to localStorage
+            localStorage.setItem('visibleColumns', JSON.stringify(Array.from(visibleColumns)));
+            console.log('💾 Saved column preferences:', Array.from(visibleColumns));
+            
+            // Update the table
+            updateCueTable();
+            
+            // Close modal
+            closeColumnModal();
+            
+            console.log('✅ Column visibility changes applied');
+        }
+
+        // Show error message
+        function showError(message) {
+            document.getElementById('cueTableBody').innerHTML = `
+                <tr>
+                    <td colspan="4" class="error">${message}</td>
+                </tr>
+            `;
+        }
+
+        // Color Picker Functions
+        function initializeColorPicker() {
+            console.log('🎨 Initializing color picker...');
+            
+            // Load saved color overrides
+            const savedOverrides = localStorage.getItem('colorOverrides');
+            if (savedOverrides) {
+                colorOverrides = JSON.parse(savedOverrides);
+                console.log('💾 Loaded saved color overrides:', colorOverrides);
+            }
+            
+            // Set up color picker event listeners
+            const colorSettingsBtn = document.getElementById('colorSettingsBtn');
+            const colorModal = document.getElementById('colorModal');
+            const closeColorModalBtn = document.getElementById('closeColorModal');
+            const closeColorModalBtn2 = document.getElementById('closeColorModalBtn');
+            const resetColorsBtn = document.getElementById('resetColorsBtn');
+            
+            colorSettingsBtn.addEventListener('click', openColorModal);
+            closeColorModalBtn.addEventListener('click', closeColorModal);
+            closeColorModalBtn2.addEventListener('click', closeColorModal);
+            resetColorsBtn.addEventListener('click', resetAllColors);
+            
+            // Close modal when clicking outside
+            colorModal.addEventListener('click', function(e) {
+                if (e.target === colorModal) {
+                    closeColorModal();
+                }
+            });
+            
+            console.log('✅ Color picker initialized');
+        }
+        
+        function openColorModal() {
+            console.log('🎨 Opening color picker modal...');
+            console.log('🎨 Current highlight colors:', highlightColors);
+            
+            if (!highlightColors || highlightColors.length === 0) {
+                console.warn('⚠️ No highlight colors available, using defaults');
+                // Use default colors if none available
+                highlightColors = [
+                    { keyword: 'video', color: '007AFF' },
+                    { keyword: 'demo', color: 'FF3B30' },
+                    { keyword: 'timer', color: '34C759' }
+                ];
+            }
+            
+            updateColorOverrides();
+            document.getElementById('colorModal').style.display = 'block';
+        }
+        
+        function closeColorModal() {
+            console.log('🎨 Closing color picker modal...');
+            document.getElementById('colorModal').style.display = 'none';
+        }
+        
+        function updateColorOverrides() {
+            console.log('🎨 updateColorOverrides called with:', highlightColors);
+            
+            if (!highlightColors || !Array.isArray(highlightColors)) {
+                console.warn('⚠️ No valid highlight colors array');
+                return;
+            }
+            
+            // Store original colors if not already stored
+            if (originalHighlightColors.length === 0) {
+                originalHighlightColors = [...highlightColors];
+                console.log('💾 Stored original colors:', originalHighlightColors);
+            }
+            
+            const container = document.getElementById('colorOverridesContainer');
+            if (!container) {
+                console.error('❌ colorOverridesContainer not found');
+                return;
+            }
+            
+            console.log('🎨 Building color override UI...');
+            container.innerHTML = '';
+            
+            highlightColors.forEach((highlight, index) => {
+                console.log(`🎨 Processing highlight ${index}:`, highlight);
+                
+                const overrideKey = `${highlight.keyword}_${highlight.color}`;
+                const currentOverride = colorOverrides[overrideKey];
+                
+                const overrideDiv = document.createElement('div');
+                overrideDiv.className = 'color-override';
+                overrideDiv.dataset.keyword = highlight.keyword;
+                overrideDiv.dataset.originalColor = highlight.color;
+                overrideDiv.dataset.overrideKey = overrideKey;
+                
+                const keywordSpan = document.createElement('span');
+                keywordSpan.className = 'keyword';
+                keywordSpan.textContent = highlight.keyword;
+                
+                const colorControls = document.createElement('div');
+                colorControls.className = 'color-controls';
+                
+                // Original color indicator
+                const originalColor = document.createElement('div');
+                originalColor.className = 'original-color';
+                originalColor.style.backgroundColor = '#' + highlight.color;
+                originalColor.title = 'Reset to original color';
+                originalColor.onclick = () => {
+                    console.log('🔄 Resetting color for:', highlight.keyword);
+                    delete colorOverrides[overrideKey];
+                    saveColorSettings();
+                    updateColorOverrides();
+                    refreshTableColors();
+                };
+                
+                // Custom color picker
+                const customColor = document.createElement('input');
+                customColor.type = 'color';
+                customColor.className = 'custom-color';
+                customColor.value = currentOverride ? '#' + currentOverride : '#' + highlight.color;
+                customColor.title = 'Customize highlight color';
+                customColor.onchange = (e) => {
+                    console.log('🎨 Color changed for:', highlight.keyword, 'to:', e.target.value);
+                    const newColor = e.target.value.substring(1); // Remove # prefix
+                    if (newColor !== highlight.color) {
+                        colorOverrides[overrideKey] = newColor;
+                    } else {
+                        delete colorOverrides[overrideKey];
+                    }
+                    saveColorSettings();
+                    refreshTableColors();
+                };
+                
+                colorControls.appendChild(originalColor);
+                colorControls.appendChild(customColor);
+                
+                overrideDiv.appendChild(keywordSpan);
+                overrideDiv.appendChild(colorControls);
+                container.appendChild(overrideDiv);
+                
+                console.log('✅ Added color override for:', highlight.keyword);
+            });
+            
+            console.log('✅ updateColorOverrides completed');
+        }
+        
+        function resetAllColors() {
+            console.log('🔄 Resetting all colors to defaults...');
+            colorOverrides = {};
+            saveColorSettings();
+            updateColorOverrides();
+            refreshTableColors();
+        }
+        
+        function saveColorSettings() {
+            console.log('💾 Saving color settings:', colorOverrides);
+            localStorage.setItem('colorOverrides', JSON.stringify(colorOverrides));
+        }
+        
+        function refreshTableColors() {
+            console.log('🎨 Refreshing table colors...');
+            const tbody = document.getElementById('cueTableBody');
+            if (!tbody) {
+                console.warn('⚠️ No table body found for color refresh');
+                return;
+            }
+            
+            const rows = tbody.querySelectorAll('tr');
+            console.log(`🎨 Found ${rows.length} rows to process`);
+            
+            rows.forEach((row, index) => {
+                applyRowHighlighting(row);
+                if (index < 3) { // Log first few rows for debugging
+                    console.log(`🎨 Processed row ${index}`);
+                }
+            });
+            
+            console.log('✅ Table colors refreshed');
+        }
+        
+        function applyRowHighlighting(row) {
+            if (!highlightColors || !Array.isArray(highlightColors)) return;
+            
+            // Reset all cell colors in the row first
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                cell.style.color = '';
+            });
+            
+            // Check each cell for highlight keywords and apply row-level highlighting
+            cells.forEach(cell => {
+                const cellText = cell.textContent;
+                if (!cellText) return;
+                
+                for (const highlight of highlightColors) {
+                    if (highlight.keyword && highlight.color && 
+                        cellText.toLowerCase().includes(highlight.keyword.toLowerCase())) {
+                        
+                        // Check if user has overridden this color
+                        const overrideKey = `${highlight.keyword}_${highlight.color}`;
+                        const colorToApply = colorOverrides[overrideKey] || highlight.color;
+                        
+                        // Apply color to all cells in the row
+                        cells.forEach(cell => {
+                            cell.style.color = '#' + colorToApply;
+                        });
+                        
+                        return; // Exit after first match
+                    }
+                }
+            });
+        }
+        
+        // Print Functions
+        function initializePrintModal() {
+            console.log('🖨️ Initializing print modal...');
+            
+            // Load saved print settings
+            const savedSettings = localStorage.getItem('printSettings');
+            if (savedSettings) {
+                const parsed = JSON.parse(savedSettings);
+                printSettings = { ...printSettings, ...parsed };
+                printSettings.selectedStacks = new Set(parsed.selectedStacks || []);
+                console.log('💾 Loaded saved print settings:', printSettings);
+            }
+            
+            // Set up print modal event listeners
+            const printBtn = document.getElementById('printBtn');
+            const printModal = document.getElementById('printModal');
+            const closePrintModalBtn = document.getElementById('closePrintModal');
+            const cancelPrintBtn = document.getElementById('cancelPrintBtn');
+            const printNowBtn = document.getElementById('printNowBtn');
+            const printFontSize = document.getElementById('printFontSize');
+            const fontSizeValue = document.getElementById('fontSizeValue');
+            
+            printBtn.addEventListener('click', openPrintModal);
+            closePrintModalBtn.addEventListener('click', closePrintModal);
+            cancelPrintBtn.addEventListener('click', closePrintModal);
+            printNowBtn.addEventListener('click', performPrint);
+            
+            // Font size slider
+            printFontSize.addEventListener('input', function() {
+                const value = this.value;
+                fontSizeValue.textContent = value;
+                printSettings.fontSize = parseInt(value);
+            });
+            
+            // Layout options
+            document.querySelectorAll('input[name="printLayout"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        printSettings.layout = this.value;
+                    }
+                });
+            });
+            
+            // Orientation options
+            document.querySelectorAll('input[name="printOrientation"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        printSettings.orientation = this.value;
+                    }
+                });
+            });
+            
+            // Print options checkboxes
+            document.getElementById('printWithColors').addEventListener('change', function() {
+                printSettings.printWithColors = this.checked;
+            });
+            
+            document.getElementById('showColumnHeaders').addEventListener('change', function() {
+                printSettings.showHeaders = this.checked;
+            });
+            
+            document.getElementById('showPageNumbers').addEventListener('change', function() {
+                printSettings.showPageNumbers = this.checked;
+            });
+            
+            // Close modal when clicking outside
+            printModal.addEventListener('click', function(e) {
+                if (e.target === printModal) {
+                    closePrintModal();
+                }
+            });
+            
+            console.log('✅ Print modal initialized');
+        }
+        
+        function openPrintModal() {
+            console.log('🖨️ Opening print modal...');
+            
+            if (!cueData || !cueData.availableCueStacks) {
+                console.warn('⚠️ No cue data available for printing');
+                return;
+            }
+            
+            populateCueStackSelection();
+            updatePrintSettingsUI();
+            document.getElementById('printModal').style.display = 'block';
+        }
+        
+        function closePrintModal() {
+            console.log('🖨️ Closing print modal...');
+            document.getElementById('printModal').style.display = 'none';
+        }
+        
+        function populateCueStackSelection() {
+            const container = document.getElementById('cueStackSelection');
+            container.innerHTML = '';
+            
+            cueData.availableCueStacks.forEach((stack, index) => {
+                const stackItem = document.createElement('div');
+                stackItem.className = 'cue-stack-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `stack-${index}`;
+                checkbox.checked = printSettings.selectedStacks.has(index);
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        printSettings.selectedStacks.add(index);
+                    } else {
+                        printSettings.selectedStacks.delete(index);
+                    }
+                });
+                
+                const label = document.createElement('label');
+                label.htmlFor = `stack-${index}`;
+                label.textContent = stack.name;
+                
+                stackItem.appendChild(checkbox);
+                stackItem.appendChild(label);
+                container.appendChild(stackItem);
+            });
+        }
+        
+        function updatePrintSettingsUI() {
+            // Update font size
+            document.getElementById('printFontSize').value = printSettings.fontSize;
+            document.getElementById('fontSizeValue').textContent = printSettings.fontSize;
+            
+            // Update layout
+            document.querySelector(`input[name="printLayout"][value="${printSettings.layout}"]`).checked = true;
+            
+            // Update orientation
+            document.querySelector(`input[name="printOrientation"][value="${printSettings.orientation}"]`).checked = true;
+            
+            // Update checkboxes
+            document.getElementById('printWithColors').checked = printSettings.printWithColors;
+            document.getElementById('showColumnHeaders').checked = printSettings.showHeaders;
+            document.getElementById('showPageNumbers').checked = printSettings.showPageNumbers;
+        }
+        
+        function performPrint() {
+            console.log('🖨️ Performing print...');
+            
+            if (printSettings.selectedStacks.size === 0) {
+                alert('Please select at least one cue stack to print.');
+                return;
+            }
+            
+            // Save settings
+            savePrintSettings();
+            
+            // Generate PDF directly (libraries are self-hosted)
+            console.log('📄 Generating PDF...');
+            generateAndDownloadPDF();
+            
+            closePrintModal();
+        }
+        
+        
+        function generateAndDownloadPDF() {
+            console.log('📄 Generating PDF...');
+            
+            const selectedStacks = Array.from(printSettings.selectedStacks)
+                .map(index => cueData.availableCueStacks[index])
+                .filter(stack => stack);
+            
+            if (selectedStacks.length === 0) {
+                console.error('❌ No cue stacks selected');
+                alert('No cue stacks selected for printing.');
+                return;
+            }
+            
+            // Show loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.style.position = 'fixed';
+            loadingDiv.style.top = '50%';
+            loadingDiv.style.left = '50%';
+            loadingDiv.style.transform = 'translate(-50%, -50%)';
+            loadingDiv.style.background = 'rgba(0, 0, 0, 0.8)';
+            loadingDiv.style.color = 'white';
+            loadingDiv.style.padding = '20px';
+            loadingDiv.style.borderRadius = '10px';
+            loadingDiv.style.zIndex = '10000';
+            loadingDiv.innerHTML = '🔄 Generating PDF...<br><small>Please wait</small>';
+            document.body.appendChild(loadingDiv);
+            
+            // Create a temporary div to render the content
+            const tempDiv = document.createElement('div');
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.left = '-9999px';
+            tempDiv.style.top = '-9999px';
+            tempDiv.style.width = '800px';
+            tempDiv.style.backgroundColor = 'white';
+            tempDiv.style.padding = '20px';
+            tempDiv.style.fontFamily = 'Arial, sans-serif';
+            tempDiv.style.fontSize = printSettings.fontSize + 'px';
+            tempDiv.style.color = 'black';
+            tempDiv.style.lineHeight = '1.4';
+            
+            // Add header
+            const header = document.createElement('div');
+            header.style.textAlign = 'center';
+            header.style.marginBottom = '20px';
+            header.style.borderBottom = '2px solid black';
+            header.style.paddingBottom = '10px';
+            
+            const title = document.createElement('h1');
+            title.textContent = 'Cue to Cue';
+            title.style.fontSize = (printSettings.fontSize + 4) + 'px';
+            title.style.fontWeight = 'bold';
+            title.style.margin = '0';
+            
+            const meta = document.createElement('p');
+            meta.textContent = `Printed on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}${metadata ? ` • ${metadata.filename}` : ''}`;
+            meta.style.fontSize = (printSettings.fontSize - 2) + 'px';
+            meta.style.color = '#666';
+            meta.style.margin = '5px 0 0 0';
+            
+            header.appendChild(title);
+            header.appendChild(meta);
+            tempDiv.appendChild(header);
+            
+            // Add cue stacks
+            selectedStacks.forEach((stack, stackIndex) => {
+                const stackDiv = document.createElement('div');
+                stackDiv.style.marginBottom = '30px';
+                
+                const stackTitle = document.createElement('h2');
+                stackTitle.textContent = stack.name;
+                stackTitle.style.fontSize = (printSettings.fontSize + 2) + 'px';
+                stackTitle.style.fontWeight = 'bold';
+                stackTitle.style.marginBottom = '15px';
+                stackTitle.style.borderBottom = '1px solid #ccc';
+                stackTitle.style.paddingBottom = '5px';
+                
+                stackDiv.appendChild(stackTitle);
+                
+                // Create table
+                const table = document.createElement('table');
+                table.style.width = '100%';
+                table.style.borderCollapse = 'collapse';
+                table.style.marginBottom = '20px';
+                table.style.fontSize = printSettings.fontSize + 'px';
+                
+                // Add headers if enabled
+                if (printSettings.showHeaders && stack.cues.length > 0) {
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+                    
+                    const columns = cueData.columns || [];
+                    columns.forEach(col => {
+                        const th = document.createElement('th');
+                        th.textContent = col.name;
+                        th.style.background = '#f5f5f5';
+                        th.style.border = '1px solid black';
+                        th.style.padding = '8px';
+                        th.style.textAlign = 'left';
+                        th.style.fontWeight = 'bold';
+                        th.style.fontSize = printSettings.fontSize + 'px';
+                        headerRow.appendChild(th);
+                    });
+                    
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+                }
+                
+                // Add cue rows
+                const tbody = document.createElement('tbody');
+                stack.cues.forEach((cue, cueIndex) => {
                     const row = document.createElement('tr');
-                    
-                    // Add classes for highlighting
-                    if (rowIndex === this.data.activeCueIndex) {
-                        row.classList.add('next');
-                    }
-                    if (rowIndex === this.data.selectedCueIndex) {
-                        row.classList.add('selected');
+                    if (cueIndex % 2 === 1) {
+                        row.style.background = '#f9f9f9';
                     }
                     
-                    cue.values.forEach((value, colIndex) => {
+                    const columns = cueData.columns || [];
+                    columns.forEach(col => {
                         const td = document.createElement('td');
+                        let cellContent = cue[col.name] || '';
+                        td.textContent = cellContent;
+                        td.style.border = '1px solid black';
+                        td.style.padding = '6px 8px';
+                        td.style.verticalAlign = 'top';
+                        td.style.fontSize = printSettings.fontSize + 'px';
                         
-                        // Apply struck-through styling if needed
-                        if (cue.isStruckThrough) {
-                            td.classList.add('struck');
+                        // Apply colors if enabled
+                        if (printSettings.printWithColors && highlightColors.length > 0) {
+                            for (const highlight of highlightColors) {
+                                if (cellContent.toLowerCase().includes(highlight.keyword.toLowerCase())) {
+                                    const colorToApply = colorOverrides[`${highlight.keyword}_${highlight.color}`] || highlight.color;
+                                    td.style.color = '#' + colorToApply;
+                                    td.style.fontWeight = 'bold';
+                                    break;
+                                }
+                            }
                         }
                         
-                        // Special styling for timer cells (usually column 2)
-                        if (colIndex === 2 && value && value.match(/^\d{1,2}:\d{2}:\d{2}$/)) {
-                            td.classList.add('timer-cell');
-                        }
-                        
-                        td.textContent = value || '';
                         row.appendChild(td);
                     });
                     
                     tbody.appendChild(row);
                 });
-            }
-
-            showNoData() {
-                const tableContainer = document.querySelector('.table-container');
-                tableContainer.innerHTML = `
-                    <div class="no-data">
-                        <h3>No Cue Data Available</h3>
-                        <p>No cue data has been synced from your macOS Cue to Cue app yet.</p>
-                        <p>To view your cues here:</p>
-                        <ol style="text-align: left; display: inline-block; margin: 20px 0;">
-                            <li>Open your Cue to Cue app</li>
-                            <li>Configure website sync in Settings</li>
-                            <li>Open a cue file to sync it</li>
-                        </ol>
-                        <button class="refresh-button" onclick="location.reload()">Refresh</button>
-                    </div>
-                `;
-            }
-
-            startAutoUpdate() {
-                // Update every 30 seconds to check for new data
-                this.updateInterval = setInterval(() => {
-                    this.loadData();
-                }, 30000);
-            }
-
-            destroy() {
-                if (this.updateInterval) {
-                    clearInterval(this.updateInterval);
+                
+                table.appendChild(tbody);
+                stackDiv.appendChild(table);
+                tempDiv.appendChild(stackDiv);
+            });
+            
+            // Add to document temporarily
+            document.body.appendChild(tempDiv);
+            
+            console.log('📄 Rendering content to canvas...');
+            
+            // Use html2canvas and jsPDF to generate PDF
+            html2canvas(tempDiv, {
+                scale: 1.5, // Reduced scale to avoid memory issues
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                allowTaint: true,
+                foreignObjectRendering: false,
+                logging: false
+            }).then(canvas => {
+                console.log('📄 Canvas created, generating PDF...');
+                
+                const imgData = canvas.toDataURL('image/png', 0.8); // Reduced quality to avoid size issues
+                
+                // Handle jsPDF variable - check multiple possible locations
+                const jsPDFClass = window.jsPDF || window.jspdf?.jsPDF || jsPDF;
+                if (!jsPDFClass) {
+                    throw new Error('jsPDF library not found. Expected locations: window.jsPDF, window.jspdf.jsPDF, or global jsPDF');
                 }
-            }
+                
+                const pdf = new jsPDFClass(printSettings.orientation === 'landscape' ? 'landscape' : 'portrait', 'mm', 'a4');
+                
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const imgWidth = pageWidth - 20; // Leave margins
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                // Calculate how many pages we need
+                const totalPages = Math.ceil(imgHeight / (pageHeight - 20));
+                
+                console.log(`📄 Generating ${totalPages} page(s)...`);
+                
+                for (let i = 0; i < totalPages; i++) {
+                    if (i > 0) {
+                        pdf.addPage();
+                    }
+                    
+                    const yOffset = -(i * (pageHeight - 20));
+                    pdf.addImage(imgData, 'PNG', 10, 10 + yOffset, imgWidth, imgHeight);
+                }
+                
+                // Download the PDF
+                const filename = `cue-to-cue-${new Date().toISOString().split('T')[0]}.pdf`;
+                pdf.save(filename);
+                
+                // Clean up
+                document.body.removeChild(tempDiv);
+                document.body.removeChild(loadingDiv);
+                
+                console.log('✅ PDF generated and downloaded successfully');
+            }).catch(error => {
+                console.error('❌ Error generating PDF:', error);
+                
+                // Clean up
+                if (document.body.contains(tempDiv)) {
+                    document.body.removeChild(tempDiv);
+                }
+                if (document.body.contains(loadingDiv)) {
+                    document.body.removeChild(loadingDiv);
+                }
+                
+                // Show more specific error message
+                let errorMessage = 'Error generating PDF. ';
+                if (error.message) {
+                    errorMessage += error.message;
+                } else {
+                    errorMessage += 'Please try again or refresh the page.';
+                }
+                
+                alert(errorMessage);
+            });
         }
+        
+        
+        function savePrintSettings() {
+            const settingsToSave = {
+                ...printSettings,
+                selectedStacks: Array.from(printSettings.selectedStacks)
+            };
+            localStorage.setItem('printSettings', JSON.stringify(settingsToSave));
+        }
+        
+        // Initialize
+        console.log('🚀 Initializing Cue to Cue Viewer...');
+        console.log('⏰ Setting up time updates...');
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        console.log('🔧 Initializing column visibility controls...');
+        initializeColumnVisibility();
+        
+        console.log('🎨 Initializing color picker...');
+        initializeColorPicker();
+        
+        console.log('🖨️ Initializing print modal...');
+        initializePrintModal();
+        
+        console.log('📡 Loading initial cue data...');
+        loadCueData();
 
-        // Initialize the viewer when the page loads
-        // Note: CueToCueViewer initialization is now handled by the password system
-        // after successful authentication
-        document.addEventListener('DOMContentLoaded', () => {
-            // Password system will initialize CueToCueViewer after authentication
-            console.log('Cue to Cue Viewer loaded - waiting for authentication');
-        });
-
-        // Clean up when the page unloads
-        window.addEventListener('beforeunload', () => {
-            if (window.cueViewer) {
-                window.cueViewer.destroy();
-            }
-        });
+        // Reload data every 30 seconds
+        console.log('🔄 Setting up auto-refresh every 30 seconds...');
+        setInterval(() => {
+            console.log('⏰ Auto-refresh triggered');
+            loadCueData();
+        }, 30000);
+        
+        console.log('✅ Cue to Cue Viewer initialized');
     </script>
 </body>
 </html>
