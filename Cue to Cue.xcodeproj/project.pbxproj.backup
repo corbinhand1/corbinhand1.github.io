@@ -61,8 +61,6 @@
 		31HTML101 /* HTMLStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31HTML001 /* HTMLStyles.swift */; };
 		31HTML102 /* HTMLSettingsStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31HTML002 /* HTMLSettingsStyles.swift */; };
 		31HTML103 /* HTMLJavaScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31HTML003 /* HTMLJavaScript.swift */; };
-		31CELLTEXTFIELD002 /* CellTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CELLTEXTFIELD001 /* CellTextField.swift */; };
-		31CELLWRAPPER002 /* CellTextFieldWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CELLWRAPPER001 /* CellTextFieldWrapper.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -121,7 +119,7 @@
 		3179612A2C69C58F00C27D84 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		3179612C2C69C68900C27D84 /* Delegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Delegates.swift; sourceTree = "<group>"; };
 		3179612E2C69C7DA00C27D84 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		317961302C69CB9D00C27D84 /* CueRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CueRowView.swift; path = CueRowView.swift; sourceTree = "<group>"; };
+		317961302C69CB9D00C27D84 /* CueRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CueRowView.swift; path = ../CueRowView.swift; sourceTree = "<group>"; };
 		317961322C6AB41900C27D84 /* TopSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopSectionView.swift; sourceTree = "<group>"; };
 		317961342C6AB46000C27D84 /* CueStackListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueStackListView.swift; sourceTree = "<group>"; };
 		317961362C6AB64200C27D84 /* ViewExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewExtensions.swift; sourceTree = "<group>"; };
@@ -270,8 +268,6 @@
 				317961342C6AB46000C27D84 /* CueStackListView.swift */,
 				31D830E52D0B55D9001A8DB9 /* CueStackDetailView.swift */,
 				317961302C69CB9D00C27D84 /* CueRowView.swift */,
-				31CELLTEXTFIELD001 /* CellTextField.swift */,
-				31CELLWRAPPER001 /* CellTextFieldWrapper.swift */,
 				317961362C6AB64200C27D84 /* ViewExtensions.swift */,
 				3179612E2C69C7DA00C27D84 /* Models.swift */,
 				31F6B7C52C0826FD0033DE8F /* FileHelper.swift */,
@@ -522,8 +518,6 @@
 				31F2FAAF2C0425EC0074D2A4 /* ContentView.swift in Sources */,
 				31E9952F2D80B0F400F99399 /* PrintManager.swift in Sources */,
 				317961312C69CB9D00C27D84 /* CueRowView.swift in Sources */,
-				31CELLTEXTFIELD002 /* CellTextField.swift in Sources */,
-				31CELLWRAPPER002 /* CellTextFieldWrapper.swift in Sources */,
 				3179612D2C69C68900C27D84 /* Delegates.swift in Sources */,
 				317961332C6AB41900C27D84 /* TopSectionView.swift in Sources */,
 				3179612F2C69C7DA00C27D84 /* Models.swift in Sources */,
@@ -608,7 +602,7 @@
 				CODE_SIGN_ENTITLEMENTS = CueToCuePreviewExtension/CueToCuePreviewExtension.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -618,9 +612,10 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
+					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.5;
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Nebula-Creative.Cue-to-Cue.CueToCuePreviewExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -636,7 +631,7 @@
 				CODE_SIGN_ENTITLEMENTS = CueToCuePreviewExtension/CueToCuePreviewExtension.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -646,9 +641,10 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
+					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.5;
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Nebula-Creative.Cue-to-Cue.CueToCuePreviewExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -784,14 +780,14 @@
 				CODE_SIGN_ENTITLEMENTS = "Cue to Cue/Cue_to_Cue.entitlements";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Cue to Cue/Preview Content\"";
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Cue-to-Cue-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue 2.1";
+				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue v1.7";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -806,9 +802,10 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 17.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
+					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.5;
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Nebula-Creative.Cue-to-Cue";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -830,14 +827,14 @@
 				CODE_SIGN_ENTITLEMENTS = "Cue to Cue/Cue_to_Cue.entitlements";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Cue to Cue/Preview Content\"";
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Cue-to-Cue-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue 2.1";
+				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue v1.7";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -852,9 +849,10 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 17.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
+					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.5;
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Nebula-Creative.Cue-to-Cue";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -871,7 +869,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -894,7 +892,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -916,7 +914,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
@@ -937,7 +935,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
@@ -1013,8 +1011,6 @@
 				minimumVersion = 0.10.0;
 			};
 		};
-		31CELLTEXTFIELD001 /* CellTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = " CellTextField.swift"; sourceTree = "<group>"; };
-		31CELLWRAPPER001 /* CellTextFieldWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellTextFieldWrapper.swift; sourceTree = "<group>"; };
 /* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = 31F2FAA12C0425EC0074D2A4 /* Project object */;

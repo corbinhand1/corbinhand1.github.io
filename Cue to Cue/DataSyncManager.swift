@@ -14,7 +14,7 @@ extension Notification.Name {
     static let autoSaveRequested = Notification.Name("autoSaveRequested")
 }
 
-class DataSyncManager: ObservableObject {
+class DataSyncManager: ObservableObject, @unchecked Sendable {
     
     // MARK: - Properties
     
@@ -32,9 +32,6 @@ class DataSyncManager: ObservableObject {
     @Published var selectedCueIndex: Int = -1
     @Published var highlightColors: [HighlightColorSetting] = []
     
-    // Authoritative Timer Server - Single source of truth for all timers
-    @Published var timerServer = AuthoritativeTimerServer()
-    
     // Track when web changes were made to prevent auto-load from overwriting them
     private var _lastWebChangeTime: Date = Date.distantPast
     
@@ -47,6 +44,7 @@ class DataSyncManager: ObservableObject {
         // Web client starts viewing the same cue stack as macOS app
         webClientCueStackIndex = selectedCueStackIndex
     }
+    
     
     
     // MARK: - Data Update Methods
@@ -73,130 +71,104 @@ class DataSyncManager: ObservableObject {
         print("⚠️ updateClockState called - timer state now managed by AuthoritativeTimerServer")
     }
     
-    // MARK: - Timer Commands
-    
-    func executeTimerCommand(_ command: TimerCommand) {
-        timerServer.executeCommand(command)
-    }
-    
-    func resetCountdown(with newTime: Int) {
-        timerServer.resetCountdown(with: newTime)
-    }
-    
     // MARK: - Cue Editing Methods
     
-    func updateCueValue(cueId: UUID, columnIndex: Int, newValue: String) -> Bool {
-        // Use a semaphore to wait for the async operation to complete
-        let semaphore = DispatchSemaphore(value: 0)
-        var success = false
-        
-        // Update on main thread asynchronously to avoid deadlocks
-        DispatchQueue.main.async {
-            for stackIndex in 0..<self.cueStacks.count {
-                if let cueIndex = self.cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
-                    if columnIndex < self.cueStacks[stackIndex].cues[cueIndex].values.count {
-                        let oldValue = self.cueStacks[stackIndex].cues[cueIndex].values[columnIndex]
-                        self.cueStacks[stackIndex].cues[cueIndex].values[columnIndex] = newValue
-                        print("🔍 Updated cue \(cueId) column \(columnIndex): '\(oldValue)' -> '\(newValue)'")
+    func updateCueValue(cueId: UUID, columnIndex: Int, newValue: String) async -> Bool {
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.main.async {
+                var success = false
+                
+                for stackIndex in 0..<self.cueStacks.count {
+                    if let cueIndex = self.cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
+                        if columnIndex < self.cueStacks[stackIndex].cues[cueIndex].values.count {
+                            let oldValue = self.cueStacks[stackIndex].cues[cueIndex].values[columnIndex]
+                            self.cueStacks[stackIndex].cues[cueIndex].values[columnIndex] = newValue
+                            print("🔍 Updated cue \(cueId) column \(columnIndex): '\(oldValue)' -> '\(newValue)'")
+                            success = true
+                            break
+                        }
+                    }
+                }
+                
+                // Notify the desktop app of the change and auto-save
+                if success {
+                    // Record that this was a web change IMMEDIATELY
+                    self.recordWebChange()
+                    
+                    // Auto-save to file
+                    self.autoSaveToFile()
+                    
+                    print("🔄 Desktop app notified of cue update: \(newValue) in column \(columnIndex)")
+                }
+                
+                continuation.resume(returning: success)
+            }
+        }
+    }
+    
+    func addCue(to cueStackId: UUID, values: [String], timerValue: String = "") async -> UUID? {
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.main.async {
+                var newCueId: UUID?
+                
+                if let stackIndex = self.cueStacks.firstIndex(where: { $0.id == cueStackId }) {
+                    let newCue = Cue(values: values, timerValue: timerValue)
+                    self.cueStacks[stackIndex].cues.append(newCue)
+                    newCueId = newCue.id
+                    print("✅ Added new cue with ID: \(newCue.id)")
+                } else {
+                    print("❌ Failed to find cue stack with ID: \(cueStackId)")
+                }
+                
+                continuation.resume(returning: newCueId)
+            }
+        }
+    }
+    
+    func deleteCue(cueId: UUID) async -> Bool {
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.main.async {
+                var success = false
+                
+                for stackIndex in 0..<self.cueStacks.count {
+                    if let cueIndex = self.cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
+                        self.cueStacks[stackIndex].cues.remove(at: cueIndex)
                         success = true
+                        print("✅ Deleted cue with ID: \(cueId)")
                         break
                     }
                 }
-            }
-            
-            // Notify the desktop app of the change and auto-save
-            if success {
-                // Record that this was a web change IMMEDIATELY
-                self.recordWebChange()
                 
-                // Auto-save to file
-                self.autoSaveToFile()
-                
-                print("🔄 Desktop app notified of cue update: \(newValue) in column \(columnIndex)")
-            }
-            
-            // Signal that the operation is complete
-            semaphore.signal()
-        }
-        
-        // Wait for the async operation to complete (with timeout to prevent infinite wait)
-        let timeout = DispatchTime.now() + .seconds(5)
-        let result = semaphore.wait(timeout: timeout)
-        
-        if result == .timedOut {
-            print("⚠️ updateCueValue timed out - operation may have failed")
-            return false
-        }
-        
-        return success
-    }
-    
-    func addCue(to cueStackId: UUID, values: [String], timerValue: String = "") -> UUID? {
-        // Use a semaphore to wait for the async operation to complete
-        let semaphore = DispatchSemaphore(value: 0)
-        var newCueId: UUID?
-        
-        // Update on main thread asynchronously to avoid deadlocks
-        DispatchQueue.main.async {
-            if let stackIndex = self.cueStacks.firstIndex(where: { $0.id == cueStackId }) {
-                let newCue = Cue(values: values, timerValue: timerValue)
-                self.cueStacks[stackIndex].cues.append(newCue)
-                newCueId = newCue.id
-                print("✅ Added new cue with ID: \(newCue.id)")
-            } else {
-                print("❌ Failed to find cue stack with ID: \(cueStackId)")
-            }
-            
-            // Signal that the operation is complete
-            semaphore.signal()
-        }
-        
-        // Wait for the async operation to complete (with timeout to prevent infinite wait)
-        let timeout = DispatchTime.now() + .seconds(5)
-        let result = semaphore.wait(timeout: timeout)
-        
-        if result == .timedOut {
-            print("⚠️ addCue timed out - operation may have failed")
-            return nil
-        }
-        
-        return newCueId
-    }
-    
-    func deleteCue(cueId: UUID) -> Bool {
-        // Use a semaphore to wait for the async operation to complete
-        let semaphore = DispatchSemaphore(value: 0)
-        var success = false
-        
-        // Update on main thread asynchronously to avoid deadlocks
-        DispatchQueue.main.async {
-            for stackIndex in 0..<self.cueStacks.count {
-                if let cueIndex = self.cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
-                    self.cueStacks[stackIndex].cues.remove(at: cueIndex)
-                    success = true
-                    print("✅ Deleted cue with ID: \(cueId)")
-                    break
+                if !success {
+                    print("❌ Failed to find cue with ID: \(cueId)")
                 }
+                
+                continuation.resume(returning: success)
             }
-            
-            if !success {
-                print("❌ Failed to find cue with ID: \(cueId)")
+        }
+    }
+    
+    func toggleStrikeThrough(cueId: UUID) async -> Bool {
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.main.async {
+                var success = false
+                
+                for stackIndex in 0..<self.cueStacks.count {
+                    if let cueIndex = self.cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
+                        self.cueStacks[stackIndex].cues[cueIndex].isStruckThrough.toggle()
+                        success = true
+                        print("✅ Toggled strike-through for cue with ID: \(cueId) - now \(self.cueStacks[stackIndex].cues[cueIndex].isStruckThrough)")
+                        break
+                    }
+                }
+                
+                if !success {
+                    print("❌ Failed to find cue with ID: \(cueId)")
+                }
+                
+                continuation.resume(returning: success)
             }
-            
-            // Signal that the operation is complete
-            semaphore.signal()
         }
-        
-        // Wait for the async operation to complete (with timeout to prevent infinite wait)
-        let timeout = DispatchTime.now() + .seconds(5)
-        let result = semaphore.wait(timeout: timeout)
-        
-        if result == .timedOut {
-            print("⚠️ deleteCue timed out - operation may have failed")
-            return false
-        }
-        
-        return success
     }
     
     func findCue(by cueId: UUID) -> (cueStack: CueStack, cueIndex: Int)? {
@@ -266,7 +238,7 @@ class DataSyncManager: ObservableObject {
         return formatter
     }()
     
-    func generateJSONResponse() -> Data {
+    func generateJSONResponse(timerServer: AuthoritativeTimerServer) -> Data {
         let stacks = cueStacks
         let selectedIndex = selectedCueStackIndex
         
@@ -358,7 +330,7 @@ class DataSyncManager: ObservableObject {
         }
     }
     
-    func generateJSONResponseForWebClient() -> Data {
+    func generateJSONResponseForWebClient(timerServer: AuthoritativeTimerServer) -> Data {
         let stacks = cueStacks
         let webClientIndex = getWebClientCueStackIndex()
         

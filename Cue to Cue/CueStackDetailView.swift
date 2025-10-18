@@ -148,7 +148,8 @@ struct CueStackDetailView: View {
             onAddCueAbove: addCueAbove,
             onAddCueBelow: addCueBelow,
             editingCueIndex: $editingCueIndex,
-            scrollViewProxy: $scrollViewProxy
+            scrollViewProxy: $scrollViewProxy,
+            isReorderingCues: isReorderingCues
         )
     }
 
@@ -208,27 +209,40 @@ struct CueStackDetailView: View {
 
     // MARK: - Reordering Logic
     private func moveCue(from source: IndexSet, to destination: Int) {
-        saveState()
+        print("🔄 moveCue called: from \(source) to \(destination)")
+        
+        // Notify timer server that drag operation is starting
+        NotificationCenter.default.post(name: .dragOperationStarted, object: nil)
+        
+        // Perform the move directly on the cueStack WITHOUT saving state first
         cueStack.cues.move(fromOffsets: source, toOffset: destination)
+        
+        print("✅ Move completed - cue moved from \(source.first ?? -1) to \(destination)")
 
-        // If the selected cue was moved, fix selectedCueIndex
+        // Update selected cue index if needed
         if let oldSelected = selectedCueIndex,
            let movedIndex = source.first {
             if movedIndex == oldSelected {
-                // The selected row was moved
                 selectedCueIndex = (destination > movedIndex) ? (destination - 1) : destination
             }
             else if movedIndex < oldSelected && destination <= oldSelected {
-                // A row above the selection was pulled below => shift selection up by 1
                 selectedCueIndex = oldSelected - 1
             }
             else if movedIndex > oldSelected && destination <= oldSelected {
-                // A row below the selection was pulled above => shift selection down by 1
                 selectedCueIndex = oldSelected + 1
             }
         }
-
-        updateWebClients()
+        
+        // Save state AFTER the move is complete
+        saveState()
+        
+        // Notify timer server that drag operation is ending
+        NotificationCenter.default.post(name: .dragOperationEnded, object: nil)
+        
+        // Debounce web client updates to prevent interference with drag operations
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            updateWebClients()
+        }
     }
 
     // MARK: - Column Methods

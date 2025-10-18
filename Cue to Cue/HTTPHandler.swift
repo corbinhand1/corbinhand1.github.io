@@ -522,7 +522,16 @@ class HTTPHandler {
         }
         
         // Update the cue value
-        let updateSuccess = dataSyncManager.updateCueValue(cueId: editRequest.cueId, columnIndex: editRequest.columnIndex, newValue: editRequest.newValue)
+        var updateSuccess = false
+        let group = DispatchGroup()
+        group.enter()
+        
+        Task {
+            updateSuccess = await dataSyncManager.updateCueValue(cueId: editRequest.cueId, columnIndex: editRequest.columnIndex, newValue: editRequest.newValue)
+            group.leave()
+        }
+        
+        group.wait()
         
         guard updateSuccess else {
             return HTTPResponse(
@@ -583,7 +592,18 @@ class HTTPHandler {
         }
         
         // Create new cue
-        guard let newCueId = dataSyncManager.addCue(to: addRequest.cueStackId, values: addRequest.values, timerValue: addRequest.timerValue) else {
+        var newCueId: UUID?
+        let group = DispatchGroup()
+        group.enter()
+        
+        Task {
+            newCueId = await dataSyncManager.addCue(to: addRequest.cueStackId, values: addRequest.values, timerValue: addRequest.timerValue)
+            group.leave()
+        }
+        
+        group.wait()
+        
+        guard let cueId = newCueId else {
             return HTTPResponse(
                 status: .internalServerError,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
@@ -592,7 +612,7 @@ class HTTPHandler {
         }
         
         // Return success response
-        let response: [String: Any] = ["success": true, "message": "Cue added successfully", "cueId": newCueId.uuidString]
+        let response: [String: Any] = ["success": true, "message": "Cue added successfully", "cueId": cueId.uuidString]
         let responseData = try? JSONSerialization.data(withJSONObject: response)
         
         return HTTPResponse(
@@ -644,7 +664,18 @@ class HTTPHandler {
         }
         
         // Delete the cue
-        guard dataSyncManager.deleteCue(cueId: cueId) else {
+        var deleteSuccess = false
+        let group = DispatchGroup()
+        group.enter()
+        
+        Task {
+            deleteSuccess = await dataSyncManager.deleteCue(cueId: cueId)
+            group.leave()
+        }
+        
+        group.wait()
+        
+        guard deleteSuccess else {
             return HTTPResponse(
                 status: .internalServerError,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),

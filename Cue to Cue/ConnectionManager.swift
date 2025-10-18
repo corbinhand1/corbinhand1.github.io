@@ -59,22 +59,24 @@ class ConnectionManager: ObservableObject {
                 return
             }
             
+            // Add connection to tracking arrays BEFORE setting up handlers
             self._activeConnections.append(connection)
             self._connectionRequestCounts[ObjectIdentifier(connection)] = 0
             self._connectionTimestamps[ObjectIdentifier(connection)] = Date()
             
+            // Set up state handler AFTER connection is tracked
+            connection.stateUpdateHandler = { [weak self] state in
+                DispatchQueue.global(qos: .utility).async {
+                    self?.handleConnectionStateChange(connection, state: state)
+                }
+            }
+            
+            // Start the connection AFTER everything is set up
+            connection.start(queue: .global(qos: .utility))
+            
             // Update published properties safely
             self.updatePublishedProperties()
         }
-        
-        connection.stateUpdateHandler = { [weak self] state in
-            DispatchQueue.global(qos: .utility).async {
-                self?.handleConnectionStateChange(connection, state: state)
-            }
-        }
-        
-        // Start the connection
-        connection.start(queue: .global(qos: .utility))
     }
     
     private func handleConnectionStateChange(_ connection: NWConnection, state: NWConnection.State) {

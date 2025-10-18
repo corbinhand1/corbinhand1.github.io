@@ -125,6 +125,11 @@ struct CueToCueApp: App {
                     appDelegate.selectAll()
                 }
                 .keyboardShortcut("a")
+                Divider()
+                Button("Toggle Strike-Through") {
+                    appDelegate.toggleStrikeThrough()
+                }
+                .keyboardShortcut("s")
             }
             
             // Custom View Menu – this will be the only View menu now.

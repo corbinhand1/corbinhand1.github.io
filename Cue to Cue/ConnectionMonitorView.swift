@@ -517,5 +517,5 @@ struct ClientSessionCard: View {
 
 
 #Preview {
-    ConnectionMonitorView(isPresented: .constant(true), webServer: WebServer(dataSyncManager: DataSyncManager()))
+    ConnectionMonitorView(isPresented: .constant(true), webServer: WebServer(dataSyncManager: DataSyncManager(), timerServer: AuthoritativeTimerServer()))
 }

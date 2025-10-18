@@ -377,6 +377,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @objc func selectAll() {
         NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
     }
+    
+    @objc func toggleStrikeThrough() {
+        // Delegate to ContentView to handle strike-through toggle
+        contentView?.toggleStrikeThrough()
+    }
 
     @objc func toggleFullScreen() {
         if let window = NSApp.windows.first {
@@ -386,5 +391,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     @objc func showHelp() {
         // Implement help functionality
+    }
+    
+    // MARK: - App Termination
+    func applicationWillTerminate(_ aNotification: Notification) {
+        // Save the currently open file to UserDefaults so it reopens next time
+        if let contentView = contentView,
+           let currentFileURL = contentView.currentFileURL {
+            UserDefaults.standard.set(currentFileURL, forKey: "LastSavedURL")
+            print("💾 Saved current file for next launch: \(currentFileURL.path)")
+        }
+        
+        // Clean up web server
+        webServer?.stop()
     }
 }

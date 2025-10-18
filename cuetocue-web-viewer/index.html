@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Cue to Cue Viewer - Nebula Creative</title>
+    
+    <!-- Password Protection System -->
+    <script src="password-config.js"></script>
+    <script src="password-system.js"></script>
+    
+    <style>
+        /* Digital Clock Font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Source+Code+Pro&display=swap');
+        
+        /* Reset and Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            line-height: 1.6;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+        }
+
+        /* Header Container */
+        .header-container {
+            background: rgba(18, 18, 18, 0.95);
+            padding: 5px 20px;
+            padding-top: max(5px, env(safe-area-inset-top) + 5px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1000;
+        }
+
+        /* Connection Status Indicator */
+        .connection-status {
+            position: absolute;
+            top: max(5px, env(safe-area-inset-top) + 5px);
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1001;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #666;
+            transition: background-color 0.3s ease;
+        }
+
+        .status-dot.connected {
+            background-color: #4CAF50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+        }
+
+        .status-dot.disconnected {
+            background-color: #F44336;
+            box-shadow: 0 0 8px rgba(244, 67, 54, 0.6);
+        }
+
+        .status-text {
+            font-size: 0.8rem;
+            color: #e0e0e0;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Main Header */
+        .main-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+
+        .header-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        /* File Info */
+        .file-info {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .file-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #4CAF50;
+            font-family: 'Source Code Pro', monospace;
+        }
+
+        .last-updated {
+            font-size: 0.8rem;
+            color: #b0b0b0;
+        }
+
+        /* Clocks Container */
+        .clocks-container {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .clock-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 16px;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .clock-label {
+            font-size: 0.7rem;
+            color: #b0b0b0;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .clock {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #4CAF50;
+            margin-bottom: 2px;
+        }
+
+        .date {
+            font-size: 0.7rem;
+            color: #b0b0b0;
+        }
+
+        /* Column Header */
+        .column-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .cue-stack-selector {
+            flex-shrink: 0;
+        }
+
+        .cue-stack-dropdown {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #ffffff;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            min-width: 200px;
+            cursor: pointer;
+        }
+
+        .cue-stack-dropdown option {
+            background: #1e1e1e;
+            color: #ffffff;
+        }
+
+        .column-names {
+            flex: 1;
+            font-size: 0.9rem;
+            color: #b0b0b0;
+            font-weight: 500;
+        }
+
+        /* Table Container */
+        .table-container {
+            flex: 1;
+            overflow: auto;
+            background-color: #1e1e1e;
+            position: relative;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Table Styles */
+        #cueTable {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            table-layout: fixed;
+            min-width: max-content;
+        }
+
+        #cueTable thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        #cueTable th {
+            background-color: #333333;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 6px 4px;
+            text-align: left;
+            border-right: 1px solid #444444;
+            border-bottom: 2px solid #444444;
+            position: relative;
+            user-select: none;
+            white-space: normal;
+            word-wrap: break-word;
+            vertical-align: middle;
+        }
+
+        #cueTable th:last-child {
+            border-right: none;
+        }
+
+        #cueTable td {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            padding: 10px 8px;
+            font-size: 0.95rem;
+            border-right: 1px solid #2a2a2a;
+            border-bottom: 1px solid #2a2a2a;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            vertical-align: middle;
+        }
+
+        #cueTable td:last-child {
+            border-right: none;
+        }
+
+        #cueTable tbody tr:nth-child(even) td {
+            background-color: #2a2a2a;
+        }
+
+        #cueTable tbody tr:hover td {
+            background-color: #3a3a3a;
+        }
+
+        #cueTable tbody tr.selected td {
+            background-color: rgba(58, 122, 34, 0.5);
+        }
+
+        #cueTable tbody tr.next td {
+            background-color: rgba(186, 176, 32, 0.5);
+        }
+
+        .timer-cell {
+            font-family: 'Source Code Pro', monospace;
+            text-align: center;
+            background-color: #555555 !important;
+            border-radius: 4px;
+            padding: 6px !important;
+            letter-spacing: 0.5px;
+        }
+
+        .struck {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
+        /* Loading and Error States */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #b0b0b0;
+        }
+
+        .error {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px;
+            text-align: center;
+            color: #ffcdd2;
+        }
+
+        .refresh-button {
+            background: #4CAF50;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .refresh-button:hover {
+            background: #45a049;
+        }
+
+        /* No Data State */
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #b0b0b0;
+        }
+
+        .no-data h3 {
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .no-data p {
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header-container {
+                padding: 5px 10px;
+            }
+
+            .main-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+
+            .file-info {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+
+            .clocks-container {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .clock-box {
+                min-width: 100px;
+                padding: 10px 12px;
+            }
+
+            .clock {
+                font-size: 1rem;
+            }
+
+            .column-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+
+            .cue-stack-dropdown {
+                min-width: auto;
+            }
+
+            #cueTable {
+                font-size: 0.8rem;
+            }
+
+            #cueTable th,
+            #cueTable td {
+                padding: 6px 4px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .clocks-container {
+                gap: 10px;
+            }
+
+            .clock-box {
+                min-width: 80px;
+                padding: 8px 10px;
+            }
+
+            .clock {
+                font-size: 0.9rem;
+            }
+
+            #cueTable {
+                font-size: 0.7rem;
+            }
+
+            #cueTable th,
+            #cueTable td {
+                padding: 4px 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="mainContent" style="display: none;">
+        <div class="header-container">
+        <div class="connection-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span class="status-text" id="statusText">Offline</span>
+        </div>
+        
+        <div class="main-header">
+            <h1 class="header-title">Cue to Cue Viewer</h1>
+        </div>
+        
+        <div class="file-info" id="fileInfo" style="display: none;">
+            <div>
+                <div class="file-name" id="fileName">No file loaded</div>
+                <div class="last-updated" id="lastUpdated">Never updated</div>
+            </div>
+        </div>
+        
+        <div class="clocks-container">
+            <div class="clock-box">
+                <div class="clock-label">Current Time</div>
+                <div class="clock" id="current-time">--:--:--</div>
+                <div class="date" id="current-date">--/--/----</div>
+            </div>
+            <div class="clock-box">
+                <div class="clock-label">Countdown</div>
+                <div class="clock" id="countdown">00:00</div>
+            </div>
+            <div class="clock-box">
+                <div class="clock-label">Count Up</div>
+                <div class="clock" id="countup">00:00</div>
+            </div>
+        </div>
+        
+        <div class="column-header">
+            <div class="cue-stack-selector">
+                <select id="cueStackDropdown" class="cue-stack-dropdown">
+                    <option value="">Loading cue stacks...</option>
+                </select>
+            </div>
+            <div class="column-names" id="columnNames">Cue Stack</div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="cueTable">
+            <thead></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    </div> <!-- End mainContent -->
+
+    <script>
+        class CueToCueViewer {
+            constructor() {
+                this.data = null;
+                this.metadata = null;
+                this.updateInterval = null;
+                this.init();
+            }
+
+            async init() {
+                await this.loadData();
+                this.startAutoUpdate();
+            }
+
+            async loadData() {
+                try {
+                    // Load cue data
+                    const cueResponse = await fetch('./cuetocue-data.json');
+                    if (!cueResponse.ok) {
+                        throw new Error(`HTTP ${cueResponse.status}: ${cueResponse.statusText}`);
+                    }
+                    this.data = await cueResponse.json();
+                    
+                    // Load metadata
+                    try {
+                        const metaResponse = await fetch('./metadata.json');
+                        if (metaResponse.ok) {
+                            this.metadata = await metaResponse.json();
+                        }
+                    } catch (error) {
+                        console.warn('Could not load metadata:', error);
+                    }
+                    
+                    this.updateDisplay();
+                } catch (error) {
+                    console.error('Failed to load cue data:', error);
+                    this.showNoData();
+                }
+            }
+
+            updateDisplay() {
+                if (!this.data) return;
+
+                this.updateFileInfo();
+                this.updateClocks();
+                this.updateCueStackDropdown();
+                this.updateTable();
+            }
+
+            updateFileInfo() {
+                const fileInfo = document.getElementById('fileInfo');
+                const fileName = document.getElementById('fileName');
+                const lastUpdated = document.getElementById('lastUpdated');
+                
+                if (this.data.filename || this.metadata?.filename) {
+                    const filename = this.data.filename || this.metadata.filename;
+                    const updated = this.metadata?.lastUpdated || new Date().toISOString();
+                    
+                    fileName.textContent = filename;
+                    lastUpdated.textContent = `Last updated: ${new Date(updated).toLocaleString()}`;
+                    fileInfo.style.display = 'flex';
+                } else {
+                    fileInfo.style.display = 'none';
+                }
+            }
+
+            updateClocks() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('en-US', { 
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                const dateString = now.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+
+                document.getElementById('current-time').textContent = timeString;
+                document.getElementById('current-date').textContent = dateString;
+
+                // Update countdown and count-up timers
+                if (this.data.countdownTime !== undefined) {
+                    const countdownMinutes = Math.floor(this.data.countdownTime / 60);
+                    const countdownSeconds = this.data.countdownTime % 60;
+                    document.getElementById('countdown').textContent = 
+                        `${countdownMinutes.toString().padStart(2, '0')}:${countdownSeconds.toString().padStart(2, '0')}`;
+                }
+
+                if (this.data.countUpTime !== undefined) {
+                    const countupMinutes = Math.floor(this.data.countUpTime / 60);
+                    const countupSeconds = this.data.countUpTime % 60;
+                    document.getElementById('countup').textContent = 
+                        `${countupMinutes.toString().padStart(2, '0')}:${countupSeconds.toString().padStart(2, '0')}`;
+                }
+            }
+
+            updateCueStackDropdown() {
+                const dropdown = document.getElementById('cueStackDropdown');
+                dropdown.innerHTML = '';
+
+                if (this.data.availableCueStacks && this.data.availableCueStacks.length > 0) {
+                    this.data.availableCueStacks.forEach((stack, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = stack.name;
+                        if (index === this.data.currentCueStackIndex) {
+                            option.selected = true;
+                        }
+                        dropdown.appendChild(option);
+                    });
+
+                    dropdown.addEventListener('change', (e) => {
+                        this.data.currentCueStackIndex = parseInt(e.target.value);
+                        this.updateTable();
+                    });
+                } else {
+                    const option = document.createElement('option');
+                    option.textContent = 'No cue stacks available';
+                    dropdown.appendChild(option);
+                }
+            }
+
+            updateTable() {
+                const table = document.getElementById('cueTable');
+                const thead = table.querySelector('thead');
+                const tbody = table.querySelector('tbody');
+                
+                if (!this.data || !this.data.cues || !this.data.columns) {
+                    tbody.innerHTML = '<tr><td colspan="100%" class="loading">No cue data available</td></tr>';
+                    return;
+                }
+
+                // Build header
+                thead.innerHTML = '';
+                const headerRow = document.createElement('tr');
+                
+                this.data.columns.forEach((col, index) => {
+                    const th = document.createElement('th');
+                    th.style.width = col.width + 'px';
+                    th.style.minWidth = col.width + 'px';
+                    th.style.maxWidth = col.width + 'px';
+                    th.textContent = col.name;
+                    headerRow.appendChild(th);
+                });
+                
+                thead.appendChild(headerRow);
+
+                // Build body
+                tbody.innerHTML = '';
+                this.data.cues.forEach((cue, rowIndex) => {
+                    const row = document.createElement('tr');
+                    
+                    // Add classes for highlighting
+                    if (rowIndex === this.data.activeCueIndex) {
+                        row.classList.add('next');
+                    }
+                    if (rowIndex === this.data.selectedCueIndex) {
+                        row.classList.add('selected');
+                    }
+                    
+                    cue.values.forEach((value, colIndex) => {
+                        const td = document.createElement('td');
+                        
+                        // Apply struck-through styling if needed
+                        if (cue.isStruckThrough) {
+                            td.classList.add('struck');
+                        }
+                        
+                        // Special styling for timer cells (usually column 2)
+                        if (colIndex === 2 && value && value.match(/^\d{1,2}:\d{2}:\d{2}$/)) {
+                            td.classList.add('timer-cell');
+                        }
+                        
+                        td.textContent = value || '';
+                        row.appendChild(td);
+                    });
+                    
+                    tbody.appendChild(row);
+                });
+            }
+
+            showNoData() {
+                const tableContainer = document.querySelector('.table-container');
+                tableContainer.innerHTML = `
+                    <div class="no-data">
+                        <h3>No Cue Data Available</h3>
+                        <p>No cue data has been synced from your macOS Cue to Cue app yet.</p>
+                        <p>To view your cues here:</p>
+                        <ol style="text-align: left; display: inline-block; margin: 20px 0;">
+                            <li>Open your Cue to Cue app</li>
+                            <li>Configure website sync in Settings</li>
+                            <li>Open a cue file to sync it</li>
+                        </ol>
+                        <button class="refresh-button" onclick="location.reload()">Refresh</button>
+                    </div>
+                `;
+            }
+
+            startAutoUpdate() {
+                // Update every 30 seconds to check for new data
+                this.updateInterval = setInterval(() => {
+                    this.loadData();
+                }, 30000);
+            }
+
+            destroy() {
+                if (this.updateInterval) {
+                    clearInterval(this.updateInterval);
+                }
+            }
+        }
+
+        // Initialize the viewer when the page loads
+        // Note: CueToCueViewer initialization is now handled by the password system
+        // after successful authentication
+        document.addEventListener('DOMContentLoaded', () => {
+            // Password system will initialize CueToCueViewer after authentication
+            console.log('Cue to Cue Viewer loaded - waiting for authentication');
+        });
+
+        // Clean up when the page unloads
+        window.addEventListener('beforeunload', () => {
+            if (window.cueViewer) {
+                window.cueViewer.destroy();
+            }
+        });
+    </script>
+</body>
+</html>

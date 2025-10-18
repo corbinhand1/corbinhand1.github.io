@@ -9,7 +9,6 @@ import Cocoa
 import SwiftUI
 import Combine
 
-@main
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     var window: NSWindow!
     var contentView: ContentView?

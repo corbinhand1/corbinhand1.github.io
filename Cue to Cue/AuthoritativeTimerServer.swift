@@ -8,6 +8,13 @@
 import Foundation
 import Combine
 
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let dragOperationStarted = Notification.Name("dragOperationStarted")
+    static let dragOperationEnded = Notification.Name("dragOperationEnded")
+}
+
 // MARK: - Timer State Models
 
 struct TimerState: Codable {
@@ -49,6 +56,10 @@ class AuthoritativeTimerServer: ObservableObject {
     private var targetTimeString: String = "10:00:00"
     private var timeOffset: TimeInterval = 0
     
+    // Drag operation state tracking
+    private var isDragOperationActive = false
+    private var dragOperationStartTime: Date?
+    
     // MARK: - Initialization
     
     init() {
@@ -60,11 +71,39 @@ class AuthoritativeTimerServer: ObservableObject {
         
         startNTPSync()
         startTimerBroadcast()
+        setupDragOperationObservers()
         print("🚀 AuthoritativeTimerServer initialized with countdown-to-time target: \(targetTimeString)")
     }
     
     deinit {
         timer?.invalidate()
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - Drag Operation Observers
+    
+    private func setupDragOperationObservers() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDragOperationStarted),
+            name: .dragOperationStarted,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDragOperationEnded),
+            name: .dragOperationEnded,
+            object: nil
+        )
+    }
+    
+    @objc private func handleDragOperationStarted() {
+        startDragOperation()
+    }
+    
+    @objc private func handleDragOperationEnded() {
+        endDragOperation()
     }
     
     // MARK: - NTP Synchronization
@@ -91,12 +130,20 @@ class AuthoritativeTimerServer: ObservableObject {
     
     private func updateTimers() {
         let now = Date().addingTimeInterval(timeOffset)
-        currentTime = now
+        
+        // Always update currentTime every second for consistent web client updates
+        let newCurrentTime = now
+        if abs(newCurrentTime.timeIntervalSince(currentTime)) >= 1.0 {
+            currentTime = newCurrentTime
+        }
         
         // Update countdown timer
         if let target = countdownTarget {
             let remaining = max(0, Int(target.timeIntervalSince(now)))
-            countdownTime = remaining
+            // Only update if countdown time actually changed
+            if countdownTime != remaining {
+                countdownTime = remaining
+            }
             if remaining == 0 {
                 countdownRunning = false
                 countdownTarget = nil
@@ -106,12 +153,29 @@ class AuthoritativeTimerServer: ObservableObject {
         // Update count-up timer
         if let target = countUpTarget {
             let remaining = max(0, Int(target.timeIntervalSince(now)))
-            countUpTime = remaining
+            // Only update if count-up time actually changed
+            if countUpTime != remaining {
+                countUpTime = remaining
+            }
             if remaining == 0 {
                 countUpRunning = false
                 countUpTarget = nil
             }
         }
+    }
+    
+    // MARK: - Drag Operation Management
+    
+    func startDragOperation() {
+        isDragOperationActive = true
+        dragOperationStartTime = Date()
+        print("🔄 Timer server: Drag operation started - reducing update frequency")
+    }
+    
+    func endDragOperation() {
+        isDragOperationActive = false
+        dragOperationStartTime = nil
+        print("✅ Timer server: Drag operation ended - resuming normal update frequency")
     }
     
     // MARK: - Timer Commands
@@ -255,12 +319,12 @@ class AuthoritativeTimerServer: ObservableObject {
     
     func getTimerState() -> TimerState {
         return TimerState(
-            currentTime: currentTime.timeIntervalSince1970,
+            currentTime: 0, // Not used - current time is handled locally by web client
             countdownTime: countdownTime,
             countUpTime: countUpTime,
             countdownRunning: countdownRunning,
             countUpRunning: countUpRunning,
-            timestamp: Date().timeIntervalSince1970,
+            timestamp: Date().timeIntervalSince1970 * 1000, // Convert to milliseconds
             countdownTarget: countdownTarget?.timeIntervalSince1970,
             countUpTarget: countUpTarget?.timeIntervalSince1970
         )

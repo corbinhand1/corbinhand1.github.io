@@ -13,6 +13,8 @@ import AppKit
 struct ContentView: View {
     @StateObject private var settingsManager = SettingsManager()
     @StateObject private var dataSyncManager = DataSyncManager()
+    @StateObject private var websiteSyncManager = WebsiteSyncManager()
+    @StateObject private var timerServer = AuthoritativeTimerServer()
     @State private var currentTime = Date()
     @State private var countdownTime = 300
     @State private var countUpTime = 0
@@ -29,7 +31,7 @@ struct ContentView: View {
     @Binding var currentFileName: String
 
     @State private var scrollViewProxy: ScrollViewProxy?
-    @State private var stateHistory: [(columns: [Column], cues: [Cue])] = []
+    @State private var stateHistory: [(columns: [Column], cues: [Cue], timestamp: TimeInterval)] = []
     @State private var currentStateIndex = -1
     @State private var isReorderingCues = false
     @State private var editingCueIndex: Int?
@@ -115,18 +117,21 @@ struct ContentView: View {
                         
                         VStack(spacing: 20) {
                             TopSectionView(
-                                currentTime: $dataSyncManager.timerServer.currentTime,
-                                countdownTime: $dataSyncManager.timerServer.countdownTime,
-                                countdownRunning: $dataSyncManager.timerServer.countdownRunning,
-                                countUpTime: $dataSyncManager.timerServer.countUpTime,
-                                countUpRunning: $dataSyncManager.timerServer.countUpRunning,
+                                currentTime: $timerServer.currentTime,
+                                countdownTime: $timerServer.countdownTime,
+                                countdownRunning: $timerServer.countdownRunning,
+                                countUpTime: $timerServer.countUpTime,
+                                countUpRunning: $timerServer.countUpRunning,
+                                timerServer: timerServer,
                                 showSettings: $showSettings,
                                 showConnectionMonitor: $showConnectionMonitor,
                                 showUserManagement: $showUserManagement,
+                                currentFileName: $currentFileName,
                                 updateWebClients: updateWebClients
                             )
                             .environmentObject(settingsManager)
                             .environmentObject(dataSyncManager)
+                            .environmentObject(websiteSyncManager)
                             
                             HStack(alignment: .top, spacing: 0) {
                                 VStack(alignment: .leading, spacing: 0) {
@@ -205,11 +210,11 @@ struct ContentView: View {
             clearCueSelection()
         }
         .onChange(of: dataSyncManager.selectedCueIndex) { _, _ in
-            // Immediately notify web clients when selected cue changes
-            updateWebClients()
-        }
-        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
-            updateWebClients()
+            // Debounce web client updates to prevent interference with drag operations
+            // Use a small delay to allow drag gestures to complete smoothly
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                updateWebClients()
+            }
         }
         // Autosave every 30 seconds.
         .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
@@ -302,7 +307,7 @@ struct ContentView: View {
     private func updateWebServer() {
         // Web server update implementation
         if webServer == nil {
-            webServer = WebServer(dataSyncManager: dataSyncManager)
+            webServer = WebServer(dataSyncManager: dataSyncManager, timerServer: timerServer)
             webServer?.start(port: 8080)
             // Get the auth manager from the web server
             authManager = webServer?.authManager
@@ -319,8 +324,30 @@ struct ContentView: View {
         return (dataSyncManager.cueStacks, dataSyncManager.selectedCueStackIndex, dataSyncManager.selectedCueIndex)
     }
     
+    // MARK: - App Termination Support
+    var currentFileURL: URL? {
+        return lastSavedURL
+    }
+    
     private func setupAppDelegate() {
         appDelegate.contentView = self
+    }
+    
+    private func hasTextSelectionInFirstResponder() -> Bool {
+        guard let firstResponder = NSApp.keyWindow?.firstResponder else { return false }
+        
+        // Check if first responder is a text view (NSTextView)
+        if let textView = firstResponder as? NSTextView {
+            return textView.selectedRange.length > 0
+        }
+        
+        // Check if first responder is a text field with an editor
+        if let textField = firstResponder as? NSTextField,
+           let editor = textField.currentEditor() as? NSTextView {
+            return editor.selectedRange.length > 0
+        }
+        
+        return false
     }
     
     private func handleKeyDown(with event: NSEvent) -> Bool {
@@ -328,13 +355,33 @@ struct ContentView: View {
         if event.modifierFlags.contains(.command) {
             switch event.charactersIgnoringModifiers?.lowercased() {
             case "c":
+                // If there's text selected in a text field, let the text field handle it
+                if hasTextSelectionInFirstResponder() {
+                    return false  // Don't intercept, let the text field handle Cmd+C
+                }
+                // Otherwise, copy the cue data as before
                 copy(nil)
                 return true
             case "v":
+                // If there's a text field with focus, let it handle the paste
+                if let firstResponder = NSApp.keyWindow?.firstResponder,
+                   (firstResponder is NSTextView || firstResponder is NSTextField) {
+                    return false  // Don't intercept, let the text field handle Cmd+V
+                }
+                // Otherwise, paste cue data as before
                 paste(nil)
                 return true
             case "a":
                 selectAllCues()
+                return true
+            case "s":
+                // Toggle strike-through for selected cue
+                if let selectedIndex = getSelectedCueIndices()?.first {
+                    let cueId = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues[selectedIndex].id
+                    Task {
+                        await dataSyncManager.toggleStrikeThrough(cueId: cueId)
+                    }
+                }
                 return true
             default:
                 break
@@ -474,7 +521,7 @@ struct ContentView: View {
     private func selectCue(at index: Int) {
         dataSyncManager.selectedCueIndex = index
         highlightCue(at: index)
-        updateWebClients()
+        // updateWebClients() will be called automatically by onChange(of: selectedCueIndex)
     }
     
     // When a new cue is selected, reset the countdown clock.
@@ -505,10 +552,17 @@ struct ContentView: View {
     }
     
     func addCue() {
-        saveState()
+        // Add the cue first
         let newCue = Cue(values: Array(repeating: "", count: dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count))
         dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.append(newCue)
+        
+        // Then save the state with the new cue included
+        saveState()
+        
+        // Update web clients
         self.appDelegate.updateWebClients()
+        
+        print("➕ Added cue #\(dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count) with ID: \(newCue.id)")
     }
     
     // MARK: - File Saving Methods
@@ -619,8 +673,17 @@ struct ContentView: View {
                     self.pdfNotes = savedData.pdfNotes
                     self.lastSavedURL = url
                     self.currentFileName = url.lastPathComponent
+                    UserDefaults.standard.set(url, forKey: "LastSavedURL")
                     print("File opened successfully: \(url.path)")
                     self.updateWebClients()
+                    
+                    // Auto-sync to website if enabled
+                    self.websiteSyncManager.autoSyncIfEnabled(
+                        cueStacks: self.dataSyncManager.cueStacks,
+                        selectedCueStackIndex: self.dataSyncManager.selectedCueStackIndex,
+                        filename: self.currentFileName,
+                        settingsManager: self.settingsManager
+                    )
                 } catch {
                     print("Error reading file: \(error.localizedDescription)")
                     self.showOpenError(error: error)
@@ -664,6 +727,14 @@ struct ContentView: View {
                     currentFileName = lastURL.lastPathComponent
                     print("✅ Loaded last file: \(lastURL.path)")
                     updateWebClients()
+                    
+                    // Auto-sync to website if enabled
+                    websiteSyncManager.autoSyncIfEnabled(
+                        cueStacks: dataSyncManager.cueStacks,
+                        selectedCueStackIndex: dataSyncManager.selectedCueStackIndex,
+                        filename: currentFileName,
+                        settingsManager: settingsManager
+                    )
                 } catch {
                     print("❌ Error loading last file: \(error.localizedDescription)")
                     // If auto-load fails, continue with default state
@@ -735,12 +806,16 @@ struct ContentView: View {
     func saveState() {
         guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex) else { return }
         let currentStack = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex]
-        let currentState = (columns: currentStack.columns, cues: currentStack.cues)
+        
+        // Create a unique state with timestamp
+        let currentState = (columns: currentStack.columns, cues: currentStack.cues, timestamp: Date().timeIntervalSince1970)
+        
         if currentStateIndex < stateHistory.count - 1 {
             stateHistory = Array(stateHistory.prefix(upTo: currentStateIndex + 1))
         }
         stateHistory.append(currentState)
         currentStateIndex += 1
+        print("💾 Saved state #\(currentStateIndex) with \(currentState.cues.count) cues")
     }
     
     func undo() {
@@ -749,6 +824,7 @@ struct ContentView: View {
         let previousState = stateHistory[currentStateIndex]
         dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns = previousState.columns
         dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues = previousState.cues
+        print("↩️ Undo to state #\(currentStateIndex) with \(previousState.cues.count) cues")
         self.appDelegate.updateWebClients()
     }
     
@@ -758,6 +834,7 @@ struct ContentView: View {
         let nextState = stateHistory[currentStateIndex]
         dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns = nextState.columns
         dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues = nextState.cues
+        print("↪️ Redo to state #\(currentStateIndex) with \(nextState.cues.count) cues")
         self.appDelegate.updateWebClients()
     }
     
@@ -874,6 +951,20 @@ struct ContentView: View {
     
     func pasteCue(at index: Int) {
         pasteCues(after: index)
+    }
+    
+    // MARK: - Strike-Through Functionality
+    
+    func toggleStrikeThrough() {
+        guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex) else { return }
+        
+        let selectedStack = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex]
+        guard selectedStack.cues.indices.contains(dataSyncManager.selectedCueIndex) else { return }
+        
+        let cueId = selectedStack.cues[dataSyncManager.selectedCueIndex].id
+        Task {
+            await dataSyncManager.toggleStrikeThrough(cueId: cueId)
+        }
     }
     
     // MARK: - Printing Functionality

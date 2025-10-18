@@ -36,7 +36,7 @@ class WebsiteSyncManager: ObservableObject {
         // TODO: Load configuration from settings
     }
     
-    func syncCueData(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String, completion: @escaping (Bool, String?) -> Void = { _, _ in }) {
+    func syncCueData(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String, settingsManager: SettingsManager, completion: @escaping (Bool, String?) -> Void = { _, _ in }) {
         print("🚀 syncCueData called with filename: \(filename)")
         print("📊 Cue stacks count: \(cueStacks.count)")
         print("🎯 Selected cue stack index: \(selectedCueStackIndex)")
@@ -71,7 +71,7 @@ class WebsiteSyncManager: ObservableObject {
         
         // Prepare cue data for web viewer
         print("📝 Preparing cue data for web viewer...")
-        let cueData = prepareCueDataForWeb(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex, filename: filename)
+        let cueData = prepareCueDataForWeb(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex, filename: filename, settingsManager: settingsManager)
         print("✅ Cue data prepared successfully")
         
         // Send to GitHub via repository_dispatch
@@ -94,14 +94,14 @@ class WebsiteSyncManager: ObservableObject {
         }
     }
     
-    func autoSyncIfEnabled(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String) {
+    func autoSyncIfEnabled(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String, settingsManager: SettingsManager) {
         // Check if auto-sync is enabled
         let autoSyncEnabled = UserDefaults.standard.bool(forKey: "autoSyncEnabled")
         print("🔄 autoSyncIfEnabled called - enabled: \(autoSyncEnabled)")
         
         if autoSyncEnabled {
             print("🚀 Auto-sync enabled, triggering sync...")
-            syncCueData(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex, filename: filename)
+            syncCueData(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex, filename: filename, settingsManager: settingsManager)
         } else {
             print("⏸️ Auto-sync disabled, skipping")
         }
@@ -109,7 +109,7 @@ class WebsiteSyncManager: ObservableObject {
     
     // MARK: - Helper Functions
     
-    private func prepareCueDataForWeb(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String) -> [String: Any] {
+    private func prepareCueDataForWeb(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String, settingsManager: SettingsManager) -> [String: Any] {
         // Get column structure from first stack
         let columns = cueStacks.first?.columns ?? []
         
@@ -325,6 +325,7 @@ struct TopSectionView: View {
     @Binding var countdownRunning: Bool
     @Binding var countUpTime: Int
     @Binding var countUpRunning: Bool
+    var timerServer: AuthoritativeTimerServer
 
     // "Countdown to a specific time" states:
     @State private var targetTimeString: String = "10:00:00"
@@ -338,9 +339,6 @@ struct TopSectionView: View {
     @EnvironmentObject var settingsManager: SettingsManager
     @EnvironmentObject var websiteSyncManager: WebsiteSyncManager
     var updateWebClients: () -> Void
-    
-    // Reference to DataSyncManager for timer commands
-    @EnvironmentObject var dataSyncManager: DataSyncManager
 
     // For editing the regular countdown time in a TextField
     @State private var isEditingCountdown = false
@@ -370,16 +368,12 @@ struct TopSectionView: View {
         .background(Color.black.opacity(0.8))
         .cornerRadius(20)
         .shadow(color: settingsManager.settings.fontColor.opacity(0.3), radius: 10, x: 0, y: 5)
-        // Update frequently for accuracy.
-        .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
-            tick()
-        }
         .onAppear {
             if countdownRunning {
                 startCountdownTimer()
             }
             // Get target time string from server
-            targetTimeString = dataSyncManager.timerServer.getTargetTimeString()
+            targetTimeString = timerServer.getTargetTimeString()
         }
         // Listen for the custom reset notification from ContentView.
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ResetCountdown"))) { notification in
@@ -394,86 +388,54 @@ struct TopSectionView: View {
         }
     }
 
-    // MARK: - Timer Tick (Now just updates UI bindings)
-
-    private func tick() {
-        // Timer calculations are now handled by AuthoritativeTimerServer
-        // This function just updates the UI bindings from the timer server
-        let timerState = dataSyncManager.timerServer
-        
-        // Update bindings to reflect timer server state
-        if currentTime != timerState.currentTime {
-            currentTime = timerState.currentTime
-        }
-        
-        if countdownTime != timerState.countdownTime {
-            countdownTime = timerState.countdownTime
-        }
-        
-        if countUpTime != timerState.countUpTime {
-            countUpTime = timerState.countUpTime
-        }
-        
-        if countdownRunning != timerState.countdownRunning {
-            countdownRunning = timerState.countdownRunning
-        }
-        
-        if countUpRunning != timerState.countUpRunning {
-            countUpRunning = timerState.countUpRunning
-        }
-        
-        // Update target time string from server
-        let serverTargetTime = timerState.getTargetTimeString()
-        if targetTimeString != serverTargetTime {
-            targetTimeString = serverTargetTime
-        }
-        
-        // Update web clients with current state
-        updateWebClients()
-    }
+    // MARK: - Timer Management
+    
+    // Timer updates are now handled entirely by AuthoritativeTimerServer
+    // TopSectionView bindings automatically update when @Published properties change
+    // No manual timer management needed here
 
     // MARK: - Regular Countdown Controls (Now delegate to AuthoritativeTimerServer)
 
     private func startCountdownTimer() {
         let command = TimerCommand(action: "start", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil)
-        dataSyncManager.executeTimerCommand(command)
+        timerServer.executeCommand(command)
     }
 
     private func pauseCountdownTimer() {
         let command = TimerCommand(action: "pause", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil)
-        dataSyncManager.executeTimerCommand(command)
+        timerServer.executeCommand(command)
     }
 
     private func resetCountdownTimer() {
         let command = TimerCommand(action: "reset", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil)
-        dataSyncManager.executeTimerCommand(command)
+        timerServer.executeCommand(command)
     }
 
     /// Resets the regular countdown when a new cue timer is selected.
     private func resetCountdown(with newTime: Int) {
-        dataSyncManager.resetCountdown(with: newTime)
+        timerServer.resetCountdown(with: newTime)
     }
 
     private func adjustCountdownTime(by seconds: Int) {
         let command = TimerCommand(action: "adjust", countdownTime: nil, countUpTime: nil, adjustment: seconds, targetTimeString: nil)
-        dataSyncManager.executeTimerCommand(command)
+        timerServer.executeCommand(command)
     }
 
     // MARK: - "Countdown to Time" Controls (Now delegate to AuthoritativeTimerServer)
 
     private func startCountdownToTime() {
         let command = TimerCommand(action: "startCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil)
-        dataSyncManager.executeTimerCommand(command)
+        timerServer.executeCommand(command)
     }
 
     private func pauseCountdownToTime() {
         let command = TimerCommand(action: "pauseCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil)
-        dataSyncManager.executeTimerCommand(command)
+        timerServer.executeCommand(command)
     }
 
     private func resetCountdownToTime() {
         let command = TimerCommand(action: "resetCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil)
-        dataSyncManager.executeTimerCommand(command)
+        timerServer.executeCommand(command)
     }
 
     // MARK: - Subviews
@@ -511,7 +473,7 @@ struct TopSectionView: View {
                     TextField("", text: $editableCountdownTime, onCommit: {
                         if let newTime = parseTimeString(editableCountdownTime) {
                             let command = TimerCommand(action: "setCountdownTime", countdownTime: newTime, countUpTime: nil, adjustment: nil, targetTimeString: nil)
-                            dataSyncManager.executeTimerCommand(command)
+                            timerServer.executeCommand(command)
                         }
                         isEditingCountdown = false
                     })
@@ -549,7 +511,7 @@ struct TopSectionView: View {
                 if isEditingCountdownToTime {
                     TextField("HH:mm:ss", text: $targetTimeString, onCommit: {
                         let command = TimerCommand(action: "setCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: targetTimeString)
-                        dataSyncManager.executeTimerCommand(command)
+                        timerServer.executeCommand(command)
                         isEditingCountdownToTime = false
                     })
                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -602,19 +564,9 @@ struct TopSectionView: View {
     
     private var syncButton: some View {
         Button(action: {
-            websiteSyncManager.syncCueData(
-                cueStacks: dataSyncManager.cueStacks,
-                selectedCueStackIndex: dataSyncManager.selectedCueStackIndex,
-                filename: currentFileName.isEmpty ? "Manual Sync" : currentFileName
-            ) { success, errorMessage in
-                DispatchQueue.main.async {
-                    if success {
-                        showSyncSuccess()
-                    } else {
-                        showSyncFailure(errorMessage ?? "Unknown error")
-                    }
-                }
-            }
+            // Sync functionality moved to ContentView - this button is now disabled
+            // Timer system is completely separate from cue data sync
+            print("⚠️ Sync button disabled - sync functionality moved to ContentView")
         }) {
             Image(systemName: websiteSyncManager.isSyncing ? "arrow.clockwise" : "cloud")
                 .resizable()
