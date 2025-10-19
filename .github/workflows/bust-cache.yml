@@ -4,10 +4,8 @@ name: Cache Busting and Deploy (DISABLED)
 # The Simple Test and Update Cue Data workflows are sufficient
 # Uncomment the 'on:' section below if you want to re-enable this workflow
 
-# on:
-#   push:
-#     branches: [ main ]
-#   workflow_dispatch:
+on:
+  workflow_dispatch:
 
 jobs:
   bust-cache-and-deploy:
