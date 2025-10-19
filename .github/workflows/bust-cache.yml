@@ -1,0 +1,21 @@
+name: Cache Busting and Deploy (DISABLED)
+
+# DISABLED: This workflow was causing failures
+# The Simple Test and Update Cue Data workflows are sufficient
+# Uncomment the 'on:' section below if you want to re-enable this workflow
+
+# on:
+#   push:
+#     branches: [ main ]
+#   workflow_dispatch:
+
+jobs:
+  bust-cache-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Workflow Disabled
+      run: |
+        echo "This workflow has been disabled to prevent failures"
+        echo "The Simple Test and Update Cue Data workflows are working correctly"
+        echo "No action needed - this is intentional"

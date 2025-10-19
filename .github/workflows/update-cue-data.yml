@@ -10,18 +10,69 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+<<<<<<< HEAD
         
       - name: Update cue data
         run: |
           echo '${{ github.event.client_payload.cueData }}' > cuetocue/cuetocue-data.json
           echo '${{ github.event.client_payload.metadata }}' > cuetocue/metadata.json
+=======
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Debug payload
+        run: |
+          echo "=== DEBUG: GitHub Event Payload ==="
+          echo "Event type: ${{ github.event_name }}"
+          echo "Client payload exists: ${{ github.event.client_payload != null }}"
+          echo "Cue data exists: ${{ github.event.client_payload.cueData != null }}"
+          echo "Metadata exists: ${{ github.event.client_payload.metadata != null }}"
+          echo "=== FULL CLIENT PAYLOAD ==="
+          echo '${{ toJson(github.event.client_payload) }}'
+          
+      - name: Update cue data
+        run: |
+          mkdir -p cuetocue
+          
+          # Write cue data - MINIMAL TEST
+          echo "=== Writing cue data ==="
+          echo '{"test": "minimal", "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "filename": "test.json"}' > cuetocue/cuetocue-data.json
+          echo "✅ Cue data written successfully"
+          
+          # Write metadata - MINIMAL TEST  
+          echo "=== Writing metadata ==="
+          echo '{"filename": "test.json", "lastUpdated": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "test": true}' > cuetocue/metadata.json
+          echo "✅ Metadata written successfully"
+          
+          # Show what was written
+          echo "=== Files created ==="
+          echo "Cue data file size: $(wc -c < cuetocue/cuetocue-data.json) bytes"
+          echo "Metadata file size: $(wc -c < cuetocue/metadata.json) bytes"
+          echo "=== Cue data preview ==="
+          head -10 cuetocue/cuetocue-data.json
+          echo "=== Metadata preview ==="
+          cat cuetocue/metadata.json
+>>>>>>> 18eee82f5136bd24b96a3ce4c8a6a6bca32e17ec
           
       - name: Commit changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+<<<<<<< HEAD
           git add cuetocue/cuetocue-data.json cuetocue/metadata.json
           git commit -m "Update cue data from macOS app: ${{ github.event.client_payload.metadata.filename }}" || exit 0
           git push
 
 
+=======
+          
+          # Check if there are changes to commit
+          if git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git add cuetocue/cuetocue-data.json cuetocue/metadata.json
+            git commit -m "Update cue data from macOS app: ${{ github.event.client_payload.cueData.metadata.filename || 'Unknown' }}"
+            git push
+            echo "✅ Changes committed and pushed successfully"
+          fi
+>>>>>>> 18eee82f5136bd24b96a3ce4c8a6a6bca32e17ec
