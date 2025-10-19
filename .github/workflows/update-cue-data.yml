@@ -10,13 +10,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-<<<<<<< HEAD
-        
-      - name: Update cue data
-        run: |
-          echo '${{ github.event.client_payload.cueData }}' > cuetocue/cuetocue-data.json
-          echo '${{ github.event.client_payload.metadata }}' > cuetocue/metadata.json
-=======
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           
@@ -52,19 +45,11 @@ jobs:
           head -10 cuetocue/cuetocue-data.json
           echo "=== Metadata preview ==="
           cat cuetocue/metadata.json
->>>>>>> 18eee82f5136bd24b96a3ce4c8a6a6bca32e17ec
           
       - name: Commit changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-<<<<<<< HEAD
-          git add cuetocue/cuetocue-data.json cuetocue/metadata.json
-          git commit -m "Update cue data from macOS app: ${{ github.event.client_payload.metadata.filename }}" || exit 0
-          git push
-
-
-=======
           
           # Check if there are changes to commit
           if git diff --quiet; then
@@ -75,4 +60,3 @@ jobs:
             git push
             echo "✅ Changes committed and pushed successfully"
           fi
->>>>>>> 18eee82f5136bd24b96a3ce4c8a6a6bca32e17ec
