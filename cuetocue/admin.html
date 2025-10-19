@@ -145,6 +145,15 @@
         .btn-danger:hover {
             background: #d32f2f;
         }
+
+        .btn-info {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background: #1976D2;
+        }
         
         .message {
             padding: 16px;
@@ -383,6 +392,18 @@
         .session-id {
             font-size: 0.75rem;
             color: #666;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .device-confidence {
+            font-size: 0.7rem;
+            color: #4CAF50;
+            font-weight: 500;
+        }
+
+        .device-method {
+            font-size: 0.7rem;
+            color: #2196F3;
             font-family: 'SF Mono', Monaco, monospace;
         }
 
@@ -670,6 +691,7 @@
                 <button class="btn btn-secondary" onclick="clearDeviceHistory()">Clear History</button>
                 <button class="btn btn-danger" onclick="exportDeviceData()">Export Data</button>
                 <button class="btn btn-secondary" onclick="testLocationData()">Test Location</button>
+                <button class="btn btn-info" onclick="showDetectionDetails()">Show Detection Details</button>
             </div>
             
             <div class="device-stats">
@@ -881,27 +903,193 @@
         }
         
         function getDeviceInfo(userAgent, screenInfo) {
-            let deviceType = 'Desktop';
-            let deviceName = 'Unknown Device';
+            // Enhanced device detection using multiple methods
+            const detection = {
+                userAgent: userAgent,
+                screen: screenInfo,
+                touchPoints: navigator.maxTouchPoints || 0,
+                platform: navigator.platform || '',
+                vendor: navigator.vendor || '',
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine,
+                hardwareConcurrency: navigator.hardwareConcurrency || 0
+            };
+
+            // Primary detection based on user agent patterns
+            const deviceInfo = detectDeviceFromUserAgent(userAgent, detection);
             
-            if (/Mobile|Android|iPhone|iPad/.test(userAgent)) {
-                deviceType = 'Mobile';
-                if (/iPhone/.test(userAgent)) {
-                    deviceName = 'iPhone';
-                } else if (/iPad/.test(userAgent)) {
-                    deviceName = 'iPad';
-                } else if (/Android/.test(userAgent)) {
-                    deviceName = 'Android Device';
-                }
-            } else if (/Tablet|iPad/.test(userAgent)) {
-                deviceType = 'Tablet';
-                deviceName = 'Tablet';
+            // Secondary detection based on screen size and touch capabilities
+            const screenBasedDetection = detectDeviceFromScreen(detection);
+            
+            // Tertiary detection based on platform and vendor
+            const platformBasedDetection = detectDeviceFromPlatform(detection);
+            
+            // Combine all detection methods for final result
+            return combineDetectionResults(deviceInfo, screenBasedDetection, platformBasedDetection, detection);
+        }
+
+        function detectDeviceFromUserAgent(userAgent, detection) {
+            const ua = userAgent.toLowerCase();
+            
+            // iOS Detection (comprehensive patterns)
+            if (ua.includes('iphone') || ua.includes('ipod')) {
+                return { type: 'Mobile', name: 'iPhone', confidence: 'high', method: 'userAgent' };
             }
             
+            if (ua.includes('ipad')) {
+                return { type: 'Tablet', name: 'iPad', confidence: 'high', method: 'userAgent' };
+            }
+            
+            // Android Detection
+            if (ua.includes('android')) {
+                if (ua.includes('mobile')) {
+                    return { type: 'Mobile', name: 'Android Phone', confidence: 'high', method: 'userAgent' };
+                } else {
+                    return { type: 'Tablet', name: 'Android Tablet', confidence: 'high', method: 'userAgent' };
+                }
+            }
+            
+            // Windows Phone
+            if (ua.includes('windows phone')) {
+                return { type: 'Mobile', name: 'Windows Phone', confidence: 'high', method: 'userAgent' };
+            }
+            
+            // BlackBerry
+            if (ua.includes('blackberry') || ua.includes('bb10')) {
+                return { type: 'Mobile', name: 'BlackBerry', confidence: 'high', method: 'userAgent' };
+            }
+            
+            // Desktop browsers
+            if (ua.includes('windows nt')) {
+                return { type: 'Desktop', name: 'Windows PC', confidence: 'high', method: 'userAgent' };
+            }
+            
+            if (ua.includes('macintosh') || ua.includes('mac os x')) {
+                // Check if it's actually iOS masquerading as macOS
+                if (detection.touchPoints > 0 && detection.screen.width <= 1024) {
+                    return { type: 'Mobile', name: 'iOS Device (Safari)', confidence: 'medium', method: 'userAgent+touch' };
+                }
+                return { type: 'Desktop', name: 'Mac', confidence: 'high', method: 'userAgent' };
+            }
+            
+            if (ua.includes('linux')) {
+                return { type: 'Desktop', name: 'Linux PC', confidence: 'high', method: 'userAgent' };
+            }
+            
+            return { type: 'Unknown', name: 'Unknown Device', confidence: 'low', method: 'userAgent' };
+        }
+
+        function detectDeviceFromScreen(detection) {
+            const { screen, touchPoints } = detection;
+            const width = screen.width;
+            const height = screen.height;
+            const pixelRatio = screen.pixelRatio || 1;
+            
+            // Calculate logical screen size (accounting for pixel ratio)
+            const logicalWidth = width / pixelRatio;
+            const logicalHeight = height / pixelRatio;
+            
+            // Mobile detection based on screen size
+            if (touchPoints > 0) {
+                if (logicalWidth <= 480 || logicalHeight <= 480) {
+                    return { type: 'Mobile', name: 'Mobile Device', confidence: 'high', method: 'screen+touch' };
+                } else if (logicalWidth <= 1024 && logicalHeight <= 1024) {
+                    return { type: 'Tablet', name: 'Tablet Device', confidence: 'high', method: 'screen+touch' };
+                }
+            }
+            
+            // Desktop detection based on screen size
+            if (logicalWidth > 1024 && logicalHeight > 768) {
+                return { type: 'Desktop', name: 'Desktop Device', confidence: 'medium', method: 'screen' };
+            }
+            
+            return { type: 'Unknown', name: 'Unknown Screen', confidence: 'low', method: 'screen' };
+        }
+
+        function detectDeviceFromPlatform(detection) {
+            const platform = detection.platform.toLowerCase();
+            const vendor = detection.vendor.toLowerCase();
+            
+            // iOS platform detection
+            if (platform.includes('iphone') || platform.includes('ipod')) {
+                return { type: 'Mobile', name: 'iPhone', confidence: 'high', method: 'platform' };
+            }
+            
+            if (platform.includes('ipad')) {
+                return { type: 'Tablet', name: 'iPad', confidence: 'high', method: 'platform' };
+            }
+            
+            // Android platform detection
+            if (platform.includes('android')) {
+                return { type: 'Mobile', name: 'Android Device', confidence: 'medium', method: 'platform' };
+            }
+            
+            // Desktop platforms
+            if (platform.includes('win32') || platform.includes('win64')) {
+                return { type: 'Desktop', name: 'Windows PC', confidence: 'medium', method: 'platform' };
+            }
+            
+            if (platform.includes('macintel') || platform.includes('macppc')) {
+                return { type: 'Desktop', name: 'Mac', confidence: 'medium', method: 'platform' };
+            }
+            
+            if (platform.includes('linux')) {
+                return { type: 'Desktop', name: 'Linux PC', confidence: 'medium', method: 'platform' };
+            }
+            
+            return { type: 'Unknown', name: 'Unknown Platform', confidence: 'low', method: 'platform' };
+        }
+
+        function combineDetectionResults(userAgentResult, screenResult, platformResult, detection) {
+            // Confidence scoring system
+            const confidenceScores = {
+                'high': 3,
+                'medium': 2,
+                'low': 1
+            };
+            
+            const results = [userAgentResult, screenResult, platformResult];
+            
+            // Find the result with highest confidence
+            let bestResult = userAgentResult;
+            let bestScore = confidenceScores[userAgentResult.confidence];
+            
+            for (const result of results) {
+                const score = confidenceScores[result.confidence];
+                if (score > bestScore) {
+                    bestResult = result;
+                    bestScore = score;
+                }
+            }
+            
+            // Special handling for iOS devices that might be misidentified
+            if (detection.touchPoints > 0 && detection.screen.width <= 1024) {
+                if (bestResult.type === 'Desktop' && detection.vendor.toLowerCase().includes('apple')) {
+                    bestResult = { 
+                        type: 'Mobile', 
+                        name: 'iOS Device (Touch)', 
+                        confidence: 'high', 
+                        method: 'touch+vendor' 
+                    };
+                }
+            }
+            
+            // Add detailed detection info
             return {
-                type: deviceType,
-                name: deviceName,
-                screen: screenInfo
+                type: bestResult.type,
+                name: bestResult.name,
+                confidence: bestResult.confidence,
+                detectionMethod: bestResult.method,
+                screen: detection.screen,
+                touchPoints: detection.touchPoints,
+                platform: detection.platform,
+                vendor: detection.vendor,
+                hardwareConcurrency: detection.hardwareConcurrency,
+                allResults: {
+                    userAgent: userAgentResult,
+                    screen: screenResult,
+                    platform: platformResult
+                }
             };
         }
         
@@ -1030,6 +1218,8 @@
                         <div class="device-info">
                             <div class="device-name">${deviceInfo.device.name}</div>
                             <div class="device-type">${deviceInfo.device.type}</div>
+                            <div class="device-confidence">Confidence: ${deviceInfo.device.confidence}</div>
+                            <div class="device-method">Method: ${deviceInfo.device.detectionMethod}</div>
                             <div class="device-id">${session.sessionId}</div>
                         </div>
                     </td>
@@ -1149,6 +1339,58 @@
             } catch (error) {
                 console.error('Error testing location data:', error);
                 alert('Error collecting location data. This is normal for local development.');
+            }
+        }
+
+        async function showDetectionDetails() {
+            console.log('Showing detailed device detection information...');
+            try {
+                const userAgent = navigator.userAgent;
+                const screenInfo = {
+                    width: screen.width,
+                    height: screen.height,
+                    colorDepth: screen.colorDepth,
+                    pixelRatio: window.devicePixelRatio
+                };
+                
+                const deviceInfo = getDeviceInfo(userAgent, screenInfo);
+                
+                const details = `
+🔍 DETAILED DEVICE DETECTION ANALYSIS
+
+📱 FINAL RESULT:
+• Device: ${deviceInfo.name}
+• Type: ${deviceInfo.type}
+• Confidence: ${deviceInfo.confidence}
+• Method: ${deviceInfo.detectionMethod}
+
+🖥️ SCREEN INFORMATION:
+• Resolution: ${screenInfo.width}x${screenInfo.height}
+• Pixel Ratio: ${screenInfo.pixelRatio}
+• Logical Size: ${Math.round(screenInfo.width/screenInfo.pixelRatio)}x${Math.round(screenInfo.height/screenInfo.pixelRatio)}
+• Color Depth: ${screenInfo.colorDepth} bits
+
+👆 TOUCH CAPABILITIES:
+• Max Touch Points: ${deviceInfo.touchPoints}
+• Platform: ${deviceInfo.platform}
+• Vendor: ${deviceInfo.vendor}
+• Hardware Cores: ${deviceInfo.hardwareConcurrency}
+
+🔍 DETECTION METHODS:
+• User Agent: ${deviceInfo.allResults.userAgent.name} (${deviceInfo.allResults.userAgent.confidence})
+• Screen: ${deviceInfo.allResults.screen.name} (${deviceInfo.allResults.screen.confidence})
+• Platform: ${deviceInfo.allResults.platform.name} (${deviceInfo.allResults.platform.confidence})
+
+📋 USER AGENT:
+${userAgent}
+
+This information helps troubleshoot device detection issues.
+                `;
+                
+                alert(details);
+            } catch (error) {
+                console.error('Error showing detection details:', error);
+                alert('Error showing detection details: ' + error.message);
             }
         }
 
