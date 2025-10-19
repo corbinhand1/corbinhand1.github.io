@@ -18,9 +18,40 @@ class PasswordSystem {
         this.initCallback = null;
     }
     
+    loadCustomSettings() {
+        try {
+            const settings = JSON.parse(localStorage.getItem('cuetocue_settings') || '{}');
+            
+            // Update PASSWORD_CONFIG with custom settings
+            if (settings.viewerPasswordHash) {
+                PASSWORD_CONFIG.viewerPassword = settings.viewerPasswordHash;
+            }
+            
+            if (settings.sessionTimeoutHours) {
+                PASSWORD_CONFIG.sessionTimeout = settings.sessionTimeoutHours * 60 * 60 * 1000; // Convert to milliseconds
+            }
+            
+            if (settings.maxAttempts) {
+                PASSWORD_CONFIG.maxAttempts = settings.maxAttempts;
+            }
+            
+            console.log('Custom settings loaded:', {
+                hasCustomPassword: !!settings.viewerPasswordHash,
+                sessionTimeoutHours: settings.sessionTimeoutHours || 12,
+                maxAttempts: settings.maxAttempts || 5
+            });
+            
+        } catch (error) {
+            console.error('Error loading custom settings:', error);
+        }
+    }
+    
     async init(callback) {
         this.initCallback = callback;
         try {
+            // Load custom settings from localStorage
+            this.loadCustomSettings();
+            
             // Check if already authenticated
             if (isSessionValid()) {
                 this.showContent();
@@ -274,7 +305,7 @@ class PasswordSystem {
             // Hash the entered password
             const hashedPassword = await hashPassword(password);
             
-            // Check against stored hash
+            // Check against stored hash (custom settings take precedence)
             if (hashedPassword === PASSWORD_CONFIG.viewerPassword) {
                 // Success - clear failed attempts and create session
                 clearFailedAttempts();
