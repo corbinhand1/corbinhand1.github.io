@@ -23,7 +23,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Initialize web server
-        webServer = WebServer()
+        webServer = WebServer(dataSyncManager: DataSyncManager())
         webServer?.start(port: 8080)
         
         // Create the SwiftUI view that provides the window contents.

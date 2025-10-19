@@ -17,13 +17,15 @@ class HTTPHandler {
     private let networkUtilities: NetworkUtilities
     private let connectionManager: ConnectionManager?
     private let authManager: AuthenticationManager
+    private let timerServer: AuthoritativeTimerServer
     
-    init(dataSyncManager: DataSyncManager, offlineFileServer: OfflineFileServer, networkUtilities: NetworkUtilities, connectionManager: ConnectionManager?, authManager: AuthenticationManager) {
+    init(dataSyncManager: DataSyncManager, offlineFileServer: OfflineFileServer, networkUtilities: NetworkUtilities, connectionManager: ConnectionManager?, authManager: AuthenticationManager, timerServer: AuthoritativeTimerServer) {
         self.dataSyncManager = dataSyncManager
         self.offlineFileServer = offlineFileServer
         self.networkUtilities = networkUtilities
         self.connectionManager = connectionManager
         self.authManager = authManager
+        self.timerServer = timerServer
     }
     
     // MARK: - Request Processing
@@ -134,7 +136,7 @@ class HTTPHandler {
     }
     
     private func serveJSON() -> HTTPResponse {
-        let jsonData = dataSyncManager.generateJSONResponseForWebClient()
+        let jsonData = dataSyncManager.generateJSONResponseForWebClient(timerServer: timerServer)
         
         // Check if JSON generation failed (empty data indicates error)
         if jsonData.isEmpty {
@@ -167,7 +169,7 @@ class HTTPHandler {
     }
     
     private func serveTimerState() -> HTTPResponse {
-        let timerState = dataSyncManager.timerServer.getTimerState()
+        let timerState = timerServer.getTimerState()
         
         do {
             let jsonData = try JSONEncoder().encode(timerState)
@@ -196,7 +198,7 @@ class HTTPHandler {
         
         do {
             let command = try JSONDecoder().decode(TimerCommand.self, from: body)
-            dataSyncManager.executeTimerCommand(command)
+            timerServer.executeCommand(command)
             
             let response: [String: Any] = ["success": true, "message": "Timer command executed"]
             let responseData = try JSONSerialization.data(withJSONObject: response)

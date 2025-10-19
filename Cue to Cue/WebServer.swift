@@ -34,6 +34,7 @@ class WebServer: ObservableObject {
     let dataSyncManager: DataSyncManager
     private let networkUtilities: NetworkUtilities
     let authManager: AuthenticationManager
+    private let timerServer: AuthoritativeTimerServer
     
     // MARK: - Initialization
     
@@ -45,16 +46,17 @@ class WebServer: ObservableObject {
         self.networkUtilities = NetworkUtilities()
         self.offlineFileServer = OfflineFileServer()
         self.authManager = AuthenticationManager(dataSyncManager: dataSyncManager)
+        self.timerServer = AuthoritativeTimerServer()
         
         // Create test data if needed
         self.dataSyncManager.createTestDataIfNeeded()
         
         // Create a temporary HTTPHandler for ConnectionManager initialization
-        let tempHTTPHandler = HTTPHandler(dataSyncManager: dataSyncManager, offlineFileServer: offlineFileServer, networkUtilities: networkUtilities, connectionManager: nil, authManager: authManager)
+        let tempHTTPHandler = HTTPHandler(dataSyncManager: dataSyncManager, offlineFileServer: offlineFileServer, networkUtilities: networkUtilities, connectionManager: nil, authManager: authManager, timerServer: timerServer)
         self.connectionManager = ConnectionManager(httpHandler: tempHTTPHandler)
         
         // Now create the real HTTPHandler with the connection manager
-        self.httpHandler = HTTPHandler(dataSyncManager: dataSyncManager, offlineFileServer: offlineFileServer, networkUtilities: networkUtilities, connectionManager: connectionManager, authManager: authManager)
+        self.httpHandler = HTTPHandler(dataSyncManager: dataSyncManager, offlineFileServer: offlineFileServer, networkUtilities: networkUtilities, connectionManager: connectionManager, authManager: authManager, timerServer: timerServer)
         
         // Initialize published properties safely for initialization
         initializePublishedProperties()

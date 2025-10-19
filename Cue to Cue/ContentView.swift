@@ -307,7 +307,7 @@ struct ContentView: View {
     private func updateWebServer() {
         // Web server update implementation
         if webServer == nil {
-            webServer = WebServer(dataSyncManager: dataSyncManager, timerServer: timerServer)
+            webServer = WebServer(dataSyncManager: dataSyncManager)
             webServer?.start(port: 8080)
             // Get the auth manager from the web server
             authManager = webServer?.authManager
