@@ -1,0 +1,305 @@
+/* Offline Mode Styles for Cue to Cue */
+/* These styles are completely separate and won't affect existing functionality */
+
+/* Offline Banner */
+.offline-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: white;
+    padding: 12px 20px;
+    text-align: center;
+    z-index: 100000;
+    transform: translateY(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.offline-banner.visible {
+    transform: translateY(0);
+}
+
+.offline-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.offline-icon {
+    font-size: 1.2rem;
+    animation: pulse 2s infinite;
+}
+
+.offline-text {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.offline-subtext {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* Offline Mode Body Class */
+body.offline-mode {
+    /* Subtle visual indication that we're in offline mode */
+    position: relative;
+}
+
+body.offline-mode::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ff6b6b, #ee5a24, #ff6b6b);
+    background-size: 200% 100%;
+    animation: offlineStrip 3s linear infinite;
+    z-index: 99999;
+}
+
+/* Offline Mode Input Styling */
+body.offline-mode input[readonly],
+body.offline-mode textarea[readonly] {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: not-allowed;
+}
+
+body.offline-mode button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Offline Mode Table Styling */
+body.offline-mode .table-container {
+    position: relative;
+}
+
+body.offline-mode .table-container::after {
+    content: '📱 Offline Mode - View Only';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 107, 107, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    z-index: 1000;
+}
+
+/* Sync Success Message */
+.sync-success-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100001;
+    animation: slideInRight 0.3s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 500;
+}
+
+/* Offline Status Indicators */
+[data-offline-status] {
+    transition: all 0.3s ease;
+}
+
+[data-offline-status].offline {
+    color: #ff6b6b;
+    font-weight: 600;
+}
+
+/* Offline Mode Menu Items */
+body.offline-mode .menu-button[data-offline-allowed="false"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+body.offline-mode .menu-button[data-offline-allowed="true"] {
+    opacity: 1;
+    cursor: pointer;
+}
+
+/* Offline Mode Settings Panel */
+body.offline-mode .web-settings-panel {
+    position: relative;
+}
+
+body.offline-mode .web-settings-panel::before {
+    content: '📱 Offline Mode';
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 107, 107, 0.9);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Offline Mode Column Menu */
+body.offline-mode .dropdown-menu {
+    position: relative;
+}
+
+body.offline-mode .dropdown-menu::before {
+    content: '📱 Offline';
+    position: absolute;
+    top: -25px;
+    right: 0;
+    background: rgba(255, 107, 107, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+/* Offline Mode Connection Status */
+body.offline-mode .connection-status {
+    position: relative;
+}
+
+body.offline-mode .status-dot {
+    background-color: #ff6b6b !important;
+    animation: offlinePulse 2s infinite;
+}
+
+body.offline-mode .status-text {
+    color: #ff6b6b !important;
+}
+
+/* Offline Mode Form Elements */
+body.offline-mode form {
+    position: relative;
+}
+
+body.offline-mode form::after {
+    content: '📱 Offline Mode - Changes will sync when reconnected';
+    position: absolute;
+    bottom: -25px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: #ff6b6b;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* Offline Mode Print Elements */
+body.offline-mode .print-related {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Offline Mode Export Elements */
+body.offline-mode .export-related {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes offlineStrip {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@keyframes offlinePulse {
+    0%, 100% { 
+        background-color: #ff6b6b;
+        box-shadow: 0 0 8px rgba(255, 107, 107, 0.6);
+    }
+    50% { 
+        background-color: #ee5a24;
+        box-shadow: 0 0 12px rgba(238, 90, 36, 0.8);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive Offline Mode */
+@media (max-width: 768px) {
+    .offline-banner {
+        padding: 10px 16px;
+    }
+    
+    .offline-content {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .offline-text {
+        font-size: 0.9rem;
+    }
+    
+    .offline-subtext {
+        font-size: 0.8rem;
+    }
+    
+    .sync-success-message {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        text-align: center;
+    }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .offline-banner {
+        background: #ff0000;
+        border: 2px solid #ffffff;
+    }
+    
+    body.offline-mode::before {
+        background: #ff0000;
+        height: 6px;
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .offline-banner,
+    .offline-content,
+    .sync-success-message {
+        animation: none;
+        transition: none;
+    }
+    
+    .offline-icon {
+        animation: none;
+    }
+    
+    body.offline-mode::before {
+        animation: none;
+    }
+}

@@ -1,0 +1,233 @@
+{
+  "name": "Cue to Cue 2.0",
+  "short_name": "Cue to Cue 2.0",
+  "description": "Professional cue management system for live events and productions",
+  "version": "2.0.0",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#1e3c72",
+  "background_color": "#1e3c72",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities", "business"],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-1024x1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "View Cues",
+      "short_name": "Cues",
+      "description": "View current cue stack",
+      "url": "/?view=cues",
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "Open settings panel",
+      "url": "/?view=settings",
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Offline Mode",
+      "short_name": "Offline",
+      "description": "View offline cached data",
+      "url": "/offline.html",
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop view of Cue to Cue"
+    },
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile view of Cue to Cue"
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://cue-to-cue.app/manifest.json"
+    }
+  ],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "handle_links": "preferred",
+  "capture_links": "new-client",
+  "protocol_handlers": [
+    {
+      "protocol": "web+cue",
+      "url": "/?cue=%s"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "/?import=%s",
+      "accept": {
+        "application/json": [".json"],
+        "text/csv": [".csv"]
+      }
+    }
+  ],
+  "share_target": {
+    "action": "/?share=%s",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "file",
+          "accept": ["application/json", "text/csv"]
+        }
+      ]
+    }
+  },
+  "offline_enabled": true,
+  "offline_ready": true,
+  "cache_strategy": "cache_first",
+  "update_strategy": "immediate",
+  "background_sync": true,
+  "push_messaging": false,
+  "notifications": {
+    "enabled": true,
+    "permission": "granted"
+  },
+  "permissions": [
+    "storage",
+    "background-sync",
+    "notifications"
+  ],
+  "features": [
+    "offline",
+    "standalone",
+    "fullscreen",
+    "orientation",
+    "theme-color",
+    "background-sync",
+    "share-target",
+    "file-handlers",
+    "protocol-handlers",
+    "shortcuts",
+    "screenshots"
+  ],
+  "developer": {
+    "name": "Cue to Cue Team",
+    "url": "https://cue-to-cue.app",
+    "email": "support@cue-to-cue.app"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cue-to-cue/app"
+  },
+  "homepage": "https://cue-to-cue.app",
+  "support_url": "https://cue-to-cue.app/support",
+  "privacy_policy": "https://cue-to-cue.app/privacy",
+  "terms_of_service": "https://cue-to-cue.app/terms",
+  "license": "MIT",
+  "keywords": [
+    "cue",
+    "production",
+    "live events",
+    "stage management",
+    "theater",
+    "broadcast",
+    "offline",
+    "PWA"
+  ],
+  "tags": [
+    "productivity",
+    "utilities",
+    "business",
+    "offline",
+    "PWA",
+    "cue management",
+    "live events",
+    "production"
+  ]
+}
