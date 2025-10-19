@@ -205,6 +205,330 @@
             text-decoration: underline;
         }
         
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 0;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            padding: 24px 24px 16px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            color: #ffffff;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s ease;
+        }
+        
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-body {
+            padding: 24px;
+        }
+        
+        .modal-footer {
+            padding: 16px 24px 24px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .modal-footer .btn {
+            flex: none;
+            min-width: 100px;
+        }
+
+        /* Device Tracking Styles */
+        .device-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .device-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-label {
+            color: #b0b0b0;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: #4CAF50;
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .device-table-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .device-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .device-table th {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #ffffff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .device-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #e0e0e0;
+            vertical-align: top;
+        }
+
+        .device-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .device-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .device-name {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .device-type {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .device-id {
+            font-size: 0.7rem;
+            color: #666;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .ip-address {
+            font-family: 'SF Mono', Monaco, monospace;
+            color: #4CAF50;
+        }
+
+        .location-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .country {
+            font-weight: 500;
+            color: #ffffff;
+        }
+
+        .city {
+            font-size: 0.8rem;
+            color: #b0b0b0;
+        }
+
+        .zip-code {
+            font-size: 0.75rem;
+            color: #4CAF50;
+            font-weight: 600;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .region {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .browser-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .browser-name {
+            font-weight: 500;
+            color: #ffffff;
+        }
+
+        .browser-version {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .os-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .os-name {
+            font-weight: 500;
+            color: #ffffff;
+        }
+
+        .os-version {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .time-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .time-primary {
+            font-weight: 500;
+            color: #ffffff;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .time-secondary {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status-inactive {
+            background: rgba(158, 158, 158, 0.2);
+            color: #9e9e9e;
+            border: 1px solid rgba(158, 158, 158, 0.3);
+        }
+
+        .status-disconnected {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .device-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .action-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn-info {
+            background: rgba(33, 150, 243, 0.2);
+            color: #2196F3;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        .action-btn-info:hover {
+            background: rgba(33, 150, 243, 0.3);
+        }
+
+        .action-btn-danger {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .action-btn-danger:hover {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
+        .no-data {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            padding: 40px;
+        }
+
         /* Mobile responsive */
         @media (max-width: 768px) {
             .admin-container {
@@ -218,6 +542,15 @@
             
             .admin-header h1 {
                 font-size: 1.5rem;
+            }
+            
+            .modal-content {
+                margin: 20px;
+                width: calc(100% - 40px);
+            }
+            
+            .modal-footer {
+                flex-direction: column;
             }
         }
     </style>
@@ -242,21 +575,22 @@
         </div>
         
         <div id="adminPanel" class="form-section" style="display: none;">
-            <h3>Change Viewer Password</h3>
+            <h3>Password & Security Settings</h3>
             <div class="status-info">
                 <h4>Current Status</h4>
                 <p><strong>Viewer Password:</strong> <span id="currentPasswordStatus">KeynoteEvents</span></p>
-                <p><strong>Session Timeout:</strong> 12 hours</p>
-                <p><strong>Max Attempts:</strong> 5 before lockout</p>
+                <p><strong>Session Timeout:</strong> <span id="currentSessionTimeout">12</span> hours</p>
+                <p><strong>Max Attempts:</strong> <span id="currentMaxAttempts">5</span> before lockout</p>
+                <button class="btn btn-secondary" onclick="openEditModal()" style="margin-top: 15px; padding: 8px 16px; font-size: 14px;">Edit Settings</button>
             </div>
             
             <div class="form-group">
-                <label for="newPassword">New Password:</label>
-                <input type="password" id="newPassword" placeholder="Enter new password">
+                <label for="newPassword">New Admin Password:</label>
+                <input type="password" id="newPassword" placeholder="Enter new admin password">
             </div>
             <div class="form-group">
-                <label for="confirmPassword">Confirm Password:</label>
-                <input type="password" id="confirmPassword" placeholder="Confirm new password">
+                <label for="confirmPassword">Confirm New Admin Password:</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm new admin password">
             </div>
             <div class="button-group">
                 <button class="btn btn-primary" onclick="changePassword()">Change Password</button>
@@ -265,8 +599,85 @@
             <div id="changeMessage"></div>
         </div>
         
+        <!-- Device Tracking Section -->
+        <div id="deviceTrackingSection" class="form-section" style="display: none;">
+            <h3>Connected Devices</h3>
+            <div class="device-controls">
+                <button class="btn btn-primary" onclick="refreshDeviceList()">Refresh List</button>
+                <button class="btn btn-secondary" onclick="clearDeviceHistory()">Clear History</button>
+                <button class="btn btn-danger" onclick="exportDeviceData()">Export Data</button>
+                <button class="btn btn-secondary" onclick="testLocationData()">Test Location</button>
+            </div>
+            
+            <div class="device-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Total Connections:</span>
+                    <span class="stat-value" id="totalConnections">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Active Sessions:</span>
+                    <span class="stat-value" id="activeSessions">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Unique Devices:</span>
+                    <span class="stat-value" id="uniqueDevices">0</span>
+                </div>
+            </div>
+            
+            <div class="device-table-container">
+                <table class="device-table" id="deviceTable">
+                    <thead>
+                        <tr>
+                            <th>Device Info</th>
+                            <th>IP Address</th>
+                            <th>Location</th>
+                            <th>Browser</th>
+                            <th>OS</th>
+                            <th>Connected</th>
+                            <th>Last Activity</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deviceTableBody">
+                        <tr>
+                            <td colspan="9" class="no-data">No device data available</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
         <div class="back-link">
             <a href="index.html">← Back to Cue to Cue Viewer</a>
+        </div>
+    </div>
+
+    <!-- Edit Settings Modal -->
+    <div id="editModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Security Settings</h3>
+                <button class="close-modal" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="editPassword">Viewer Password:</label>
+                    <input type="password" id="editPassword" placeholder="Enter new password">
+                </div>
+                <div class="form-group">
+                    <label for="editSessionTimeout">Session Timeout (hours):</label>
+                    <input type="number" id="editSessionTimeout" min="1" max="168" placeholder="12">
+                </div>
+                <div class="form-group">
+                    <label for="editMaxAttempts">Max Attempts:</label>
+                    <input type="number" id="editMaxAttempts" min="3" max="20" placeholder="5">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
+            </div>
         </div>
     </div>
     
@@ -284,7 +695,489 @@
                     localStorage.removeItem('cuetocue_admin_session');
                 }
             }
+            
+            // Load current settings from localStorage
+            loadCurrentSettings();
         });
+        
+        // Device Tracking Functions
+        async function initializeDeviceTracking() {
+            console.log('Initializing device tracking...');
+            
+            // Load existing device data
+            loadDeviceData();
+            
+            // Set up periodic refresh
+            setInterval(refreshDeviceList, 30000); // Refresh every 30 seconds
+            
+            // Track current admin session
+            await trackCurrentSession();
+        }
+        
+        async function trackCurrentSession() {
+            const deviceInfo = await collectDeviceInfo();
+            const sessionId = generateSessionId();
+            
+            // Store current session info
+            const sessionData = {
+                sessionId: sessionId,
+                deviceInfo: deviceInfo,
+                connectedAt: new Date().toISOString(),
+                lastActivity: new Date().toISOString(),
+                status: 'active',
+                isAdmin: true
+            };
+            
+            // Save to localStorage
+            const existingSessions = JSON.parse(localStorage.getItem('cuetocue_device_sessions') || '[]');
+            existingSessions.push(sessionData);
+            localStorage.setItem('cuetocue_device_sessions', JSON.stringify(existingSessions));
+            
+            console.log('Admin session tracked:', sessionData);
+        }
+        
+        async function collectDeviceInfo() {
+            const userAgent = navigator.userAgent;
+            const screenInfo = {
+                width: screen.width,
+                height: screen.height,
+                colorDepth: screen.colorDepth,
+                pixelRatio: window.devicePixelRatio
+            };
+            
+            const browserInfo = getBrowserInfo(userAgent);
+            const osInfo = getOSInfo(userAgent);
+            const deviceInfo = getDeviceInfo(userAgent, screenInfo);
+            
+            return {
+                userAgent: userAgent,
+                browser: browserInfo,
+                os: osInfo,
+                device: deviceInfo,
+                screen: screenInfo,
+                language: navigator.language,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                platform: navigator.platform,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine,
+                hardwareConcurrency: navigator.hardwareConcurrency,
+                maxTouchPoints: navigator.maxTouchPoints,
+                connection: navigator.connection ? {
+                    effectiveType: navigator.connection.effectiveType,
+                    downlink: navigator.connection.downlink,
+                    rtt: navigator.connection.rtt
+                } : null,
+                // IP and location data (will be populated by geolocation service)
+                ipAddress: await getClientIP(),
+                location: await getLocationData()
+            };
+        }
+        
+        function getBrowserInfo(userAgent) {
+            const browsers = [
+                { name: 'Chrome', pattern: /Chrome\/(\d+\.\d+)/ },
+                { name: 'Firefox', pattern: /Firefox\/(\d+\.\d+)/ },
+                { name: 'Safari', pattern: /Safari\/(\d+\.\d+)/ },
+                { name: 'Edge', pattern: /Edg\/(\d+\.\d+)/ },
+                { name: 'Opera', pattern: /OPR\/(\d+\.\d+)/ }
+            ];
+            
+            for (const browser of browsers) {
+                const match = userAgent.match(browser.pattern);
+                if (match) {
+                    return {
+                        name: browser.name,
+                        version: match[1]
+                    };
+                }
+            }
+            
+            return { name: 'Unknown', version: 'Unknown' };
+        }
+        
+        function getOSInfo(userAgent) {
+            const osPatterns = [
+                { name: 'Windows', pattern: /Windows NT (\d+\.\d+)/ },
+                { name: 'macOS', pattern: /Mac OS X (\d+[._]\d+)/ },
+                { name: 'Linux', pattern: /Linux/ },
+                { name: 'iOS', pattern: /OS (\d+[._]\d+)/ },
+                { name: 'Android', pattern: /Android (\d+\.\d+)/ }
+            ];
+            
+            for (const os of osPatterns) {
+                const match = userAgent.match(os.pattern);
+                if (match) {
+                    return {
+                        name: os.name,
+                        version: match[1].replace('_', '.')
+                    };
+                }
+            }
+            
+            return { name: 'Unknown', version: 'Unknown' };
+        }
+        
+        function getDeviceInfo(userAgent, screenInfo) {
+            let deviceType = 'Desktop';
+            let deviceName = 'Unknown Device';
+            
+            if (/Mobile|Android|iPhone|iPad/.test(userAgent)) {
+                deviceType = 'Mobile';
+                if (/iPhone/.test(userAgent)) {
+                    deviceName = 'iPhone';
+                } else if (/iPad/.test(userAgent)) {
+                    deviceName = 'iPad';
+                } else if (/Android/.test(userAgent)) {
+                    deviceName = 'Android Device';
+                }
+            } else if (/Tablet|iPad/.test(userAgent)) {
+                deviceType = 'Tablet';
+                deviceName = 'Tablet';
+            }
+            
+            return {
+                type: deviceType,
+                name: deviceName,
+                screen: screenInfo
+            };
+        }
+        
+        function generateSessionId() {
+            return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        // IP Geolocation Functions
+        async function getClientIP() {
+            try {
+                // Try multiple IP services for reliability
+                const ipServices = [
+                    'https://api.ipify.org?format=json',
+                    'https://ipapi.co/json/',
+                    'https://ipinfo.io/json'
+                ];
+                
+                for (const service of ipServices) {
+                    try {
+                        const response = await fetch(service);
+                        const data = await response.json();
+                        
+                        if (data.ip) {
+                            console.log(`IP obtained from ${service}:`, data.ip);
+                            return data.ip;
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to get IP from ${service}:`, error);
+                        continue;
+                    }
+                }
+                
+                // Fallback for local development
+                return '127.0.0.1';
+            } catch (error) {
+                console.error('Error getting client IP:', error);
+                return '127.0.0.1';
+            }
+        }
+        
+        async function getLocationData() {
+            try {
+                // Use ipapi.co for comprehensive location data including ZIP codes
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.reason);
+                }
+                
+                return {
+                    country: data.country_name || 'Unknown',
+                    countryCode: data.country_code || 'Unknown',
+                    region: data.region || 'Unknown',
+                    regionCode: data.region_code || 'Unknown',
+                    city: data.city || 'Unknown',
+                    zipCode: data.postal || 'Unknown',
+                    latitude: data.latitude || null,
+                    longitude: data.longitude || null,
+                    timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    isp: data.org || 'Unknown',
+                    asn: data.asn || 'Unknown',
+                    accuracy: data.accuracy || 'Unknown'
+                };
+            } catch (error) {
+                console.error('Error getting location data:', error);
+                
+                // Fallback location data
+                return {
+                    country: 'United States',
+                    countryCode: 'US',
+                    region: 'Local',
+                    regionCode: 'Local',
+                    city: 'Local',
+                    zipCode: '00000',
+                    latitude: null,
+                    longitude: null,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    isp: 'Local Development',
+                    asn: 'Unknown',
+                    accuracy: 'Unknown'
+                };
+            }
+        }
+        
+        function loadDeviceData() {
+            const sessions = JSON.parse(localStorage.getItem('cuetocue_device_sessions') || '[]');
+            updateDeviceStats(sessions);
+            populateDeviceTable(sessions);
+        }
+        
+        function refreshDeviceList() {
+            console.log('Refreshing device list...');
+            loadDeviceData();
+        }
+        
+        function updateDeviceStats(sessions) {
+            const totalConnections = sessions.length;
+            const activeSessions = sessions.filter(s => s.status === 'active').length;
+            const uniqueDevices = new Set(sessions.map(s => s.deviceInfo.device.name)).size;
+            
+            document.getElementById('totalConnections').textContent = totalConnections;
+            document.getElementById('activeSessions').textContent = activeSessions;
+            document.getElementById('uniqueDevices').textContent = uniqueDevices;
+        }
+        
+        function populateDeviceTable(sessions) {
+            const tbody = document.getElementById('deviceTableBody');
+            
+            if (sessions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="no-data">No device data available</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            
+            // Sort by last activity (most recent first)
+            sessions.sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity));
+            
+            sessions.forEach(session => {
+                const row = document.createElement('tr');
+                const deviceInfo = session.deviceInfo;
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="device-info">
+                            <div class="device-name">${deviceInfo.device.name}</div>
+                            <div class="device-type">${deviceInfo.device.type}</div>
+                            <div class="device-id">${session.sessionId}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="ip-address">${deviceInfo.ipAddress}</div>
+                    </td>
+                    <td>
+                        <div class="location-info">
+                            <div class="country">${deviceInfo.location.country}</div>
+                            <div class="city">${deviceInfo.location.city}</div>
+                            <div class="zip-code">ZIP: ${deviceInfo.location.zipCode}</div>
+                            <div class="region">${deviceInfo.location.region}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="browser-info">
+                            <div class="browser-name">${deviceInfo.browser.name}</div>
+                            <div class="browser-version">v${deviceInfo.browser.version}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="os-info">
+                            <div class="os-name">${deviceInfo.os.name}</div>
+                            <div class="os-version">${deviceInfo.os.version}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="time-info">
+                            <div class="time-primary">${formatTime(session.connectedAt)}</div>
+                            <div class="time-secondary">${formatDate(session.connectedAt)}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="time-info">
+                            <div class="time-primary">${formatTime(session.lastActivity)}</div>
+                            <div class="time-secondary">${formatDate(session.lastActivity)}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge ${getStatusClass(session.status)}">${session.status}</span>
+                    </td>
+                    <td>
+                        <div class="device-actions">
+                            <button class="action-btn action-btn-info" onclick="showDeviceDetails('${session.sessionId}')">Details</button>
+                            <button class="action-btn action-btn-danger" onclick="removeDevice('${session.sessionId}')">Remove</button>
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        function formatTime(dateString) {
+            return new Date(dateString).toLocaleTimeString();
+        }
+        
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString();
+        }
+        
+        function getStatusClass(status) {
+            switch (status) {
+                case 'active': return 'status-active';
+                case 'inactive': return 'status-inactive';
+                case 'disconnected': return 'status-disconnected';
+                default: return 'status-inactive';
+            }
+        }
+        
+        function showDeviceDetails(sessionId) {
+            const sessions = JSON.parse(localStorage.getItem('cuetocue_device_sessions') || '[]');
+            const session = sessions.find(s => s.sessionId === sessionId);
+            
+            if (session) {
+                const details = JSON.stringify(session.deviceInfo, null, 2);
+                alert(`Device Details for ${sessionId}:\n\n${details}`);
+            }
+        }
+        
+        function removeDevice(sessionId) {
+            if (confirm('Are you sure you want to remove this device from the history?')) {
+                const sessions = JSON.parse(localStorage.getItem('cuetocue_device_sessions') || '[]');
+                const filteredSessions = sessions.filter(s => s.sessionId !== sessionId);
+                localStorage.setItem('cuetocue_device_sessions', JSON.stringify(filteredSessions));
+                refreshDeviceList();
+            }
+        }
+        
+        function clearDeviceHistory() {
+            if (confirm('Are you sure you want to clear all device history? This action cannot be undone.')) {
+                localStorage.removeItem('cuetocue_device_sessions');
+                refreshDeviceList();
+            }
+        }
+        
+        function exportDeviceData() {
+            const sessions = JSON.parse(localStorage.getItem('cuetocue_device_sessions') || '[]');
+            const dataStr = JSON.stringify(sessions, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `cuetocue-device-data-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+        
+        // Demo function to show what real location data looks like
+        async function testLocationData() {
+            console.log('Testing location data collection...');
+            try {
+                const locationData = await getLocationData();
+                console.log('Location data collected:', locationData);
+                
+                // Show in alert for demo
+                alert(`Location Data Demo:\n\nCountry: ${locationData.country}\nRegion: ${locationData.region}\nCity: ${locationData.city}\nZIP Code: ${locationData.zipCode}\nISP: ${locationData.isp}\nCoordinates: ${locationData.latitude}, ${locationData.longitude}`);
+            } catch (error) {
+                console.error('Error testing location data:', error);
+                alert('Error collecting location data. This is normal for local development.');
+            }
+        }
+
+        // Settings Management Functions
+        function loadCurrentSettings() {
+            // Load settings from localStorage or use defaults
+            const settings = JSON.parse(localStorage.getItem('cuetocue_settings') || '{}');
+            
+            // Update display with current values
+            document.getElementById('currentPasswordStatus').textContent = settings.viewerPassword || 'KeynoteEvents';
+            document.getElementById('currentSessionTimeout').textContent = settings.sessionTimeoutHours || 12;
+            document.getElementById('currentMaxAttempts').textContent = settings.maxAttempts || 5;
+        }
+        
+        function openEditModal() {
+            const settings = JSON.parse(localStorage.getItem('cuetocue_settings') || '{}');
+            
+            // Populate modal with current values
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editSessionTimeout').value = settings.sessionTimeoutHours || 12;
+            document.getElementById('editMaxAttempts').value = settings.maxAttempts || 5;
+            
+            // Show modal
+            document.getElementById('editModal').style.display = 'flex';
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('editModal');
+            if (e.target === modal) {
+                closeEditModal();
+            }
+        });
+        
+        async function saveSettings() {
+            const password = document.getElementById('editPassword').value.trim();
+            const sessionTimeout = parseInt(document.getElementById('editSessionTimeout').value);
+            const maxAttempts = parseInt(document.getElementById('editMaxAttempts').value);
+            
+            // Validation
+            if (sessionTimeout < 1 || sessionTimeout > 168) {
+                alert('Session timeout must be between 1 and 168 hours');
+                return;
+            }
+            
+            if (maxAttempts < 3 || maxAttempts > 20) {
+                alert('Max attempts must be between 3 and 20');
+                return;
+            }
+            
+            try {
+                // Get current settings
+                const settings = JSON.parse(localStorage.getItem('cuetocue_settings') || '{}');
+                
+                // Update settings
+                if (password) {
+                    const hashedPassword = await hashPassword(password);
+                    settings.viewerPassword = password; // Store plain text for display
+                    settings.viewerPasswordHash = hashedPassword; // Store hash for authentication
+                }
+                
+                settings.sessionTimeoutHours = sessionTimeout;
+                settings.maxAttempts = maxAttempts;
+                
+                // Save to localStorage
+                localStorage.setItem('cuetocue_settings', JSON.stringify(settings));
+                
+                // Update PASSWORD_CONFIG for current session
+                if (password) {
+                    PASSWORD_CONFIG.viewerPassword = settings.viewerPasswordHash;
+                }
+                PASSWORD_CONFIG.sessionTimeout = sessionTimeout * 60 * 60 * 1000; // Convert to milliseconds
+                PASSWORD_CONFIG.maxAttempts = maxAttempts;
+                
+                // Update display
+                loadCurrentSettings();
+                
+                // Close modal
+                closeEditModal();
+                
+                // Show success message
+                alert('Settings saved successfully!');
+                
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('Error saving settings. Please try again.');
+            }
+        }
         
         async function authenticateAdmin() {
             const adminPassword = document.getElementById('adminPassword').value.trim();
@@ -321,16 +1214,21 @@
             localStorage.setItem('cuetocue_admin_session', JSON.stringify(session));
         }
         
-        function showAdminPanel() {
+        async function showAdminPanel() {
             document.getElementById('adminLogin').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('deviceTrackingSection').style.display = 'block';
             isAdminAuthenticated = true;
+            
+            // Initialize device tracking
+            await initializeDeviceTracking();
         }
         
         function logoutAdmin() {
             localStorage.removeItem('cuetocue_admin_session');
             document.getElementById('adminLogin').style.display = 'block';
             document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('deviceTrackingSection').style.display = 'none';
             document.getElementById('adminPassword').value = '';
             isAdminAuthenticated = false;
         }
