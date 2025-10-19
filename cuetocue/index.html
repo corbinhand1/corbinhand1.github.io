@@ -9,6 +9,10 @@
     <script src="html2canvas.min.js"></script>
     <script src="jspdf.umd.min.js"></script>
     
+    <!-- Password Protection System -->
+    <script src="password-config.js"></script>
+    <script src="password-system.js"></script>
+    
     <script>
         // Wait for libraries to load and verify they're available
         window.addEventListener('load', function() {
@@ -43,130 +47,406 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
             background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
             color: #ffffff;
             min-height: 100vh;
-            padding: 10px;
+            padding: 24px;
+            font-size: 16px;
+            line-height: 1.5;
+            letter-spacing: -0.01em;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         /* Mobile-first responsive design */
         @media (max-width: 768px) {
             body {
-                padding: 8px;
+                padding: 16px;
             }
         }
 
         .container {
-            width: 100%;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 0 15px;
+            padding: 0;
         }
 
         /* Mobile container */
         @media (max-width: 768px) {
             .container {
-                padding: 0 8px;
+                padding: 0;
             }
         }
 
         .header {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 24px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-main {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
 
-        /* Mobile header adjustments */
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-                padding: 12px;
-                margin-bottom: 15px;
-            }
-        }
-
-        .title-section {
+        .header-left {
+            flex: 0 0 auto;
             display: flex;
-            align-items: center;
-            gap: 20px;
+            flex-direction: column;
+            gap: 8px;
         }
 
-        /* Mobile title section */
-        @media (max-width: 768px) {
-            .title-section {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 8px;
-                width: 100%;
-            }
+        .header-center {
+            flex: 1;
+            text-align: center;
+        }
+
+        .header-right {
+            flex: 0 0 auto;
+        }
+
+        .header-middle {
+            display: none; /* Hidden on desktop */
+        }
+
+        .header-secondary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px 20px 24px;
         }
 
         .title {
             font-size: 2rem;
-            font-weight: bold;
+            font-weight: 700;
             color: #ffffff;
-        }
-
-        /* Mobile title sizing */
-        @media (max-width: 768px) {
-            .title {
-                font-size: 1.5rem;
-                line-height: 1.2;
-            }
+            margin: 0;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
         }
 
         .current-time {
-            font-size: 1rem;
-            color: #4CAF50;
-            font-family: 'SF Mono', Monaco, monospace;
-            font-weight: 500;
-        }
-
-        /* Mobile current time */
-        @media (max-width: 768px) {
-            .current-time {
-                font-size: 0.9rem;
-            }
-        }
-
-        .status-section {
-            text-align: right;
-        }
-
-        /* Mobile status section */
-        @media (max-width: 768px) {
-            .status-section {
-                text-align: left;
-                width: 100%;
-            }
+            font-size: 1.1rem;
+            color: #30d158;
+            font-weight: 600;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            letter-spacing: -0.01em;
         }
 
         .current-show {
-            font-size: 1.2rem;
-            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .current-show-label {
-            color: #888;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
+            color: #8e8e93;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
         }
 
         .current-show-value {
-            color: #4CAF50;
-            font-weight: bold;
+            font-size: 1rem;
+            color: #30d158;
+            font-weight: 700;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            letter-spacing: -0.01em;
         }
 
         .last-updated {
-            font-size: 0.9rem;
-            color: #FF9800;
+            font-size: 0.75rem;
+            color: #8e8e93;
+            font-weight: 500;
+            margin-top: 2px;
         }
+
+        .logout-button {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.9);
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            backdrop-filter: blur(20px);
+        }
+
+        .logout-button:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 1);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .logout-button:active {
+            transform: translateY(0);
+            transition: all 0.1s ease;
+        }
+
+        .logout-icon {
+            font-size: 0.8rem;
+        }
+
+        .logout-text {
+            font-weight: 600;
+        }
+
+        /* Mobile responsive - MATHEMATICALLY CALCULATED FOR iPhone 15 Pro (393px) */
+        @media (max-width: 768px) {
+            /* iPhone 15 Pro: 393px width - 24px padding = 369px available */
+            
+            /* COMPRESS HEADER HEIGHT - Reduce from ~120px to ~50px */
+            .header {
+                padding: 6px 12px;
+            }
+
+            .header-main {
+                padding: 4px 0;
+                gap: 4px;
+                min-height: 36px;
+            }
+
+            /* MOBILE: THREE-ROW LAYOUT */
+            .header-main {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 4px 0;
+                min-height: 32px;
+            }
+
+            .header-left {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1px;
+            }
+
+            .header-middle {
+                padding: 6px 12px;
+                min-height: 32px;
+            }
+
+            .header-right {
+                flex: 0 0 auto;
+            }
+
+            /* MOBILE: COMPACT CURRENT SHOW INFO */
+            .current-show-label {
+                font-size: 0.6rem;
+                margin-bottom: 2px;
+                opacity: 0.8;
+            }
+
+            .current-show-value {
+                font-size: 0.7rem;
+                font-weight: 500;
+                line-height: 1.2;
+                margin-bottom: 2px;
+            }
+
+            .last-updated {
+                font-size: 0.55rem;
+                opacity: 0.7;
+            }
+
+            .header-secondary {
+                padding: 4px 0 6px 0;
+                gap: 4px;
+                min-height: 28px;
+            }
+
+            /* MOBILE: HIDE CUE STACK LABEL */
+            .cue-stack-label {
+                display: none !important;
+            }
+
+            /* ULTRA-COMPACT TYPOGRAPHY */
+            .title {
+                font-size: 0.9rem;
+                font-weight: 600;
+                line-height: 1.1;
+            }
+
+            .current-time {
+                font-size: 0.6rem;
+                font-weight: 400;
+                opacity: 0.7;
+                line-height: 1;
+            }
+
+            .current-show-label {
+                font-size: 0.55rem;
+                margin-bottom: 1px;
+                opacity: 0.8;
+            }
+
+            .current-show-value {
+                font-size: 0.65rem;
+                font-weight: 500;
+                line-height: 1.1;
+            }
+
+            .last-updated {
+                font-size: 0.5rem;
+                margin-top: 1px;
+                opacity: 0.6;
+            }
+
+            /* LOGOUT BUTTON - COMPACT TOP RIGHT */
+            .logout-button {
+                font-size: 0.6rem;
+                padding: 4px 6px;
+                min-height: 28px;
+                min-width: 50px;
+            }
+
+            .logout-icon {
+                font-size: 0.6rem;
+            }
+
+            .logout-text {
+                font-size: 0.6rem;
+                font-weight: 500;
+            }
+
+            /* CUE STACK SELECTOR - ULTRA COMPACT */
+            .cue-stack-selector {
+                flex: 0 0 100px; /* Fixed width */
+            }
+
+            .cue-stack-label {
+                font-size: 0.55rem;
+                margin-bottom: 1px;
+                opacity: 0.8;
+            }
+
+            .cue-stack-dropdown {
+                font-size: 0.6rem;
+                padding: 4px 6px;
+                min-height: 24px;
+            }
+
+            /* ACTION BUTTONS - MOBILE: ONLY COLUMNS BUTTON */
+            .column-controls-group {
+                display: flex;
+                gap: 0;
+                justify-content: flex-end;
+                flex: 0 0 35px; /* Fixed width for 1 tiny button */
+                align-items: center;
+            }
+
+            /* HIDE PRINT AND COLOR BUTTONS ON MOBILE - FORCE HIDE */
+            .color-settings-btn,
+            .print-btn {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                width: 0 !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* COLUMNS BUTTON - ULTRA COMPACT MOBILE VERSION */
+            .column-toggle-btn {
+                font-size: 0.5rem;
+                padding: 2px 4px;
+                min-height: 20px;
+                min-width: 30px;
+                flex: 0 0 auto;
+            }
+
+            /* REMOVE GEAR ICON ON MOBILE */
+            .column-toggle-btn::before {
+                display: none !important;
+            }
+
+            /* COMPLETELY HIDE ORIGINAL TEXT */
+            .column-toggle-btn span {
+                display: none !important;
+            }
+
+            /* ADD NEW TEXT DIRECTLY TO BUTTON */
+            .column-toggle-btn::after {
+                content: "Col";
+                font-size: 0.5rem;
+                font-weight: 500;
+                color: inherit;
+            }
+
+            /* SECONDARY ROW LAYOUT - CALCULATED */
+            .header-secondary {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            /* MOBILE: SHOW MIDDLE ROW, HIDE DESKTOP CURRENT SHOW */
+            .header-middle {
+                display: flex !important;
+                justify-content: center;
+                align-items: center;
+                padding: 6px 12px;
+                min-height: 32px;
+            }
+            
+            .header-center {
+                display: none !important; /* Hide desktop current show on mobile */
+            }
+            
+            /* MOBILE: ALLOW FULL FILENAME DISPLAY */
+            .current-show-value {
+                white-space: nowrap;
+                overflow: visible;
+                text-overflow: unset;
+                max-width: none;
+            }
+
+            /* ENSURE MINIMUM TOUCH TARGETS */
+            .logout-button,
+            .column-toggle-btn,
+            .color-settings-btn,
+            .print-btn,
+            .cue-stack-dropdown {
+                min-height: 24px;
+                min-width: 24px;
+            }
+
+            /* CALCULATION VERIFICATION - MOBILE OPTIMIZED (3-ROW LAYOUT):
+               Row 1: Title + Date/Time (left) | Logout Button (right)
+               Row 2: File Name + Last Load Date/Time (full width, centered)
+               Row 3: Cue Stack Dropdown (left) | Col Button (right)
+               Total: All elements fit within 369px available ✓
+               
+               Mobile features:
+               - Three distinct rows as requested
+               - Title and time on left, logout on right
+               - Current show info gets full width on second row
+               - No cue stack label (self-evident dropdown)
+               - Only "Col" button (no gear icon)
+               - Print and Color buttons hidden
+            */
+        }
+
 
         .time-displays {
             display: grid;
@@ -244,58 +524,69 @@
             background: rgba(255, 255, 255, 0.05);
         }
 
-        .controls-row {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        /* Mobile controls row */
-        @media (max-width: 768px) {
-            .controls-row {
-                flex-direction: column;
-                gap: 12px;
-                margin-bottom: 15px;
-            }
-        }
-
         .cue-stack-selector {
-            flex: 1;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-        }
-
-        /* Mobile cue stack selector */
-        @media (max-width: 768px) {
-            .cue-stack-selector {
-                padding: 12px;
-            }
+            flex: 0 0 auto;
+            max-width: 280px;
         }
 
         .cue-stack-label {
-            font-size: 1rem;
-            margin-bottom: 12px;
-            color: #ffffff;
-        }
-
-        /* Mobile cue stack label */
-        @media (max-width: 768px) {
-            .cue-stack-label {
-                font-size: 1.1rem;
-                margin-bottom: 10px;
-            }
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            color: #8e8e93;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
         }
 
         .cue-stack-dropdown {
             width: 100%;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 8px;
             color: #ffffff;
-            font-size: 1rem;
+            font-size: 0.9rem !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+            font-weight: 500 !important;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            
+            /* Force browser to use custom styling instead of native */
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            
+            /* Add custom dropdown arrow */
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+
+        /* Additional selectors for dropdown field */
+        select.cue-stack-dropdown {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+            font-size: 0.9rem !important;
+            font-weight: 500 !important;
+        }
+
+        #cueStackSelect {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+            font-size: 0.9rem !important;
+            font-weight: 500 !important;
+        }
+
+        .cue-stack-dropdown:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .cue-stack-dropdown:focus {
+            outline: none;
+            border-color: #30d158;
+            box-shadow: 0 0 0 3px rgba(48, 209, 88, 0.1);
         }
 
         /* Mobile cue stack dropdown */
@@ -308,33 +599,122 @@
         }
 
         .cue-stack-dropdown option {
-            background: #2d2d2d;
-            color: #ffffff;
+            background: #2d2d2d !important;
+            color: #ffffff !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+            font-size: 0.9rem !important;
+            font-weight: 500 !important;
+            padding: 8px 12px !important;
+            font-style: normal !important;
+            text-decoration: none !important;
+        }
+
+        /* Additional selectors to ensure font consistency */
+        select.cue-stack-dropdown option {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+            font-size: 0.9rem !important;
+            font-weight: 500 !important;
+        }
+
+        #cueStackSelect option {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+            font-size: 0.9rem !important;
+            font-weight: 500 !important;
         }
 
         .column-controls {
-            flex: 1;
-            display: flex;
-            justify-content: flex-end;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-        }
-
-        /* Mobile column controls */
-        @media (max-width: 768px) {
-            .column-controls {
-                padding: 12px;
-                justify-content: center;
-            }
+            flex: 0 0 auto;
         }
 
         .column-controls-group {
             display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 10px;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .column-toggle-btn {
+            background: linear-gradient(135deg, #30d158 0%, #28cd41 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 40px;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 3px 12px rgba(48, 209, 88, 0.3);
+            letter-spacing: -0.01em;
+        }
+
+        .column-toggle-btn:hover {
+            background: linear-gradient(135deg, #28cd41 0%, #20b837 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(48, 209, 88, 0.4);
+        }
+
+        .column-toggle-btn:active {
+            transform: translateY(0);
+            transition: all 0.1s ease;
+        }
+
+        .color-settings-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 3px 12px rgba(255, 107, 107, 0.3);
+        }
+
+        .color-settings-btn:hover {
+            background: linear-gradient(135deg, #ff5252 0%, #f44336 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .color-settings-btn:active {
+            transform: translateY(0);
+            transition: all 0.1s ease;
+        }
+
+        .print-btn {
+            background: linear-gradient(135deg, #9c27b0 0%, #8e24aa 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 3px 12px rgba(156, 39, 176, 0.3);
+        }
+
+        .print-btn:hover {
+            background: linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(156, 39, 176, 0.4);
+        }
+
+        .print-btn:active {
+            transform: translateY(0);
+            transition: all 0.1s ease;
         }
 
         /* Mobile column controls group */
@@ -374,48 +754,71 @@
         }
 
         .column-toggle-btn {
-            background: #4CAF50;
+            background: linear-gradient(135deg, #30d158 0%, #28cd41 100%);
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 12px 16px;
+            border-radius: 12px;
+            padding: 14px 20px;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 8px;
-            min-height: 44px; /* Minimum touch target size */
+            gap: 10px;
+            min-height: 48px;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 4px 16px rgba(48, 209, 88, 0.3);
+            letter-spacing: -0.01em;
+        }
+
+        .column-toggle-btn:hover {
+            background: linear-gradient(135deg, #28cd41 0%, #20b837 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(48, 209, 88, 0.4);
+        }
+
+        .column-toggle-btn:active {
+            transform: translateY(0);
+            transition: all 0.1s ease;
         }
 
         /* Mobile column toggle button */
         @media (max-width: 768px) {
             .column-toggle-btn {
-                padding: 14px 18px;
+                padding: 16px 22px;
                 font-size: 1rem;
-                min-height: 48px;
+                min-height: 52px;
                 flex: 1;
                 justify-content: center;
             }
         }
 
-        .column-toggle-btn:hover {
-            background: #45a049;
-        }
-
         .color-settings-btn {
-            background: #FF6B6B;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 12px;
+            padding: 14px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 1.1rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 44px;
-            height: 44px;
-            transition: all 0.2s ease;
+            width: 48px;
+            height: 48px;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
+        }
+
+        .color-settings-btn:hover {
+            background: linear-gradient(135deg, #ff5252 0%, #f44336 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .color-settings-btn:active {
+            transform: translateY(0);
+            transition: all 0.1s ease;
         }
 
         /* Mobile color settings button */
@@ -428,25 +831,32 @@
             }
         }
 
-        .color-settings-btn:hover {
-            background: #FF5252;
-            transform: translateY(-1px);
-        }
-
         .print-btn {
-            background: #9C27B0;
+            background: linear-gradient(135deg, #9c27b0 0%, #8e24aa 100%);
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 12px;
+            padding: 14px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 1.1rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 44px;
-            height: 44px;
-            transition: all 0.2s ease;
+            width: 48px;
+            height: 48px;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 4px 16px rgba(156, 39, 176, 0.3);
+        }
+
+        .print-btn:hover {
+            background: linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(156, 39, 176, 0.4);
+        }
+
+        .print-btn:active {
+            transform: translateY(0);
+            transition: all 0.1s ease;
         }
 
         /* Mobile print button */
@@ -921,6 +1331,7 @@
             background: rgba(255, 255, 255, 0.1);
             border-radius: 3px;
             outline: none;
+            appearance: none;
             -webkit-appearance: none;
         }
 
@@ -1048,33 +1459,49 @@
     </style>
 </head>
 <body>
+    <div id="mainContent" style="display: none;">
     <div class="container">
         <div class="header">
-            <div class="title-section">
-                <div class="title">Cue to Cue Viewer</div>
-                <div class="current-time" id="currentTime">Loading...</div>
-            </div>
-            <div class="status-section">
-                <div class="current-show">
-                    <div class="current-show-label">CURRENT SHOW</div>
-                    <div class="current-show-value" id="currentShow">Loading...</div>
+            <!-- Top Row: Title + Time | Current Show Info | Logout -->
+            <div class="header-main">
+                <div class="header-left">
+                    <div class="title">Cue to Cue Viewer</div>
+                    <div class="current-time" id="currentTime">Loading...</div>
                 </div>
-                <div class="last-updated" id="lastUpdated">Loading...</div>
+                <div class="header-center">
+                    <div class="current-show">
+                        <div class="current-show-label">Current Show</div>
+                        <div class="current-show-value" id="currentShow">Loading...</div>
+                        <div class="last-updated" id="lastUpdated">Loading...</div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button id="logoutButton" class="logout-button" title="Logout (Session expires in 12 hours)">
+                        <span class="logout-icon">🔒</span>
+                        <span class="logout-text">Logout</span>
+                    </button>
+                </div>
             </div>
-        </div>
-
-        <div class="controls-row">
-            <div class="cue-stack-selector">
-                <div class="cue-stack-label">Cue Stack</div>
-                <select class="cue-stack-dropdown" id="cueStackSelect">
-                    <option value="">Loading cue stacks...</option>
-                </select>
+            
+            <!-- Middle Row: Current Show Information (Mobile Only) -->
+            <div class="header-middle">
+                <div class="current-show">
+                    <div class="current-show-label">Current Show</div>
+                    <div class="current-show-value" id="currentShowMobile">Loading...</div>
+                    <div class="last-updated" id="lastUpdatedMobile">Loading...</div>
+                </div>
             </div>
-
-            <div class="column-controls">
-                <div class="column-controls-group">
-                    <span class="column-visibility-label">Column Visibility</span>
-                    <div class="column-controls-buttons">
+            
+            <!-- Bottom Row: Cue Stack Selector | Column Controls -->
+            <div class="header-secondary">
+                <div class="cue-stack-selector">
+                    <div class="cue-stack-label">Cue Stack</div>
+                    <select class="cue-stack-dropdown" id="cueStackSelect">
+                        <option value="">Loading cue stacks...</option>
+                    </select>
+                </div>
+                <div class="column-controls">
+                    <div class="column-controls-group">
                         <button class="column-toggle-btn" id="columnToggleBtn">
                             <span>⚙️</span>
                             <span>Select Columns</span>
@@ -1357,9 +1784,14 @@
             }
 
             console.log('📝 Updating header...');
-            // Update header
+            // Update header - both desktop and mobile versions
             document.getElementById('currentShow').textContent = metadata.filename || 'Unknown';
             document.getElementById('lastUpdated').textContent = 
+                `Last updated: ${new Date(metadata.lastUpdated).toLocaleString()}`;
+            
+            // Update mobile versions
+            document.getElementById('currentShowMobile').textContent = metadata.filename || 'Unknown';
+            document.getElementById('lastUpdatedMobile').textContent = 
                 `Last updated: ${new Date(metadata.lastUpdated).toLocaleString()}`;
 
             console.log('📋 Header updated:', {
@@ -2229,32 +2661,73 @@
             localStorage.setItem('printSettings', JSON.stringify(settingsToSave));
         }
         
-        // Initialize
-        console.log('🚀 Initializing Cue to Cue Viewer...');
-        console.log('⏰ Setting up time updates...');
-        updateTime();
-        setInterval(updateTime, 1000);
-        
-        console.log('🔧 Initializing column visibility controls...');
-        initializeColumnVisibility();
-        
-        console.log('🎨 Initializing color picker...');
-        initializeColorPicker();
-        
-        console.log('🖨️ Initializing print modal...');
-        initializePrintModal();
-        
-        console.log('📡 Loading initial cue data...');
-        loadCueData();
-
-        // Reload data every 30 seconds
-        console.log('🔄 Setting up auto-refresh every 30 seconds...');
-        setInterval(() => {
-            console.log('⏰ Auto-refresh triggered');
+        // Initialize function for password system to call
+        function initializeCueToCueViewer() {
+            console.log('🚀 Initializing Cue to Cue Viewer...');
+            console.log('⏰ Setting up time updates...');
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            console.log('🔧 Initializing column visibility controls...');
+            initializeColumnVisibility();
+            
+            console.log('🎨 Initializing color picker...');
+            initializeColorPicker();
+            
+            console.log('🖨️ Initializing print modal...');
+            initializePrintModal();
+            
+            console.log('📡 Loading initial cue data...');
             loadCueData();
-        }, 30000);
+
+            // Reload data every 30 seconds
+            console.log('🔄 Setting up auto-refresh every 30 seconds...');
+            setInterval(() => {
+                console.log('⏰ Auto-refresh triggered');
+                loadCueData();
+            }, 30000);
+            
+            console.log('✅ Cue to Cue Viewer initialized');
+            
+            // Setup logout button
+            setupLogoutButton();
+        }
         
-        console.log('✅ Cue to Cue Viewer initialized');
+        function setupLogoutButton() {
+            const logoutButton = document.getElementById('logoutButton');
+            if (logoutButton) {
+                logoutButton.addEventListener('click', function() {
+                    console.log('🔒 Logout button clicked');
+                    if (window.passwordSystem) {
+                        window.passwordSystem.logout();
+                    } else {
+                        // Fallback logout
+                        localStorage.removeItem('cuetocue_session');
+                        location.reload();
+                    }
+                });
+                console.log('🔒 Logout button setup complete');
+            }
+        }
+        
+        // Initialize password system
+        console.log('🔍 Main page: Starting password system initialization...');
+        console.log('🔍 Main page: PASSWORD_CONFIG available:', typeof PASSWORD_CONFIG !== 'undefined');
+        console.log('🔍 Main page: PasswordSystem available:', typeof PasswordSystem !== 'undefined');
+        
+        try {
+            const passwordSystem = new PasswordSystem();
+            window.passwordSystem = passwordSystem; // Make available globally for logout
+            console.log('🔍 Main page: PasswordSystem created successfully');
+            passwordSystem.init(initializeCueToCueViewer);
+            console.log('🔍 Main page: Password system initialization complete');
+        } catch (error) {
+            console.error('🔍 Main page: Error in password system:', error);
+            // Fallback - show content if password system fails
+            document.getElementById('mainContent').style.display = 'block';
+            initializeCueToCueViewer();
+        }
     </script>
-</body>
+    </div>
+    </body>
 </html>
