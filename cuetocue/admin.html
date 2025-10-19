@@ -29,12 +29,12 @@
         }
         
         .admin-container {
-            max-width: 600px;
-            margin: 50px auto;
+            max-width: 1400px;
+            margin: 20px auto;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
-            padding: 40px;
+            padding: 30px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         
@@ -325,19 +325,21 @@
             border-radius: 8px;
             overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            max-height: 500px;
+            max-height: 600px;
             overflow-y: auto;
+            overflow-x: auto;
         }
 
         .device-table {
             width: 100%;
+            min-width: 1200px;
             border-collapse: collapse;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
         }
 
         .device-table th {
             background: rgba(0, 0, 0, 0.3);
-            padding: 12px 8px;
+            padding: 14px 12px;
             text-align: left;
             font-weight: 600;
             color: #ffffff;
@@ -345,13 +347,15 @@
             position: sticky;
             top: 0;
             z-index: 10;
+            white-space: nowrap;
         }
 
         .device-table td {
-            padding: 10px 8px;
+            padding: 12px 12px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             color: #e0e0e0;
             vertical-align: top;
+            white-space: nowrap;
         }
 
         .device-table tr:hover {
@@ -361,17 +365,25 @@
         .device-info {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 3px;
+            min-width: 200px;
         }
 
         .device-name {
             font-weight: 600;
             color: #ffffff;
+            font-size: 0.9rem;
         }
 
         .device-type {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             color: #888;
+        }
+
+        .session-id {
+            font-size: 0.75rem;
+            color: #666;
+            font-family: 'SF Mono', Monaco, monospace;
         }
 
         .device-id {
@@ -388,12 +400,48 @@
         .location-info {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 3px;
+            min-width: 180px;
         }
 
         .country {
             font-weight: 500;
             color: #ffffff;
+            font-size: 0.9rem;
+        }
+
+        .region {
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+
+        .zip-code {
+            font-size: 0.75rem;
+            color: #888;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .browser-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 200px;
+        }
+
+        .browser-name {
+            font-weight: 500;
+            color: #ffffff;
+            font-size: 0.9rem;
+        }
+
+        .browser-version {
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+
+        .os-info {
+            font-size: 0.75rem;
+            color: #888;
         }
 
         .city {
@@ -532,8 +580,9 @@
         /* Mobile responsive */
         @media (max-width: 768px) {
             .admin-container {
-                margin: 20px;
-                padding: 30px 20px;
+                margin: 10px;
+                padding: 20px 15px;
+                max-width: calc(100% - 20px);
             }
             
             .button-group {
@@ -551,6 +600,20 @@
             
             .modal-footer {
                 flex-direction: column;
+            }
+            
+            .device-table-container {
+                max-height: 400px;
+            }
+            
+            .device-table {
+                min-width: 800px;
+                font-size: 0.8rem;
+            }
+            
+            .device-table th,
+            .device-table td {
+                padding: 8px 6px;
             }
         }
     </style>
