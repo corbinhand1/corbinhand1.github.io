@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Password Hash Generator</title>
+</head>
+<body>
+    <h1>Password Hash Generator</h1>
+    <input type="text" id="password" placeholder="Enter password" value="nebula2024">
+    <button onclick="generateHash()">Generate Hash</button>
+    <div id="result"></div>
+
+    <script>
+        async function hashPassword(password) {
+            try {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(password + 'nebula_salt');
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (error) {
+                console.error('Password hashing error:', error);
+                return btoa(password + 'nebula_salt');
+            }
+        }
+
+        async function generateHash() {
+            const password = document.getElementById('password').value;
+            const hash = await hashPassword(password);
+            document.getElementById('result').innerHTML = `
+                <h3>Password: ${password}</h3>
+                <h3>Hash: ${hash}</h3>
+                <p>Copy this hash to admin-config.js</p>
+            `;
+        }
+    </script>
+</body>
+</html>
