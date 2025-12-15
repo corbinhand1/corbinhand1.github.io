@@ -1,7 +1,7 @@
 {
-  "selectedCueStackIndex" : 0,
-  "totalCueStacks" : 16,
+  "syncTimestamp" : 1765810501.4347382,
+  "lastUpdated" : "2025-12-15T14:55:01.435Z",
   "filename" : "CHI_Keynote_Dec_25 .json",
-  "lastUpdated" : "2025-12-12T23:05:08.359Z",
-  "syncTimestamp" : 1765580708.359293
+  "totalCueStacks" : 16,
+  "selectedCueStackIndex" : 0
 }
