@@ -1,7 +1,7 @@
 {
-  "totalCueStacks" : 14,
-  "syncTimestamp" : 1766028503.4650359,
+  "lastUpdated" : "2025-12-18T03:33:40.965Z",
+  "syncTimestamp" : 1766028820.9652441,
   "filename" : "London_Keynote_25.json",
-  "lastUpdated" : "2025-12-18T03:28:23.465Z",
-  "selectedCueStackIndex" : 0
+  "selectedCueStackIndex" : 0,
+  "totalCueStacks" : 14
 }
