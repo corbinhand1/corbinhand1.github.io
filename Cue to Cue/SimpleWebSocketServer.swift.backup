@@ -1,0 +1,641 @@
+//
+//  SimpleWebSocketServer.swift
+//  Cue to Cue
+//
+//  Created by Corbin Hand on 1/19/25.
+//  Simple, bulletproof WebSocket implementation using Apple's NWProtocolWebSocket
+//
+
+import Foundation
+import Network
+import CryptoKit
+import Combine
+
+// MARK: - WebSocket Message Types (Simplified)
+
+enum WebSocketMessageType: String, Codable {
+    case cueNavigation = "cue_navigation"
+    case cueUpdate = "cue_update"
+    case timerUpdate = "timer_update"
+    case timerCommand = "timer_command"
+}
+
+struct WebSocketMessage: Codable {
+    let type: WebSocketMessageType
+    let data: [String: AnyCodable]
+    let timestamp: Date
+    
+    init(type: WebSocketMessageType, data: [String: AnyCodable] = [:]) {
+        self.type = type
+        self.data = data
+        self.timestamp = Date()
+    }
+}
+
+// Helper for encoding/decoding Any type
+struct AnyCodable: Codable {
+    let value: Any
+    
+    init(_ value: Any) {
+        self.value = value
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        
+        if let string = try? container.decode(String.self) {
+            value = string
+        } else if let int = try? container.decode(Int.self) {
+            value = int
+        } else if let bool = try? container.decode(Bool.self) {
+            value = bool
+        } else if let double = try? container.decode(Double.self) {
+            value = double
+        } else {
+            throw DecodingError.typeMismatch(AnyCodable.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Unsupported type"))
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        
+        if let string = value as? String {
+            try container.encode(string)
+        } else if let int = value as? Int {
+            try container.encode(int)
+        } else if let bool = value as? Bool {
+            try container.encode(bool)
+        } else if let double = value as? Double {
+            try container.encode(double)
+        } else {
+            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: encoder.codingPath, debugDescription: "Unsupported type"))
+        }
+    }
+}
+
+// MARK: - Simple WebSocket Server
+
+class SimpleWebSocketServer: ObservableObject {
+    
+    // MARK: - Properties
+    
+    private var connections: [UUID: NWConnection] = [:]
+    private let connectionLock = NSLock()
+    private let messageQueue = DispatchQueue(label: "SimpleWebSocketServer.messageQueue", qos: .userInitiated)
+    private var listener: NWListener?
+    
+    // Published properties for UI updates
+    @Published var connectionCount: Int = 0
+    @Published var isRunning: Bool = false
+    
+    // MARK: - Dependencies
+    
+    private let authManager: AuthenticationManager
+    private let dataSyncManager: DataSyncManager
+    private let timerServer: AuthoritativeTimerServer
+    
+    // MARK: - Initialization
+    
+    init(authManager: AuthenticationManager, dataSyncManager: DataSyncManager, timerServer: AuthoritativeTimerServer) {
+        self.authManager = authManager
+        self.dataSyncManager = dataSyncManager
+        self.timerServer = timerServer
+        
+        print("🔌 SimpleWebSocketServer initialized")
+    }
+    
+    deinit {
+        stop()
+    }
+    
+    // MARK: - Server Management
+    
+    func start(port: UInt16 = 8081) {
+        guard !isRunning else {
+            print("🔌 WebSocket server already running")
+            return
+        }
+        
+        // Use TCP parameters for raw WebSocket handling
+        let parameters = NWParameters.tcp
+        parameters.allowLocalEndpointReuse = true
+        
+        do {
+            listener = try NWListener(using: parameters, on: NWEndpoint.Port(rawValue: port)!)
+            
+            listener?.newConnectionHandler = { [weak self] connection in
+                self?.handleNewConnection(connection)
+            }
+            
+            listener?.stateUpdateHandler = { [weak self] state in
+                switch state {
+                case .ready:
+                    print("🔌 SimpleWebSocketServer ready on port \(port)")
+                case .failed(let error):
+                    print("❌ SimpleWebSocketServer failed: \(error)")
+                case .cancelled:
+                    print("🔌 SimpleWebSocketServer cancelled")
+                default:
+                    break
+                }
+            }
+            
+            listener?.start(queue: messageQueue)
+            
+            DispatchQueue.main.async {
+                self.isRunning = true
+            }
+            
+            print("🔌 SimpleWebSocketServer started on port \(port)")
+        } catch {
+            print("❌ Failed to start SimpleWebSocketServer: \(error)")
+        }
+    }
+    
+    func stop() {
+        listener?.cancel()
+        listener = nil
+        
+        connectionLock.lock()
+        let activeConnections = Array(connections.values)
+        connections.removeAll()
+        connectionLock.unlock()
+        
+        // Close all connections
+        activeConnections.forEach { connection in
+            connection.cancel()
+        }
+        
+        DispatchQueue.main.async {
+            self.isRunning = false
+            self.connectionCount = 0
+        }
+        
+        print("🔌 SimpleWebSocketServer stopped")
+    }
+    
+    // MARK: - Connection Management
+    
+    private func handleNewConnection(_ connection: NWConnection) {
+        let connectionId = UUID()
+        
+        connectionLock.lock()
+        connections[connectionId] = connection
+        connectionLock.unlock()
+        
+        print("🔌 New WebSocket connection: \(connectionId) from \(connection.currentPath?.remoteEndpoint?.debugDescription ?? "unknown")")
+        
+        connection.start(queue: messageQueue)
+        
+        // Handle WebSocket handshake
+        handleWebSocketHandshake(connection: connection, connectionId: connectionId)
+        
+        DispatchQueue.main.async {
+            self.connectionCount = self.connections.count
+        }
+        
+        print("🔌 New WebSocket connection: \(connectionId) (total: \(connections.count))")
+    }
+    
+    private func handleWebSocketHandshake(connection: NWConnection, connectionId: UUID) {
+        connection.receiveMessage { [weak self] data, context, isComplete, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("❌ WebSocket handshake error for \(connectionId): \(error)")
+                self.removeConnection(connectionId)
+                return
+            }
+            
+            guard let data = data, !data.isEmpty else {
+                print("❌ No data received for WebSocket handshake")
+                self.removeConnection(connectionId)
+                return
+            }
+            
+            // Parse HTTP request
+            if let httpRequest = String(data: data, encoding: .utf8) {
+                print("🔍 Received HTTP request: \(httpRequest)")
+                if self.isWebSocketUpgradeRequest(httpRequest) {
+                    print("✅ Valid WebSocket upgrade request detected")
+                    self.sendWebSocketUpgradeResponse(connection: connection, request: httpRequest)
+                    // After successful handshake, start receiving WebSocket messages
+                    self.receiveWebSocketMessages(from: connection, connectionId: connectionId)
+                } else {
+                    print("❌ Not a WebSocket upgrade request")
+                    self.removeConnection(connectionId)
+                }
+            } else {
+                print("❌ Failed to parse HTTP request")
+                self.removeConnection(connectionId)
+            }
+        }
+    }
+    
+    private func isWebSocketUpgradeRequest(_ request: String) -> Bool {
+        let lines = request.components(separatedBy: "\r\n")
+        guard let firstLine = lines.first else { return false }
+        
+        // Check if it's a GET request
+        if !firstLine.hasPrefix("GET ") { return false }
+        
+        // Check for WebSocket upgrade headers
+        let hasUpgrade = lines.contains { $0.lowercased().hasPrefix("upgrade: websocket") }
+        let hasConnection = lines.contains { $0.lowercased().hasPrefix("connection: upgrade") }
+        let hasWebSocketKey = lines.contains { $0.lowercased().hasPrefix("sec-websocket-key:") }
+        
+        return hasUpgrade && hasConnection && hasWebSocketKey
+    }
+    
+    private func sendWebSocketUpgradeResponse(connection: NWConnection, request: String) {
+        // Extract Sec-WebSocket-Key from request
+        let lines = request.components(separatedBy: "\r\n")
+        var webSocketKey: String = ""
+        
+        for line in lines {
+            if line.lowercased().hasPrefix("sec-websocket-key:") {
+                webSocketKey = String(line.dropFirst("sec-websocket-key:".count)).trimmingCharacters(in: .whitespaces)
+                break
+            }
+        }
+        
+        // Generate Sec-WebSocket-Accept
+        let webSocketAccept = generateWebSocketAccept(key: webSocketKey)
+        
+        // Create HTTP response
+        let response = """
+        HTTP/1.1 101 Switching Protocols\r\n
+        Upgrade: websocket\r\n
+        Connection: Upgrade\r\n
+        Sec-WebSocket-Accept: \(webSocketAccept)\r\n
+        \r\n
+        """
+        
+        print("🔍 Sending WebSocket upgrade response: \(response)")
+        let responseData = response.data(using: .utf8)!
+        connection.send(content: responseData, contentContext: .defaultMessage, isComplete: true, completion: .contentProcessed { error in
+            if let error = error {
+                print("❌ Failed to send WebSocket upgrade response: \(error)")
+            } else {
+                print("✅ WebSocket handshake completed")
+            }
+        })
+    }
+    
+    private func generateWebSocketAccept(key: String) -> String {
+        let webSocketGUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+        let combined = key + webSocketGUID
+        
+        guard let data = combined.data(using: .utf8) else { return "" }
+        let sha1 = Insecure.SHA1.hash(data: data)
+        return Data(sha1).base64EncodedString()
+    }
+    
+    private func receiveWebSocketMessages(from connection: NWConnection, connectionId: UUID) {
+        connection.receiveMessage { [weak self] data, context, isComplete, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("❌ WebSocket message error for \(connectionId): \(error)")
+                self.removeConnection(connectionId)
+                return
+            }
+            
+            if let data = data, !data.isEmpty {
+                self.handleWebSocketMessage(data: data, from: connectionId)
+            }
+            
+            // Continue receiving messages
+            if connection.state == .ready {
+                self.receiveWebSocketMessages(from: connection, connectionId: connectionId)
+            }
+        }
+    }
+    
+    private func handleWebSocketMessage(data: Data, from connectionId: UUID) {
+        // Parse WebSocket frame
+        guard data.count >= 2 else { return }
+        
+        let firstByte = data[0]
+        let secondByte = data[1]
+        
+        let isFin = (firstByte & 0x80) != 0
+        let opcode = firstByte & 0x0F
+        let isMasked = (secondByte & 0x80) != 0
+        var payloadLength = Int(secondByte & 0x7F)
+        
+        var offset = 2
+        
+        // Handle extended payload length
+        if payloadLength == 126 {
+            guard data.count >= 4 else { return }
+            payloadLength = Int(data[offset]) << 8 | Int(data[offset + 1])
+            offset += 2
+        } else if payloadLength == 127 {
+            guard data.count >= 10 else { return }
+            // For simplicity, we'll limit to 32-bit length
+            payloadLength = Int(data[offset + 4]) << 24 | Int(data[offset + 5]) << 16 | Int(data[offset + 6]) << 8 | Int(data[offset + 7])
+            offset += 8
+        }
+        
+        // Handle masking key
+        var maskKey: [UInt8] = []
+        if isMasked {
+            guard data.count >= offset + 4 else { return }
+            maskKey = Array(data[offset..<offset + 4])
+            offset += 4
+        }
+        
+        // Extract payload
+        guard data.count >= offset + payloadLength else { return }
+        var payload = Array(data[offset..<offset + payloadLength])
+        
+        // Unmask payload if needed
+        if isMasked {
+            for i in 0..<payload.count {
+                payload[i] ^= maskKey[i % 4]
+            }
+        }
+        
+        // Handle different opcodes
+        switch opcode {
+        case 1: // Text frame
+            if let message = String(data: Data(payload), encoding: .utf8) {
+                self.handleWebSocketMessage(data: Data(message.utf8), from: connectionId)
+            }
+        case 8: // Close frame
+            print("🔌 WebSocket close frame received from \(connectionId)")
+            removeConnection(connectionId)
+        case 9: // Ping frame
+            sendPongFrame(to: connectionId, payload: payload)
+        case 10: // Pong frame
+            // Handle pong if needed
+            break
+        default:
+            print("⚠️ Unhandled WebSocket opcode: \(opcode)")
+        }
+    }
+    
+    private func sendPongFrame(to connectionId: UUID, payload: [UInt8]) {
+        guard let connection = connections[connectionId] else { return }
+        
+        var frame: [UInt8] = []
+        frame.append(0x8A) // Pong frame (opcode 10) with FIN bit set
+        frame.append(UInt8(payload.count)) // Payload length
+        
+        if !payload.isEmpty {
+            frame.append(contentsOf: payload)
+        }
+        
+        let frameData = Data(frame)
+        connection.send(content: frameData, contentContext: .defaultMessage, isComplete: true, completion: .contentProcessed { error in
+            if let error = error {
+                print("❌ Failed to send pong frame: \(error)")
+            }
+        })
+    }
+    
+    private func receiveMessages(from connection: NWConnection, connectionId: UUID) {
+        connection.receiveMessage { [weak self] data, context, isComplete, error in
+            if let error = error {
+                print("❌ WebSocket message error: \(error)")
+                self?.removeConnection(connectionId)
+                return
+            }
+            
+            if isComplete {
+                print("🔌 WebSocket connection closed")
+                self?.removeConnection(connectionId)
+                return
+            }
+            
+            if let data = data, let messageString = String(data: data, encoding: .utf8) {
+                print("📨 Received WebSocket message: \(messageString)")
+                self?.handleMessage(messageString, from: connectionId)
+            }
+            
+            // Continue receiving messages
+            self?.receiveMessages(from: connection, connectionId: connectionId)
+        }
+    }
+    
+    private func handleMessage(_ messageString: String, from connectionId: UUID) {
+        guard let messageData = messageString.data(using: .utf8),
+              let message = try? JSONDecoder().decode(WebSocketMessage.self, from: messageData) else {
+            print("❌ Failed to parse WebSocket message: \(messageString)")
+            return
+        }
+        
+        switch message.type {
+        case .cueUpdate:
+            handleCueUpdate(message, from: connectionId)
+        case .timerCommand:
+            handleTimerCommand(message, from: connectionId)
+        default:
+            print("⚠️ Unhandled message type: \(message.type)")
+        }
+    }
+    
+    private func handleCueUpdate(_ message: WebSocketMessage, from connectionId: UUID) {
+        guard let cueIdString = message.data["cueId"]?.value as? String,
+              let cueId = UUID(uuidString: cueIdString),
+              let columnIndex = message.data["columnIndex"]?.value as? Int,
+              let newValue = message.data["newValue"]?.value as? String else {
+            print("❌ Invalid cue update parameters")
+            return
+        }
+        
+        // Update the cue data
+        Task {
+            _ = await dataSyncManager.updateCueValue(cueId: cueId, columnIndex: columnIndex, newValue: newValue)
+        }
+        
+        // Broadcast to all other clients
+        broadcast(message, excluding: connectionId)
+        print("📝 Cue update processed and broadcasted")
+    }
+    
+    private func handleTimerCommand(_ message: WebSocketMessage, from connectionId: UUID) {
+        guard let action = message.data["action"]?.value as? String else {
+            print("❌ Missing timer action")
+            return
+        }
+        
+        // Create TimerCommand and forward to AuthoritativeTimerServer
+        let timerCommand = TimerCommand(
+            action: action,
+            countdownTime: message.data["countdownTime"]?.value as? Int,
+            countdownToTime: message.data["countdownToTime"]?.value as? Int,
+            adjustment: message.data["adjustment"]?.value as? Int,
+            targetTimeString: message.data["targetTimeString"]?.value as? String
+        )
+        
+        timerServer.executeCommand(timerCommand)
+        
+        // Broadcast to all other clients
+        broadcast(message, excluding: connectionId)
+        print("⏰ Timer command '\(action)' processed and broadcasted")
+    }
+    
+    func removeConnection(_ connectionId: UUID) {
+        connectionLock.lock()
+        let connection = connections.removeValue(forKey: connectionId)
+        connectionLock.unlock()
+        
+        connection?.cancel()
+        
+        DispatchQueue.main.async {
+            self.connectionCount = self.connections.count
+        }
+        
+        print("🔌 WebSocket connection removed: \(connectionId)")
+    }
+    
+    // MARK: - Message Broadcasting
+    
+    private func broadcast(_ message: WebSocketMessage, excluding excludeId: UUID? = nil) {
+        guard let messageData = try? JSONEncoder().encode(message),
+              let messageString = String(data: messageData, encoding: .utf8) else {
+            print("❌ Failed to encode message for broadcasting")
+            return
+        }
+        
+        connectionLock.lock()
+        let activeConnections = connections.filter { $0.key != excludeId }
+        connectionLock.unlock()
+        
+        for (connectionId, connection) in activeConnections {
+            sendMessage(messageString, to: connection, connectionId: connectionId)
+        }
+        
+        print("📡 Broadcasted WebSocket message: \(message.type) to \(activeConnections.count) clients")
+    }
+    
+    private func sendMessage(_ messageString: String, to connection: NWConnection, connectionId: UUID) {
+        guard let data = messageString.data(using: .utf8) else {
+            print("❌ Failed to convert message to data")
+            return
+        }
+        
+        // Create WebSocket text frame
+        let frame = createWebSocketFrame(data: data, opcode: 1) // Text frame
+        
+        connection.send(content: frame, contentContext: .defaultMessage, isComplete: true, completion: .contentProcessed { error in
+            if let error = error {
+                print("❌ Failed to send WebSocket message to \(connectionId): \(error)")
+            }
+        })
+    }
+    
+    private func createWebSocketFrame(data: Data, opcode: UInt8) -> Data {
+        var frame: [UInt8] = []
+        
+        // First byte: FIN (1) + RSV (000) + Opcode (4 bits)
+        frame.append(0x80 | opcode) // FIN bit set + opcode
+        
+        // Second byte: MASK (0 for server) + Payload length
+        let payloadLength = data.count
+        
+        if payloadLength <= 125 {
+            frame.append(UInt8(payloadLength))
+        } else if payloadLength <= 65535 {
+            frame.append(126)
+            frame.append(UInt8(payloadLength >> 8))
+            frame.append(UInt8(payloadLength & 0xFF))
+        } else {
+            frame.append(127)
+            // For simplicity, we'll limit to 32-bit length
+            frame.append(0)
+            frame.append(0)
+            frame.append(0)
+            frame.append(0)
+            frame.append(UInt8(payloadLength >> 24))
+            frame.append(UInt8((payloadLength >> 16) & 0xFF))
+            frame.append(UInt8((payloadLength >> 8) & 0xFF))
+            frame.append(UInt8(payloadLength & 0xFF))
+        }
+        
+        // Add payload data
+        frame.append(contentsOf: data)
+        
+        return Data(frame)
+    }
+    
+    // MARK: - Public API for Data Updates
+    
+    func notifyCueNavigation(cueId: UUID?, cueIndex: Int, cueStackIndex: Int) {
+        let message = WebSocketMessage(type: .cueNavigation, data: [
+            "cueId": AnyCodable(cueId?.uuidString ?? ""),
+            "cueIndex": AnyCodable(cueIndex),
+            "cueStackIndex": AnyCodable(cueStackIndex)
+        ])
+        
+        broadcast(message)
+        print("🧭 Cue navigation broadcasted: cueIndex=\(cueIndex), cueId=\(cueId?.uuidString ?? "nil")")
+    }
+    
+    func notifyCueUpdate(cueId: UUID, columnIndex: Int, newValue: String) {
+        let message = WebSocketMessage(type: .cueUpdate, data: [
+            "cueId": AnyCodable(cueId.uuidString),
+            "columnIndex": AnyCodable(columnIndex),
+            "newValue": AnyCodable(newValue)
+        ])
+        
+        broadcast(message)
+    }
+    
+    func notifyTimerUpdate(countdownTime: Int, countdownToTime: Int, countdownRunning: Bool, countdownToTimeRunning: Bool) {
+        let message = WebSocketMessage(type: .timerUpdate, data: [
+            "countdownTime": AnyCodable(countdownTime),
+            "countdownToTime": AnyCodable(countdownToTime),
+            "countdownRunning": AnyCodable(countdownRunning),
+            "countdownToTimeRunning": AnyCodable(countdownToTimeRunning),
+            "currentTime": AnyCodable(Date().timeIntervalSince1970)
+        ])
+        
+        broadcast(message)
+    }
+    
+    func notifyTimerSync(countdownTime: Int, countdownToTime: Int, countdownRunning: Bool, countdownToTimeRunning: Bool, countdownToTimeTarget: TimeInterval? = nil) {
+        var data: [String: AnyCodable] = [
+            "countdownTime": AnyCodable(countdownTime),
+            "countdownToTime": AnyCodable(countdownToTime),
+            "countdownRunning": AnyCodable(countdownRunning),
+            "countdownToTimeRunning": AnyCodable(countdownToTimeRunning),
+            "currentTime": AnyCodable(Date().timeIntervalSince1970)
+        ]
+        
+        if let target = countdownToTimeTarget {
+            data["countdownToTimeTarget"] = AnyCodable(target)
+        }
+        
+        let message = WebSocketMessage(type: .timerUpdate, data: data)
+        broadcast(message)
+        print("⏰ Timer sync broadcasted: countdown=\(countdownTime), countdownToTime=\(countdownToTime)")
+    }
+    
+    func notifyFileChanged(filename: String, lastUpdated: Date = Date()) {
+        let message = WebSocketMessage(type: .cueUpdate, data: [
+            "action": AnyCodable("file_changed"),
+            "filename": AnyCodable(filename),
+            "lastUpdated": AnyCodable(lastUpdated.timeIntervalSince1970)
+        ])
+        
+        broadcast(message)
+        print("📁 File changed notification broadcasted: \(filename)")
+    }
+    
+    func notifyTimerCommand(action: String, countdownTime: Int? = nil, countdownToTime: Int? = nil, adjustment: Int? = nil, targetTimeString: String? = nil) {
+        var data: [String: AnyCodable] = [
+            "action": AnyCodable(action)
+        ]
+        if let time = countdownTime { data["countdownTime"] = AnyCodable(time) }
+        if let toTime = countdownToTime { data["countdownToTime"] = AnyCodable(toTime) }
+        if let adj = adjustment { data["adjustment"] = AnyCodable(adj) }
+        if let target = targetTimeString { data["targetTimeString"] = AnyCodable(target) }
+
+        let message = WebSocketMessage(type: .timerCommand, data: data)
+        broadcast(message)
+        print("📡 Timer command broadcasted: \(action)")
+    }
+}

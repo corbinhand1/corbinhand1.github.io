@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cue to Cue Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .status-section {
+            text-align: right;
+        }
+
+        .current-show {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .current-show-label {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .current-show-value {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .last-updated {
+            font-size: 0.9rem;
+            color: #FF9800;
+        }
+
+        .time-displays {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .time-box {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .time-label {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .time-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4CAF50;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .time-date {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .cue-stack-selector {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .cue-stack-label {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #ffffff;
+        }
+
+        .cue-stack-dropdown {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 1rem;
+        }
+
+        .cue-stack-dropdown option {
+            background: #2d2d2d;
+            color: #ffffff;
+        }
+
+        .cue-table-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .cue-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .cue-table th {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            text-align: left;
+            font-weight: bold;
+            color: #ffffff;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cue-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+        }
+
+        .cue-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .cue-number {
+            font-weight: bold;
+            color: #4CAF50;
+            width: 80px;
+        }
+
+        .cue-description {
+            color: #ffffff;
+        }
+
+        .cue-time {
+            color: #FF9800;
+            font-family: 'SF Mono', Monaco, monospace;
+            width: 100px;
+        }
+
+        .cue-notes {
+            color: #888;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #f44336;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .time-displays {
+                grid-template-columns: 1fr;
+            }
+            
+            .cue-table {
+                font-size: 0.9rem;
+            }
+            
+            .cue-table th,
+            .cue-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">Cue to Cue Viewer</div>
+            <div class="status-section">
+                <div class="current-show">
+                    <div class="current-show-label">CURRENT SHOW</div>
+                    <div class="current-show-value" id="currentShow">Loading...</div>
+                </div>
+                <div class="last-updated" id="lastUpdated">Loading...</div>
+            </div>
+        </div>
+
+        <div class="time-displays">
+            <div class="time-box">
+                <div class="time-label">CURRENT TIME</div>
+                <div class="time-value" id="currentTime">--:--:--</div>
+                <div class="time-date" id="currentDate">Loading...</div>
+            </div>
+            <div class="time-box">
+                <div class="time-label">COUNTDOWN</div>
+                <div class="time-value" id="countdown">00:00</div>
+            </div>
+            <div class="time-box">
+                <div class="time-label">COUNT UP</div>
+                <div class="time-value" id="countUp">00:00</div>
+            </div>
+        </div>
+
+        <div class="cue-stack-selector">
+            <div class="cue-stack-label">Cue Stack</div>
+            <select class="cue-stack-dropdown" id="cueStackSelect">
+                <option value="">Loading cue stacks...</option>
+            </select>
+        </div>
+
+        <div class="cue-table-container">
+            <table class="cue-table">
+                <thead>
+                    <tr>
+                        <th>Cue #</th>
+                        <th>Description</th>
+                        <th>Time</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="cueTableBody">
+                    <tr>
+                        <td colspan="4" class="loading">Loading cue data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let cueData = null;
+        let metadata = null;
+
+        // Update time displays
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const dateString = now.toLocaleDateString('en-US', { 
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+
+            document.getElementById('currentTime').textContent = timeString;
+            document.getElementById('currentDate').textContent = dateString;
+        }
+
+        // Load cue data
+        async function loadCueData() {
+            console.log('🔄 loadCueData() called');
+            try {
+                console.log('📡 Fetching cue data and metadata...');
+                const [cueResponse, metadataResponse] = await Promise.all([
+                    fetch('cuetocue-data.json'),
+                    fetch('metadata.json')
+                ]);
+
+                console.log('📊 Response status:', {
+                    cueResponse: cueResponse.status,
+                    metadataResponse: metadataResponse.status,
+                    cueResponseOk: cueResponse.ok,
+                    metadataResponseOk: metadataResponse.ok
+                });
+
+                if (!cueResponse.ok || !metadataResponse.ok) {
+                    throw new Error(`Failed to load data - Cue: ${cueResponse.status}, Metadata: ${metadataResponse.status}`);
+                }
+
+                console.log('✅ Responses OK, parsing JSON...');
+                cueData = await cueResponse.json();
+                metadata = await metadataResponse.json();
+
+                console.log('📋 Parsed cue data:', {
+                    hasCueData: !!cueData,
+                    cueDataKeys: cueData ? Object.keys(cueData) : 'null',
+                    availableCueStacks: cueData?.availableCueStacks?.length || 0,
+                    selectedCueStackIndex: cueData?.selectedCueStackIndex
+                });
+
+                console.log('📄 Parsed metadata:', {
+                    hasMetadata: !!metadata,
+                    metadataKeys: metadata ? Object.keys(metadata) : 'null',
+                    filename: metadata?.filename,
+                    lastUpdated: metadata?.lastUpdated
+                });
+
+                console.log('🎯 Calling updateDisplay()...');
+                updateDisplay();
+                console.log('✅ loadCueData() completed successfully');
+            } catch (error) {
+                console.error('❌ Error loading cue data:', error);
+                console.error('❌ Error details:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+                showError('Failed to load cue data. Please try again later.');
+            }
+        }
+
+        // Update display with loaded data
+        function updateDisplay() {
+            console.log('🎨 updateDisplay() called');
+            console.log('🔍 Data check:', {
+                hasCueData: !!cueData,
+                hasMetadata: !!metadata,
+                cueDataType: typeof cueData,
+                metadataType: typeof metadata
+            });
+
+            if (!cueData || !metadata) {
+                console.warn('⚠️ Missing data - cueData:', !!cueData, 'metadata:', !!metadata);
+                return;
+            }
+
+            console.log('📝 Updating header...');
+            // Update header
+            document.getElementById('currentShow').textContent = metadata.filename || 'Unknown';
+            document.getElementById('lastUpdated').textContent = 
+                `Last updated: ${new Date(metadata.lastUpdated).toLocaleString()}`;
+
+            console.log('📋 Header updated:', {
+                currentShow: metadata.filename || 'Unknown',
+                lastUpdated: metadata.lastUpdated
+            });
+
+            // Update cue stack selector
+            console.log('🎯 Updating cue stack selector...');
+            const cueStackSelect = document.getElementById('cueStackSelect');
+            cueStackSelect.innerHTML = '';
+            
+            console.log('📊 Cue stacks info:', {
+                availableCueStacks: cueData.availableCueStacks?.length || 0,
+                selectedCueStackIndex: cueData.selectedCueStackIndex,
+                stacks: cueData.availableCueStacks?.map(s => s.name) || []
+            });
+            
+            if (cueData.availableCueStacks && cueData.availableCueStacks.length > 0) {
+                cueData.availableCueStacks.forEach((stack, index) => {
+                    console.log(`📦 Adding stack ${index}:`, stack.name);
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = stack.name;
+                    if (index === cueData.selectedCueStackIndex) {
+                        option.selected = true;
+                        console.log(`✅ Selected stack ${index}: ${stack.name}`);
+                    }
+                    cueStackSelect.appendChild(option);
+                });
+            } else {
+                console.warn('⚠️ No cue stacks available');
+            }
+
+            // Update cue table
+            console.log('📊 Calling updateCueTable()...');
+            updateCueTable();
+
+            // Add event listener for cue stack changes
+            cueStackSelect.addEventListener('change', updateCueTable);
+            console.log('✅ updateDisplay() completed');
+        }
+
+        // Update cue table based on selected stack
+        function updateCueTable() {
+            console.log('📊 updateCueTable() called');
+            
+            if (!cueData) {
+                console.warn('⚠️ No cue data available for table update');
+                return;
+            }
+
+            const cueStackSelect = document.getElementById('cueStackSelect');
+            const selectedIndex = parseInt(cueStackSelect.value);
+            console.log('🎯 Selected stack index:', selectedIndex);
+
+            const selectedStack = cueData.availableCueStacks[selectedIndex];
+            console.log('📦 Selected stack:', {
+                index: selectedIndex,
+                stack: selectedStack,
+                hasStack: !!selectedStack,
+                stackName: selectedStack?.name,
+                cuesCount: selectedStack?.cues?.length || 0
+            });
+
+            if (!selectedStack) {
+                console.warn('⚠️ No stack found for index:', selectedIndex);
+                return;
+            }
+
+            console.log('📋 Building cue table with', selectedStack.cues.length, 'cues');
+            const tbody = document.getElementById('cueTableBody');
+            tbody.innerHTML = '';
+
+            selectedStack.cues.forEach((cue, index) => {
+                console.log(`📝 Adding cue ${index}:`, {
+                    cueNumber: cue.cueNumber,
+                    description: cue.description,
+                    time: cue.time,
+                    notes: cue.notes
+                });
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="cue-number">${cue.cueNumber}</td>
+                    <td class="cue-description">${cue.description}</td>
+                    <td class="cue-time">${cue.time}</td>
+                    <td class="cue-notes">${cue.notes}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            console.log('✅ updateCueTable() completed - added', selectedStack.cues.length, 'cues');
+        }
+
+        // Show error message
+        function showError(message) {
+            document.getElementById('cueTableBody').innerHTML = `
+                <tr>
+                    <td colspan="4" class="error">${message}</td>
+                </tr>
+            `;
+        }
+
+        // Initialize
+        console.log('🚀 Initializing Cue to Cue Viewer...');
+        console.log('⏰ Setting up time updates...');
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        console.log('📡 Loading initial cue data...');
+        loadCueData();
+
+        // Reload data every 30 seconds
+        console.log('🔄 Setting up auto-refresh every 30 seconds...');
+        setInterval(() => {
+            console.log('⏰ Auto-refresh triggered');
+            loadCueData();
+        }, 30000);
+        
+        console.log('✅ Cue to Cue Viewer initialized');
+    </script>
+</body>
+</html>
