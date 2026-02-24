@@ -1,7 +1,7 @@
 {
-  "selectedCueStackIndex" : 0,
+  "syncTimestamp" : 1771975020.354995,
   "filename" : "SYD BCKP.json",
-  "lastUpdated" : "2026-02-24T23:08:36.685Z",
-  "syncTimestamp" : 1771974516.6847579,
-  "totalCueStacks" : 15
+  "totalCueStacks" : 15,
+  "lastUpdated" : "2026-02-24T23:17:00.355Z",
+  "selectedCueStackIndex" : 0
 }
