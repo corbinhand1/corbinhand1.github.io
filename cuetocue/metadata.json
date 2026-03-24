@@ -1,7 +1,7 @@
 {
   "totalCueStacks" : 13,
+  "selectedCueStackIndex" : 0,
+  "syncTimestamp" : 1774379254.8274031,
   "filename" : "DCA_WT_26.json",
-  "lastUpdated" : "2026-03-24T18:05:14.178Z",
-  "syncTimestamp" : 1774375514.1783409,
-  "selectedCueStackIndex" : 0
+  "lastUpdated" : "2026-03-24T19:07:34.827Z"
 }
