@@ -1,7 +1,7 @@
 {
   "totalCueStacks" : 16,
-  "syncTimestamp" : 1776282472.0854759,
+  "lastUpdated" : "2026-04-15T19:59:28.077Z",
+  "selectedCueStackIndex" : 2,
   "filename" : "TDX_SF_26.json",
-  "lastUpdated" : "2026-04-15T19:47:52.085Z",
-  "selectedCueStackIndex" : 2
+  "syncTimestamp" : 1776283168.0772109
 }
