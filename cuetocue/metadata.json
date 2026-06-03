@@ -1,7 +1,7 @@
 {
-  "selectedCueStackIndex" : 0,
-  "syncTimestamp" : 1780493837.9945831,
-  "lastUpdated" : "2026-06-03T13:37:17.995Z",
   "totalCueStacks" : 17,
-  "filename" : "CNX_CHI_26.json"
+  "filename" : "CNX_CHI_26.json",
+  "syncTimestamp" : 1780493901.3100691,
+  "lastUpdated" : "2026-06-03T13:38:21.310Z",
+  "selectedCueStackIndex" : 0
 }
