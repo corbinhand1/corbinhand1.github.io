@@ -1,8 +1,8 @@
 {
-  "selectedCueStackIndex" : 0,
-  "syncTimestamp" : 1781906283.7217178,
-  "syncId" : "62499D09-8CCF-4A2C-B5A4-01F159C23C0F",
-  "totalCueStacks" : 11,
   "filename" : "WT_LHR_26_Spring.json",
-  "lastUpdated" : "2026-06-19T21:58:03.722Z"
+  "totalCueStacks" : 11,
+  "syncTimestamp" : 1781906289.321665,
+  "syncId" : "BF91326B-BABF-4242-A311-9B2C57C66739",
+  "lastUpdated" : "2026-06-19T21:58:09.322Z",
+  "selectedCueStackIndex" : 0
 }
