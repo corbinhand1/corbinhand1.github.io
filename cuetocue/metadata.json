@@ -1,7 +1,7 @@
 {
-  "syncTimestamp" : 1781770162.4324431,
-  "lastUpdated" : "2026-06-18T08:09:22.432Z",
-  "totalCueStacks" : 17,
+  "totalCueStacks" : 11,
+  "syncTimestamp" : 1781905873.4015861,
   "selectedCueStackIndex" : 0,
-  "filename" : "WT_LHR_26_Spring.json"
+  "filename" : "WT_LHR_26_Spring.json",
+  "lastUpdated" : "2026-06-19T21:51:13.402Z"
 }
