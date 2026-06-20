@@ -70,6 +70,10 @@ struct CueToCueApp: App {
                     appDelegate.saveFileAs()
                 }
                 .keyboardShortcut("s", modifiers: [.command, .shift])
+                Button("Duplicate...") {
+                    appDelegate.duplicateFile()
+                }
+                .keyboardShortcut("d", modifiers: [.command, .shift])
             }
             CommandGroup(after: .saveItem) {
                 Divider()
@@ -81,6 +85,14 @@ struct CueToCueApp: App {
                     appDelegate.exportCSV()
                 }
                 .keyboardShortcut("e")
+                Divider()
+                Button("Restore from Backup…") {
+                    appDelegate.restoreFromBackup()
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+                Button("Reveal Backups in Finder…") {
+                    appDelegate.revealBackupsInFinder()
+                }
                 Divider()
             }
             CommandGroup(replacing: .printItem) {

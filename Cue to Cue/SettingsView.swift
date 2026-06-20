@@ -204,8 +204,15 @@ struct SettingsView: View {
                 Form {
                     HStack {
                         Text("Clock Font Size")
-                        Slider(value: $settingsManager.settings.clockFontSize, in: 70...90, step: 2)
-                            .padding(.horizontal)
+                        Slider(
+                            value: $settingsManager.settings.clockFontSize,
+                            in: SettingsManager.clockFontSizeRange,
+                            step: 2
+                        )
+                        .padding(.horizontal)
+                        Text("\(Int(settingsManager.settings.clockFontSize))")
+                            .monospacedDigit()
+                            .frame(width: 32, alignment: .trailing)
                     }
                     .padding()
                     

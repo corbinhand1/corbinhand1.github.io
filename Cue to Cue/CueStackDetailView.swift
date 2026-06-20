@@ -249,28 +249,27 @@ struct CueStackDetailView: View {
 
     // MARK: - Column Methods
     private func addColumn() {
-        saveState()
         cueStack.columns.append(Column(name: "Column \(cueStack.columns.count + 1)", width: 100))
         for i in cueStack.cues.indices {
             cueStack.cues[i].values.append("")
         }
+        saveState()
         updateWebClients()
     }
 
     private func deleteColumn(at index: Int) {
-        saveState()
         cueStack.columns.remove(at: index)
         for i in cueStack.cues.indices {
             if index < cueStack.cues[i].values.count {
                 cueStack.cues[i].values.remove(at: index)
             }
         }
+        saveState()
         updateWebClients()
     }
 
     // MARK: - Cue Manipulations
     private func deleteCue(at index: Int) {
-        saveState()
         cueStack.cues.remove(at: index)
         if let s = selectedCueIndex {
             if index < s {
@@ -280,6 +279,7 @@ struct CueStackDetailView: View {
                 selectedCueTime = nil
             }
         }
+        saveState()
         updateWebClients()
     }
 
@@ -292,18 +292,18 @@ struct CueStackDetailView: View {
     }
 
     private func addCueAbove(_ index: Int) {
-        saveState()
         let newCue = Cue(values: Array(repeating: "", count: cueStack.columns.count))
         cueStack.cues.insert(newCue, at: index)
         selectedCueIndex = index
+        saveState()
         updateWebClients()
     }
 
     private func addCueBelow(_ index: Int) {
-        saveState()
         let newCue = Cue(values: Array(repeating: "", count: cueStack.columns.count))
         cueStack.cues.insert(newCue, at: index + 1)
         selectedCueIndex = index + 1
+        saveState()
         updateWebClients()
     }
 }

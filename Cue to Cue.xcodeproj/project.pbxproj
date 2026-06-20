@@ -12,8 +12,7 @@
 		313556642C7FD12900C0DAF1 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313556632C7FD12900C0DAF1 /* SettingsManager.swift */; };
 		313556662C8001EF00C0DAF1 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313556652C8001EF00C0DAF1 /* AppDelegate.swift */; };
 		316ABF2D2C83504C009179B7 /* Quartz.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 313904822C8217AE0023FA4B /* Quartz.framework */; };
-		316ABF302C83504C009179B7 /* PreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316ABF2F2C83504C009179B7 /* PreviewViewController.swift */; };
-		316ABF322C83504C009179B7 /* PreviewProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316ABF312C83504C009179B7 /* PreviewProvider.swift */; };
+		316ABF302C83504C009179B7 /* CueStackPreviewProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316ABF2F2C83504C009179B7 /* CueStackPreviewProvider.swift */; };
 		316ABF352C83504C009179B7 /* Base in Resources */ = {isa = PBXBuildFile; fileRef = 316ABF342C83504C009179B7 /* Base */; };
 		316ABF3A2C83504C009179B7 /* CueToCuePreviewExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 316ABF2C2C83504B009179B7 /* CueToCuePreviewExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		316ABF3F2C83550A009179B7 /* QuickLook.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3139049A2C8225FB0023FA4B /* QuickLook.framework */; };
@@ -23,23 +22,24 @@
 		3179612F2C69C7DA00C27D84 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3179612E2C69C7DA00C27D84 /* Models.swift */; };
 		317961312C69CB9D00C27D84 /* CueRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 317961302C69CB9D00C27D84 /* CueRowView.swift */; };
 		317961332C6AB41900C27D84 /* TopSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 317961322C6AB41900C27D84 /* TopSectionView.swift */; };
-		A055FF4F8585ADAECED64179 /* PlaylistEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 790281A9A9D2A4E634EF761E /* PlaylistEditorView.swift */; };
 		317961352C6AB46000C27D84 /* CueStackListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 317961342C6AB46000C27D84 /* CueStackListView.swift */; };
 		317961372C6AB64200C27D84 /* ViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 317961362C6AB64200C27D84 /* ViewExtensions.swift */; };
 		31AF370B2CF27E49008FE4BC /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31AF370A2CF27E49008FE4BC /* Metal.framework */; };
-		31CADDDB2C83ACD10072CFCE /* WebServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CADDDA2C83ACD10072CFCE /* WebServer.swift */; };
-		31WEBSERVER001 /* WebServerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER002 /* WebServerModels.swift */; };
-		31WEBSERVER003 /* NetworkUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER004 /* NetworkUtilities.swift */; };
-		31WEBSERVER005 /* DataSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER006 /* DataSyncManager.swift */; };
-		31WEBSERVER007 /* OfflineFileServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER008 /* OfflineFileServer.swift */; };
-		31WEBSERVER009 /* HTTPHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER010 /* HTTPHandler.swift */; };
-		31WEBSERVER011 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER012 /* ConnectionManager.swift */; };
 		31AUTH001 /* AuthenticationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31AUTH002 /* AuthenticationManager.swift */; };
 		31AUTH003 /* UserManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31AUTH004 /* UserManagementView.swift */; };
-		31CONNECTION001 /* ConnectionMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CONNECTION002 /* ConnectionMonitorView.swift */; };
-		31TIMER001 /* AuthoritativeTimerServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31TIMER002 /* AuthoritativeTimerServer.swift */; };
+		31BACKUPMGR001 /* BackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31BACKUPMGR002 /* BackupManager.swift */; };
+		31CADDDB2C83ACD10072CFCE /* WebServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CADDDA2C83ACD10072CFCE /* WebServer.swift */; };
 		31CADDE52C856B200072CFCE /* CompleteHTML.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CADDE42C856B200072CFCE /* CompleteHTML.swift */; };
+		31CELLTEXTFIELD002 /*  CellTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CELLTEXTFIELD001 /*  CellTextField.swift */; };
+		31CELLWRAPPER002 /* CellTextFieldWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CELLWRAPPER001 /* CellTextFieldWrapper.swift */; };
+		31CONNECTION001 /* ConnectionMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CONNECTION002 /* ConnectionMonitorView.swift */; };
 		31D830E62D0B55D9001A8DB9 /* CueStackDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D830E52D0B55D9001A8DB9 /* CueStackDetailView.swift */; };
+		31DEBUG001 /* LogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEBUG002 /* LogManager.swift */; };
+		31DEBUG003 /* DebugWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEBUG004 /* DebugWindowView.swift */; };
+		31DEBUG005 /* ConsoleLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEBUG006 /* ConsoleLogger.swift */; };
+		31DOCSTORE001 /* DocumentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DOCSTORE002 /* DocumentStore.swift */; };
+		31CUESTACK001 /* CueStackDocumentType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CUESTACK002 /* CueStackDocumentType.swift */; };
+		31CUEICON001 /* CueStackDocument.icns in Resources */ = {isa = PBXBuildFile; fileRef = 31CUEICON002 /* CueStackDocument.icns */; };
 		31E585762C86CB4300133E33 /* ScriptingBridge.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31E585752C86CB4300133E33 /* ScriptingBridge.framework */; platformFilters = (ios, macos, ); };
 		31E9952F2D80B0F400F99399 /* PrintManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31E9952E2D80B0F400F99399 /* PrintManager.swift */; };
 		31E995312D80F79F00F99399 /* CuePrintView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31E995302D80F79F00F99399 /* CuePrintView.swift */; };
@@ -51,12 +51,13 @@
 		31F2FAC92C0425ED0074D2A4 /* Cue_to_CueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FAC82C0425ED0074D2A4 /* Cue_to_CueUITests.swift */; };
 		31F2FACB2C0425ED0074D2A4 /* Cue_to_CueUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FACA2C0425ED0074D2A4 /* Cue_to_CueUITestsLaunchTests.swift */; };
 		31F2FADD2C0441630074D2A4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FADC2C0441630074D2A4 /* SettingsView.swift */; };
+		31F6B7C62C0826FD0033DE8F /* FileHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F6B7C52C0826FD0033DE8F /* FileHelper.swift */; };
+		31FILEWATCH001 /* FileWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31FILEWATCH002 /* FileWatcher.swift */; };
+		31HTML101 /* HTMLStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31HTML001 /* HTMLStyles.swift */; };
+		31HTML102 /* HTMLSettingsStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31HTML002 /* HTMLSettingsStyles.swift */; };
+		31HTML103 /* HTMLJavaScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31HTML003 /* HTMLJavaScript.swift */; };
 		31KEYBOARD001 /* KeyboardShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31KEYBOARD002 /* KeyboardShortcuts.swift */; };
 		31KEYBOARD003 /* KeyboardShortcutsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31KEYBOARD004 /* KeyboardShortcutsView.swift */; };
-		31DEBUG001 /* LogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEBUG002 /* LogManager.swift */; };
-		31DEBUG003 /* DebugWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEBUG004 /* DebugWindowView.swift */; };
-		31DEBUG005 /* ConsoleLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DEBUG006 /* ConsoleLogger.swift */; };
-		31F6B7C62C0826FD0033DE8F /* FileHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F6B7C52C0826FD0033DE8F /* FileHelper.swift */; };
 		31OFFLINE101 /* offline.html in Resources */ = {isa = PBXBuildFile; fileRef = 31OFFLINE001 /* offline.html */; };
 		31OFFLINE102 /* offline-styles.css in Resources */ = {isa = PBXBuildFile; fileRef = 31OFFLINE002 /* offline-styles.css */; };
 		31OFFLINE103 /* offline-service-worker.js in Resources */ = {isa = PBXBuildFile; fileRef = 31OFFLINE003 /* offline-service-worker.js */; };
@@ -64,11 +65,15 @@
 		31OFFLINE105 /* offline-state-manager.js in Resources */ = {isa = PBXBuildFile; fileRef = 31OFFLINE005 /* offline-state-manager.js */; };
 		31OFFLINE106 /* offline-integration.js in Resources */ = {isa = PBXBuildFile; fileRef = 31OFFLINE006 /* offline-integration.js */; };
 		31OFFLINE107 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 31OFFLINE007 /* manifest.json */; };
-		31HTML101 /* HTMLStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31HTML001 /* HTMLStyles.swift */; };
-		31HTML102 /* HTMLSettingsStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31HTML002 /* HTMLSettingsStyles.swift */; };
-		31HTML103 /* HTMLJavaScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31HTML003 /* HTMLJavaScript.swift */; };
-		31CELLTEXTFIELD002 /* CellTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CELLTEXTFIELD001 /* CellTextField.swift */; };
-		31CELLWRAPPER002 /* CellTextFieldWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CELLWRAPPER001 /* CellTextFieldWrapper.swift */; };
+		31RESTORE001 /* RestoreFromBackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31RESTORE002 /* RestoreFromBackupView.swift */; };
+		31TIMER001 /* AuthoritativeTimerServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31TIMER002 /* AuthoritativeTimerServer.swift */; };
+		31WEBSERVER001 /* WebServerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER002 /* WebServerModels.swift */; };
+		31WEBSERVER003 /* NetworkUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER004 /* NetworkUtilities.swift */; };
+		31WEBSERVER005 /* DataSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER006 /* DataSyncManager.swift */; };
+		31WEBSERVER007 /* OfflineFileServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER008 /* OfflineFileServer.swift */; };
+		31WEBSERVER009 /* HTTPHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER010 /* HTTPHandler.swift */; };
+		31WEBSERVER011 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER012 /* ConnectionManager.swift */; };
+		A055FF4F8585ADAECED64179 /* PlaylistEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 790281A9A9D2A4E634EF761E /* PlaylistEditorView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -118,8 +123,7 @@
 		313904952C821AF00023FA4B /* QuickLook.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickLook.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk/System/Library/Frameworks/QuickLook.framework; sourceTree = DEVELOPER_DIR; };
 		3139049A2C8225FB0023FA4B /* QuickLook.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickLook.framework; path = System/Library/Frameworks/QuickLook.framework; sourceTree = SDKROOT; };
 		316ABF2C2C83504B009179B7 /* CueToCuePreviewExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CueToCuePreviewExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		316ABF2F2C83504C009179B7 /* PreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewViewController.swift; sourceTree = "<group>"; };
-		316ABF312C83504C009179B7 /* PreviewProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewProvider.swift; sourceTree = "<group>"; };
+		316ABF2F2C83504C009179B7 /* CueStackPreviewProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueStackPreviewProvider.swift; sourceTree = "<group>"; };
 		316ABF342C83504C009179B7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/PreviewViewController.xib; sourceTree = "<group>"; };
 		316ABF362C83504C009179B7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		316ABF372C83504C009179B7 /* CueToCuePreviewExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CueToCuePreviewExtension.entitlements; sourceTree = "<group>"; };
@@ -127,26 +131,27 @@
 		3179612A2C69C58F00C27D84 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		3179612C2C69C68900C27D84 /* Delegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Delegates.swift; sourceTree = "<group>"; };
 		3179612E2C69C7DA00C27D84 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		317961302C69CB9D00C27D84 /* CueRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CueRowView.swift; path = CueRowView.swift; sourceTree = "<group>"; };
+		317961302C69CB9D00C27D84 /* CueRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueRowView.swift; sourceTree = "<group>"; };
 		317961322C6AB41900C27D84 /* TopSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopSectionView.swift; sourceTree = "<group>"; };
-		790281A9A9D2A4E634EF761E /* PlaylistEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistEditorView.swift; sourceTree = "<group>"; };
 		317961342C6AB46000C27D84 /* CueStackListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueStackListView.swift; sourceTree = "<group>"; };
 		317961362C6AB64200C27D84 /* ViewExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewExtensions.swift; sourceTree = "<group>"; };
 		31AF370A2CF27E49008FE4BC /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.1.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		31CADDDA2C83ACD10072CFCE /* WebServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebServer.swift; sourceTree = "<group>"; };
-		31WEBSERVER002 /* WebServerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebServerModels.swift; sourceTree = "<group>"; };
-		31WEBSERVER004 /* NetworkUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkUtilities.swift; sourceTree = "<group>"; };
-		31WEBSERVER006 /* DataSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSyncManager.swift; sourceTree = "<group>"; };
-		31WEBSERVER008 /* OfflineFileServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineFileServer.swift; sourceTree = "<group>"; };
-		31WEBSERVER010 /* HTTPHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPHandler.swift; sourceTree = "<group>"; };
-		31WEBSERVER012 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
 		31AUTH002 /* AuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationManager.swift; sourceTree = "<group>"; };
 		31AUTH004 /* UserManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManagementView.swift; sourceTree = "<group>"; };
-		31CONNECTION002 /* ConnectionMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionMonitorView.swift; sourceTree = "<group>"; };
-		31TIMER002 /* AuthoritativeTimerServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoritativeTimerServer.swift; sourceTree = "<group>"; };
+		31BACKUPMGR002 /* BackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManager.swift; sourceTree = "<group>"; };
+		31CADDDA2C83ACD10072CFCE /* WebServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebServer.swift; sourceTree = "<group>"; };
 		31CADDE12C83B0FB0072CFCE /* Cue-to-Cue-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Cue-to-Cue-Info.plist"; sourceTree = SOURCE_ROOT; };
 		31CADDE42C856B200072CFCE /* CompleteHTML.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompleteHTML.swift; sourceTree = "<group>"; };
+		31CELLTEXTFIELD001 /*  CellTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = " CellTextField.swift"; sourceTree = "<group>"; };
+		31CELLWRAPPER001 /* CellTextFieldWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellTextFieldWrapper.swift; sourceTree = "<group>"; };
+		31CONNECTION002 /* ConnectionMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionMonitorView.swift; sourceTree = "<group>"; };
 		31D830E52D0B55D9001A8DB9 /* CueStackDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueStackDetailView.swift; sourceTree = "<group>"; };
+		31DEBUG002 /* LogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogManager.swift; sourceTree = "<group>"; };
+		31DEBUG004 /* DebugWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugWindowView.swift; sourceTree = "<group>"; };
+		31DEBUG006 /* ConsoleLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleLogger.swift; sourceTree = "<group>"; };
+		31DOCSTORE002 /* DocumentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentStore.swift; sourceTree = "<group>"; };
+		31CUESTACK002 /* CueStackDocumentType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueStackDocumentType.swift; sourceTree = "<group>"; };
+		31CUEICON002 /* CueStackDocument.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = CueStackDocument.icns; sourceTree = "<group>"; };
 		31E585752C86CB4300133E33 /* ScriptingBridge.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ScriptingBridge.framework; path = System/Library/Frameworks/ScriptingBridge.framework; sourceTree = SDKROOT; };
 		31E9952E2D80B0F400F99399 /* PrintManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintManager.swift; sourceTree = "<group>"; };
 		31E995302D80F79F00F99399 /* CuePrintView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuePrintView.swift; sourceTree = "<group>"; };
@@ -163,22 +168,29 @@
 		31F2FAC82C0425ED0074D2A4 /* Cue_to_CueUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cue_to_CueUITests.swift; sourceTree = "<group>"; };
 		31F2FACA2C0425ED0074D2A4 /* Cue_to_CueUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cue_to_CueUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		31F2FADC2C0441630074D2A4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		31F6B7C52C0826FD0033DE8F /* FileHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileHelper.swift; sourceTree = "<group>"; };
+		31FILEWATCH002 /* FileWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileWatcher.swift; sourceTree = "<group>"; };
+		31HTML001 /* HTMLStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLStyles.swift; sourceTree = "<group>"; };
+		31HTML002 /* HTMLSettingsStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLSettingsStyles.swift; sourceTree = "<group>"; };
+		31HTML003 /* HTMLJavaScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLJavaScript.swift; sourceTree = "<group>"; };
 		31KEYBOARD002 /* KeyboardShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcuts.swift; sourceTree = "<group>"; };
 		31KEYBOARD004 /* KeyboardShortcutsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutsView.swift; sourceTree = "<group>"; };
-		31DEBUG002 /* LogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogManager.swift; sourceTree = "<group>"; };
-		31DEBUG004 /* DebugWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugWindowView.swift; sourceTree = "<group>"; };
-		31DEBUG006 /* ConsoleLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleLogger.swift; sourceTree = "<group>"; };
-		31F6B7C52C0826FD0033DE8F /* FileHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileHelper.swift; sourceTree = "<group>"; };
 		31OFFLINE001 /* offline.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = offline.html; sourceTree = "<group>"; };
-		31OFFLINE002 /* offline-styles.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = offline-styles.css; sourceTree = "<group>"; };
-		31OFFLINE003 /* offline-service-worker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = offline-service-worker.js; sourceTree = "<group>"; };
-		31OFFLINE004 /* offline-data-manager.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = offline-data-manager.js; sourceTree = "<group>"; };
-		31OFFLINE005 /* offline-state-manager.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = offline-state-manager.js; sourceTree = "<group>"; };
-		31OFFLINE006 /* offline-integration.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = offline-integration.js; sourceTree = "<group>"; };
+		31OFFLINE002 /* offline-styles.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "offline-styles.css"; sourceTree = "<group>"; };
+		31OFFLINE003 /* offline-service-worker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "offline-service-worker.js"; sourceTree = "<group>"; };
+		31OFFLINE004 /* offline-data-manager.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "offline-data-manager.js"; sourceTree = "<group>"; };
+		31OFFLINE005 /* offline-state-manager.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "offline-state-manager.js"; sourceTree = "<group>"; };
+		31OFFLINE006 /* offline-integration.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "offline-integration.js"; sourceTree = "<group>"; };
 		31OFFLINE007 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
-		31HTML001 /* HTMLStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HTMLStyles.swift"; sourceTree = "<group>"; };
-		31HTML002 /* HTMLSettingsStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HTMLSettingsStyles.swift"; sourceTree = "<group>"; };
-		31HTML003 /* HTMLJavaScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HTMLJavaScript.swift"; sourceTree = "<group>"; };
+		31RESTORE002 /* RestoreFromBackupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreFromBackupView.swift; sourceTree = "<group>"; };
+		31TIMER002 /* AuthoritativeTimerServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoritativeTimerServer.swift; sourceTree = "<group>"; };
+		31WEBSERVER002 /* WebServerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebServerModels.swift; sourceTree = "<group>"; };
+		31WEBSERVER004 /* NetworkUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkUtilities.swift; sourceTree = "<group>"; };
+		31WEBSERVER006 /* DataSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSyncManager.swift; sourceTree = "<group>"; };
+		31WEBSERVER008 /* OfflineFileServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineFileServer.swift; sourceTree = "<group>"; };
+		31WEBSERVER010 /* HTTPHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPHandler.swift; sourceTree = "<group>"; };
+		31WEBSERVER012 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
+		790281A9A9D2A4E634EF761E /* PlaylistEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistEditorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -232,8 +244,7 @@
 		316ABF2E2C83504C009179B7 /* CueToCuePreviewExtension */ = {
 			isa = PBXGroup;
 			children = (
-				316ABF2F2C83504C009179B7 /* PreviewViewController.swift */,
-				316ABF312C83504C009179B7 /* PreviewProvider.swift */,
+				316ABF2F2C83504C009179B7 /* CueStackPreviewProvider.swift */,
 				316ABF332C83504C009179B7 /* PreviewViewController.xib */,
 				316ABF362C83504C009179B7 /* Info.plist */,
 				316ABF372C83504C009179B7 /* CueToCuePreviewExtension.entitlements */,
@@ -288,7 +299,7 @@
 				317961342C6AB46000C27D84 /* CueStackListView.swift */,
 				31D830E52D0B55D9001A8DB9 /* CueStackDetailView.swift */,
 				317961302C69CB9D00C27D84 /* CueRowView.swift */,
-				31CELLTEXTFIELD001 /* CellTextField.swift */,
+				31CELLTEXTFIELD001 /*  CellTextField.swift */,
 				31CELLWRAPPER001 /* CellTextFieldWrapper.swift */,
 				317961362C6AB64200C27D84 /* ViewExtensions.swift */,
 				3179612E2C69C7DA00C27D84 /* Models.swift */,
@@ -306,6 +317,11 @@
 				31AUTH004 /* UserManagementView.swift */,
 				31CONNECTION002 /* ConnectionMonitorView.swift */,
 				31TIMER002 /* AuthoritativeTimerServer.swift */,
+				31DOCSTORE002 /* DocumentStore.swift */,
+				31CUESTACK002 /* CueStackDocumentType.swift */,
+				31FILEWATCH002 /* FileWatcher.swift */,
+				31BACKUPMGR002 /* BackupManager.swift */,
+				31RESTORE002 /* RestoreFromBackupView.swift */,
 				31CADDE42C856B200072CFCE /* CompleteHTML.swift */,
 				31OFFLINE001 /* offline.html */,
 				31OFFLINE002 /* offline-styles.css */,
@@ -319,6 +335,7 @@
 				31HTML003 /* HTMLJavaScript.swift */,
 				3105570F2C1174C60088C139 /* Info.plist */,
 				31F2FAB02C0425ED0074D2A4 /* Assets.xcassets */,
+				31CUEICON002 /* CueStackDocument.icns */,
 				31F2FAB22C0425ED0074D2A4 /* Cue_to_Cue.entitlements */,
 				31F2FAB32C0425ED0074D2A4 /* Preview Content */,
 			);
@@ -435,7 +452,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1540;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					316ABF2B2C83504B009179B7 = {
 						CreatedOnToolsVersion = 15.4;
@@ -492,6 +509,7 @@
 			files = (
 				310557102C1174C60088C139 /* Info.plist in Resources */,
 				31F2FAB12C0425ED0074D2A4 /* Assets.xcassets in Resources */,
+				31CUEICON001 /* CueStackDocument.icns in Resources */,
 				31OFFLINE101 /* offline.html in Resources */,
 				31OFFLINE102 /* offline-styles.css in Resources */,
 				31OFFLINE103 /* offline-service-worker.js in Resources */,
@@ -523,8 +541,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				316ABF302C83504C009179B7 /* PreviewViewController.swift in Sources */,
-				316ABF322C83504C009179B7 /* PreviewProvider.swift in Sources */,
+				316ABF302C83504C009179B7 /* CueStackPreviewProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -545,7 +562,7 @@
 				31F2FAAF2C0425EC0074D2A4 /* ContentView.swift in Sources */,
 				31E9952F2D80B0F400F99399 /* PrintManager.swift in Sources */,
 				317961312C69CB9D00C27D84 /* CueRowView.swift in Sources */,
-				31CELLTEXTFIELD002 /* CellTextField.swift in Sources */,
+				31CELLTEXTFIELD002 /*  CellTextField.swift in Sources */,
 				31CELLWRAPPER002 /* CellTextFieldWrapper.swift in Sources */,
 				3179612D2C69C68900C27D84 /* Delegates.swift in Sources */,
 				317961332C6AB41900C27D84 /* TopSectionView.swift in Sources */,
@@ -574,6 +591,11 @@
 				31AUTH003 /* UserManagementView.swift in Sources */,
 				31CONNECTION001 /* ConnectionMonitorView.swift in Sources */,
 				31TIMER001 /* AuthoritativeTimerServer.swift in Sources */,
+				31DOCSTORE001 /* DocumentStore.swift in Sources */,
+				31CUESTACK001 /* CueStackDocumentType.swift in Sources */,
+				31FILEWATCH001 /* FileWatcher.swift in Sources */,
+				31BACKUPMGR001 /* BackupManager.swift in Sources */,
+				31RESTORE001 /* RestoreFromBackupView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -632,7 +654,7 @@
 				CODE_SIGN_ENTITLEMENTS = CueToCuePreviewExtension/CueToCuePreviewExtension.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -640,9 +662,7 @@
 				INFOPLIST_FILE = CueToCuePreviewExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = CueToCuePreviewExtension;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 14.5;
 				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Nebula-Creative.Cue-to-Cue.CueToCuePreviewExtension";
@@ -660,7 +680,7 @@
 				CODE_SIGN_ENTITLEMENTS = CueToCuePreviewExtension/CueToCuePreviewExtension.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -668,9 +688,7 @@
 				INFOPLIST_FILE = CueToCuePreviewExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = CueToCuePreviewExtension;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 14.5;
 				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Nebula-Creative.Cue-to-Cue.CueToCuePreviewExtension";
@@ -739,6 +757,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -794,6 +813,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
@@ -808,14 +828,14 @@
 				CODE_SIGN_ENTITLEMENTS = "Cue to Cue/Cue_to_Cue.entitlements";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Cue to Cue/Preview Content\"";
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Cue-to-Cue-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue 2.1";
+				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue 2.1.3";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -828,9 +848,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.1;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 14.5;
 				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Nebula-Creative.Cue-to-Cue";
@@ -854,14 +872,14 @@
 				CODE_SIGN_ENTITLEMENTS = "Cue to Cue/Cue_to_Cue.entitlements";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Cue to Cue/Preview Content\"";
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Cue-to-Cue-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue 2.1";
+				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue 2.1.3";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -874,9 +892,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.1;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 14.5;
 				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Nebula-Creative.Cue-to-Cue";
@@ -1037,8 +1053,6 @@
 				minimumVersion = 0.10.0;
 			};
 		};
-		31CELLTEXTFIELD001 /* CellTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = " CellTextField.swift"; sourceTree = "<group>"; };
-		31CELLWRAPPER001 /* CellTextFieldWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellTextFieldWrapper.swift; sourceTree = "<group>"; };
 /* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = 31F2FAA12C0425EC0074D2A4 /* Project object */;

@@ -295,7 +295,7 @@ class ConnectionManager: ObservableObject {
         let stats = getConnectionStats()
         if stats.active > stats.max * 9 / 10 { // 90% of capacity
             print("⚠️ High connection usage: \(getConnectionDetails())")
-        } else {
+        } else if stats.active > 0 {
             print("📊 Connection status: \(getConnectionDetails())")
         }
     }

@@ -21,11 +21,22 @@ class FileHelper {
 
             panel.begin { response in
                 if response == .OK, let url = panel.url {
-                    do {
-                        try data.write(to: url)
-                        completion(.success(url))
-                    } catch {
+                    let coordinator = NSFileCoordinator(filePresenter: nil)
+                    var coordError: NSError?
+                    var thrown: Error?
+                    coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordError) { coordinatedURL in
+                        do {
+                            try data.write(to: coordinatedURL, options: [.atomic])
+                        } catch {
+                            thrown = error
+                        }
+                    }
+                    if let error = thrown {
                         completion(.failure(error))
+                    } else if let coordError = coordError {
+                        completion(.failure(coordError))
+                    } else {
+                        completion(.success(url))
                     }
                 } else {
                     completion(.failure(NSError(domain: "SaveCancelled", code: -1, userInfo: nil)))

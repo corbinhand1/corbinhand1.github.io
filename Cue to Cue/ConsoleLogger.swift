@@ -137,7 +137,12 @@ private func shouldFilterSpam(_ message: String) -> Bool {
     // Let LogManager handle the filtering - this is just a pre-filter for obvious spam
     if lowercased.contains("malloc: nano zone") ||
        lowercased.contains("nw_path_evaluator") ||
-       lowercased.contains("attributegraph: cycle") {
+       lowercased.contains("attributegraph: cycle") ||
+       lowercased.contains("timer server synchronized with system time") ||
+       (lowercased.contains("connection status:") && lowercased.contains("active: 0/")) ||
+       lowercased.contains("nw_proto_tcp_route_init") ||
+       lowercased.contains("nw_connection_copy_protocol_metadata") ||
+       lowercased.contains("nw_endpoint_flow_failed") {
         return true
     }
     

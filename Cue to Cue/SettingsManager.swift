@@ -8,6 +8,8 @@
 import SwiftUI
 
 class SettingsManager: ObservableObject {
+    static let clockFontSizeRange: ClosedRange<CGFloat> = 70...90
+
     @Published var settings: Settings {
         didSet {
             save()
@@ -19,7 +21,13 @@ class SettingsManager: ObservableObject {
     init() {
         if let data = UserDefaults.standard.data(forKey: "AppSettings"),
            let decodedSettings = try? JSONDecoder().decode(Settings.self, from: data) {
-            self.settings = decodedSettings
+            var normalized = decodedSettings
+            normalized.clockFontSize = min(
+                max(normalized.clockFontSize, Self.clockFontSizeRange.lowerBound),
+                Self.clockFontSizeRange.upperBound
+            )
+            self.settings = normalized
+            // `didSet` persists when clamping corrects an out-of-range saved value.
         } else {
             self.settings = Settings()
         }

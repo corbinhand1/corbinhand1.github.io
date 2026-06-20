@@ -2295,13 +2295,12 @@
             console.log('📊 Calling updateCueTable()...');
             updateCueTable();
 
-            // Add event listener for cue stack changes
-            cueStackSelect.addEventListener('change', function() {
-                // Save selection to localStorage
+            // Replace handler each refresh to avoid duplicate listeners
+            cueStackSelect.onchange = function() {
                 localStorage.setItem('selectedCueStack', this.value);
                 console.log('💾 Saved cue stack selection:', this.value);
                 updateCueTable();
-            });
+            };
             console.log('✅ updateDisplay() completed');
         }
 
@@ -2332,8 +2331,8 @@
                 return;
             }
 
-            // Get column structure and filter by visibility
-            const allColumns = cueData.columns || [];
+            // Get column structure and filter by visibility (prefer per-stack columns)
+            const allColumns = selectedStack.columns || cueData.columns || [];
             const columns = allColumns.filter(col => visibleColumns.size === 0 || visibleColumns.has(col.name));
             console.log('📊 Column structure:', columns.map(c => c.name));
             console.log('📊 Visible columns:', Array.from(visibleColumns));

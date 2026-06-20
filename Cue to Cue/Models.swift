@@ -75,7 +75,7 @@ struct CountdownPlaylist: Codable, Equatable {
 }
 
 struct SavedData: FileDocument, Decodable, Encodable {
-    static var readableContentTypes: [UTType] { [.json] }
+    static var readableContentTypes: [UTType] { UTType.cueStackReadableTypes }
 
     var cueStacks: [CueStack]
     var highlightColors: [HighlightColorSetting]
@@ -146,6 +146,29 @@ struct SavedData: FileDocument, Decodable, Encodable {
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         let data = try JSONEncoder().encode(self)
         return FileWrapper(regularFileWithContents: data)
+    }
+
+    /// A clean starting document for File → New.
+    static func blankDocument(highlightColors: [HighlightColorSetting]) -> SavedData {
+        SavedData(
+            cueStacks: [
+                CueStack(
+                    name: "Cue Stack 1",
+                    cues: [],
+                    columns: [
+                        Column(name: "#", width: 60),
+                        Column(name: "Description", width: 300),
+                        Column(name: "Preset", width: 100),
+                        Column(name: "Video", width: 100),
+                        Column(name: "LX", width: 100),
+                        Column(name: "Audio", width: 100),
+                    ]
+                )
+            ],
+            highlightColors: highlightColors,
+            pdfNotes: [:],
+            countdownPlaylist: CountdownPlaylist()
+        )
     }
 }
 

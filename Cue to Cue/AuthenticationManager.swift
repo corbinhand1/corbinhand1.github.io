@@ -80,7 +80,7 @@ class AuthenticationManager: ObservableObject {
             authData.tokens = tokens
             
             let data = try JSONEncoder().encode(authData)
-            try data.write(to: authDataURL)
+            try data.write(to: authDataURL, options: [.atomic])
         } catch {
             print("❌ Error saving auth data: \(error)")
         }

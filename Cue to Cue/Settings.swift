@@ -29,7 +29,7 @@ struct Settings: Codable {
         self.countdownColor = .red
         self.dateTimeColor = .green
         self.tableBackgroundColor = Color(NSColor.darkGray)
-        self.clockFontSize = 40
+        self.clockFontSize = 80
         self.stopAtZero = true
         self.highlightColors = [
             HighlightColorSetting(keyword: "video", color: .blue),
@@ -40,11 +40,11 @@ struct Settings: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         fontSize = try container.decode(CGFloat.self, forKey: .fontSize)
-        fontColor = try container.decode(Color.self, forKey: .fontColor)
-        backgroundColor = try container.decode(Color.self, forKey: .backgroundColor)
-        countdownColor = try container.decode(Color.self, forKey: .countdownColor)
-        dateTimeColor = try container.decode(Color.self, forKey: .dateTimeColor)
-        tableBackgroundColor = try container.decode(Color.self, forKey: .tableBackgroundColor)
+        fontColor = Color(hex: try container.decode(String.self, forKey: .fontColor))
+        backgroundColor = Color(hex: try container.decode(String.self, forKey: .backgroundColor))
+        countdownColor = Color(hex: try container.decode(String.self, forKey: .countdownColor))
+        dateTimeColor = Color(hex: try container.decode(String.self, forKey: .dateTimeColor))
+        tableBackgroundColor = Color(hex: try container.decode(String.self, forKey: .tableBackgroundColor))
         clockFontSize = try container.decode(CGFloat.self, forKey: .clockFontSize)
         stopAtZero = try container.decode(Bool.self, forKey: .stopAtZero)
         highlightColors = try container.decode([HighlightColorSetting].self, forKey: .highlightColors)
@@ -53,18 +53,18 @@ struct Settings: Codable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(fontSize, forKey: .fontSize)
-        try container.encode(fontColor, forKey: .fontColor)
-        try container.encode(backgroundColor, forKey: .backgroundColor)
-        try container.encode(countdownColor, forKey: .countdownColor)
-        try container.encode(dateTimeColor, forKey: .dateTimeColor)
-        try container.encode(tableBackgroundColor, forKey: .tableBackgroundColor)
+        try container.encode(fontColor.toHex(), forKey: .fontColor)
+        try container.encode(backgroundColor.toHex(), forKey: .backgroundColor)
+        try container.encode(countdownColor.toHex(), forKey: .countdownColor)
+        try container.encode(dateTimeColor.toHex(), forKey: .dateTimeColor)
+        try container.encode(tableBackgroundColor.toHex(), forKey: .tableBackgroundColor)
         try container.encode(clockFontSize, forKey: .clockFontSize)
         try container.encode(stopAtZero, forKey: .stopAtZero)
         try container.encode(highlightColors, forKey: .highlightColors)
     }
 }
 
-struct HighlightColorSetting: Codable, Identifiable {
+struct HighlightColorSetting: Codable, Identifiable, Equatable {
     let id: UUID
     var keyword: String
     var color: Color
@@ -83,14 +83,14 @@ struct HighlightColorSetting: Codable, Identifiable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         keyword = try container.decode(String.self, forKey: .keyword)
-        color = try container.decode(Color.self, forKey: .color)
+        color = Color(hex: try container.decode(String.self, forKey: .color))
     }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(keyword, forKey: .keyword)
-        try container.encode(color, forKey: .color)
+        try container.encode(color.toHex(), forKey: .color)
     }
 }
 
@@ -142,15 +142,3 @@ extension Color {
     }
 }
 
-extension Color: Codable {
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let hex = try container.decode(String.self)
-        self.init(hex: hex)
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(toHex())
-    }
-}

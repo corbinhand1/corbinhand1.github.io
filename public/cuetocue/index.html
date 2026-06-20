@@ -254,12 +254,9 @@
 
         <div class="cue-table-container">
             <table class="cue-table">
-                <thead>
+                <thead id="cueTableHead">
                     <tr>
-                        <th>Cue #</th>
-                        <th>Description</th>
-                        <th>Time</th>
-                        <th>Notes</th>
+                        <th>Loading...</th>
                     </tr>
                 </thead>
                 <tbody id="cueTableBody">
@@ -301,8 +298,8 @@
             try {
                 console.log('📡 Fetching cue data and metadata...');
                 const [cueResponse, metadataResponse] = await Promise.all([
-                    fetch('cuetocue-data.json'),
-                    fetch('metadata.json')
+                    fetch(`cuetocue-data.json?v=${Date.now()}`),
+                    fetch(`metadata.json?v=${Date.now()}`)
                 ]);
 
                 console.log('📊 Response status:', {
@@ -404,8 +401,7 @@
             console.log('📊 Calling updateCueTable()...');
             updateCueTable();
 
-            // Add event listener for cue stack changes
-            cueStackSelect.addEventListener('change', updateCueTable);
+            cueStackSelect.onchange = updateCueTable;
             console.log('✅ updateDisplay() completed');
         }
 
@@ -436,25 +432,43 @@
                 return;
             }
 
+            const columns = selectedStack.columns || cueData.columns || [];
+            console.log('📊 Column structure:', columns.map(c => c.name));
+
+            const thead = document.getElementById('cueTableHead');
+            thead.innerHTML = '';
+            const headerRow = document.createElement('tr');
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col.name;
+                if (col.width) {
+                    th.style.width = `${col.width}px`;
+                }
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
             console.log('📋 Building cue table with', selectedStack.cues.length, 'cues');
             const tbody = document.getElementById('cueTableBody');
             tbody.innerHTML = '';
 
             selectedStack.cues.forEach((cue, index) => {
-                console.log(`📝 Adding cue ${index}:`, {
-                    cueNumber: cue.cueNumber,
-                    description: cue.description,
-                    time: cue.time,
-                    notes: cue.notes
-                });
+                console.log(`📝 Adding cue ${index}:`, cue);
                 
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="cue-number">${cue.cueNumber}</td>
-                    <td class="cue-description">${cue.description}</td>
-                    <td class="cue-time">${cue.time}</td>
-                    <td class="cue-notes">${cue.notes}</td>
-                `;
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    const value = cue[col.name] || '';
+                    td.textContent = value;
+                    if (col.name === '#') {
+                        td.className = 'cue-number';
+                    } else if (col.name === 'Description') {
+                        td.className = 'cue-description';
+                    } else if (col.name === 'Preset') {
+                        td.className = 'cue-time';
+                    }
+                    row.appendChild(td);
+                });
                 tbody.appendChild(row);
             });
             

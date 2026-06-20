@@ -396,8 +396,15 @@ struct TopSectionView: View {
     @State private var syncNotificationMessage = ""
     @State private var syncNotificationType: SyncNotificationType = .success
 
+    /// Shared height for all three clock panels so they stay aligned.
+    private var clockPanelHeight: CGFloat {
+        let fontSize = settingsManager.settings.clockFontSize
+        let playlistExtra: CGFloat = dataSyncManager.countdownPlaylist.entries.isEmpty ? 0 : 24
+        return fontSize + 88 + playlistExtra
+    }
+
     var body: some View {
-        HStack(spacing: 20) {
+        HStack(alignment: .top, spacing: 20) {
             // Timer displays in horizontal row
             currentTimeView
             countdownView(time: countdownTime, running: countdownRunning)
@@ -411,6 +418,7 @@ struct TopSectionView: View {
                 settingsButton
             }
         }
+        .fixedSize(horizontal: false, vertical: true)
         .padding()
         .background(Color.black.opacity(0.8))
         .cornerRadius(20)
@@ -540,16 +548,15 @@ struct TopSectionView: View {
 
     private var currentTimeView: some View {
         timeBox {
-            VStack(alignment: .center, spacing: 2) {
-                HStack(alignment: .lastTextBaseline, spacing: 2) {
-                    Text(dateFormatter.string(from: currentTime).uppercased())
-                        .font(.custom("Digital-7Mono", size: settingsManager.settings.clockFontSize * 0.4))
-                        .foregroundColor(settingsManager.settings.dateTimeColor)
-                }
-                Spacer()
+            VStack(alignment: .center, spacing: 4) {
+                Text(dateFormatter.string(from: currentTime).uppercased())
+                    .font(.custom("Digital-7Mono", size: settingsManager.settings.clockFontSize * 0.4))
+                    .foregroundColor(settingsManager.settings.dateTimeColor)
+
                 Text("Current Time")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.7))
+
                 HStack(alignment: .lastTextBaseline, spacing: 2) {
                     Text(currentTime, formatter: timeFormatter)
                         .font(.custom("Digital-7Mono", size: settingsManager.settings.clockFontSize))
@@ -558,6 +565,7 @@ struct TopSectionView: View {
                 }
                 .foregroundColor(settingsManager.settings.dateTimeColor)
             }
+            .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .center)
         }
     }
 
@@ -837,9 +845,9 @@ struct TopSectionView: View {
 
     private func timeBox<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
-            .frame(maxWidth: .infinity)
-            .frame(height: 125)
-            .padding()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, minHeight: clockPanelHeight, maxHeight: clockPanelHeight, alignment: .top)
             .background(settingsManager.settings.backgroundColor.opacity(0.2))
             .cornerRadius(15)
     }

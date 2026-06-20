@@ -121,7 +121,6 @@ class AuthoritativeTimerServer: ObservableObject {
             // TODO: Implement actual NTP synchronization
             // For now, we'll use system time which is usually accurate enough
             self.timeOffset = 0
-            print("🕐 Timer server synchronized with system time")
         }
     }
     

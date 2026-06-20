@@ -16,6 +16,7 @@ extension Notification.Name {
     static let appDelegateOpenFile = Notification.Name("appDelegateOpenFile")
     static let appDelegateSaveFile = Notification.Name("appDelegateSaveFile")
     static let appDelegateSaveFileAs = Notification.Name("appDelegateSaveFileAs")
+    static let appDelegateDuplicateFile = Notification.Name("appDelegateDuplicateFile")
     static let appDelegateImportCSV = Notification.Name("appDelegateImportCSV")
     static let appDelegateExportCSV = Notification.Name("appDelegateExportCSV")
     static let appDelegateUndo = Notification.Name("appDelegateUndo")
@@ -28,6 +29,16 @@ extension Notification.Name {
     static let appDelegateToggleStrikeThrough = Notification.Name("appDelegateToggleStrikeThrough")
     static let appDelegateToggleFullScreen = Notification.Name("appDelegateToggleFullScreen")
     static let appDelegateUpdateWebClients = Notification.Name("appDelegateUpdateWebClients")
+    /// Posted when the app becomes the frontmost app. ContentView observes
+    /// this to re-check whether the current document was changed by another
+    /// program while we were in the background. Phase 2 of the file-safety
+    /// audit.
+    static let appDelegateDidBecomeActive = Notification.Name("appDelegateDidBecomeActive")
+    /// Phase 3: open the Restore-from-Backup sheet.
+    static let appDelegateRestoreFromBackup = Notification.Name("appDelegateRestoreFromBackup")
+    /// Phase 3: reveal the most useful backup folder for the current document
+    /// in Finder.
+    static let appDelegateRevealBackups = Notification.Name("appDelegateRevealBackups")
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
@@ -48,15 +59,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         // Log app launch
         LogManager.shared.addLog("Cue to Cue app launched", level: .info)
         
-        // Handle any pending file to open
-        if let pendingFile = pendingFileToOpen {
-            openFileAtURL(pendingFile)
-            pendingFileToOpen = nil
-        }
+        // File opens from Finder are drained in ContentView.onAppear once
+        // notification observers are registered (avoids a launch-time race).
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
         // Cleanup is handled by ContentView's WebServer
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        // Phase 2 of the file-safety audit: when the user comes back to the
+        // app, we want to re-check whether anything changed our open file
+        // while we were away (iCloud pulled down a server version, the user
+        // edited the file in another app, restored from a backup, etc.).
+        NotificationCenter.default.post(name: .appDelegateDidBecomeActive, object: nil)
     }
     
     // MARK: - File Operations
@@ -80,6 +96,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         // Post notification to trigger ContentView's saveFileAs
         NotificationCenter.default.post(name: .appDelegateSaveFileAs, object: nil)
     }
+
+    func duplicateFile() {
+        NotificationCenter.default.post(name: .appDelegateDuplicateFile, object: nil)
+    }
     
     func importCSV() {
         // Post notification to trigger ContentView's showImportCSVPanel
@@ -90,21 +110,70 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         // Post notification for ContentView to handle
         NotificationCenter.default.post(name: .appDelegateExportCSV, object: nil)
     }
+
+    func restoreFromBackup() {
+        NotificationCenter.default.post(name: .appDelegateRestoreFromBackup, object: nil)
+    }
+
+    func revealBackupsInFinder() {
+        NotificationCenter.default.post(name: .appDelegateRevealBackups, object: nil)
+    }
     
     func openFileAtURL(_ url: URL) {
-        // This will be handled by ContentView through file opening mechanisms
+        guard CueStackDocumentType.shouldOpen(at: url) else {
+            LogManager.shared.addLog("Ignored open request for non-document file: \(url.lastPathComponent)", level: .info)
+            return
+        }
+
         pendingFileToOpen = url
-        NotificationCenter.default.post(name: .appDelegateOpenFile, object: url)
+        if ContentViewLifecycleSetup.appDelegateNotificationsRegistered {
+            NotificationCenter.default.post(name: .appDelegateOpenFile, object: url)
+        }
     }
     
     // MARK: - Edit Operations
     
+    private static let undoSelector = Selector(("undo:"))
+    private static let redoSelector = Selector(("redo:"))
+
     func undo() {
+        // When a cue cell is being edited, undo belongs to the text field,
+        // not the cue-stack history.
+        if isTextFieldEditing(),
+           performStandardEditAction(Self.undoSelector) {
+            return
+        }
         NotificationCenter.default.post(name: .appDelegateUndo, object: nil)
     }
     
     func redo() {
+        if isTextFieldEditing(),
+           performStandardEditAction(Self.redoSelector) {
+            return
+        }
         NotificationCenter.default.post(name: .appDelegateRedo, object: nil)
+    }
+
+    /// Routes undo/redo/cut/copy/paste to the current text editor when one
+    /// has focus. Returns true if the action was handled.
+    @discardableResult
+    private func performStandardEditAction(_ selector: Selector) -> Bool {
+        if NSApp.sendAction(selector, to: NSApp.keyWindow?.firstResponder, from: nil) {
+            return true
+        }
+        return NSApp.sendAction(selector, to: nil, from: nil)
+    }
+
+    private func isTextFieldEditing() -> Bool {
+        guard let firstResponder = NSApp.keyWindow?.firstResponder else { return false }
+        if firstResponder is NSTextView {
+            return true
+        }
+        if let textField = firstResponder as? NSTextField,
+           textField.currentEditor() != nil {
+            return true
+        }
+        return false
     }
     
     func cut() {
@@ -230,16 +299,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     func application(_ application: NSApplication, openFile filename: String) -> Bool {
         let url = URL(fileURLWithPath: filename)
-        pendingFileToOpen = url
         openFileAtURL(url)
-        return true
+        return CueStackDocumentType.shouldOpen(at: url)
     }
     
     func application(_ application: NSApplication, openFiles filenames: [String]) {
-        if let firstFile = filenames.first {
-            let url = URL(fileURLWithPath: firstFile)
-            pendingFileToOpen = url
-            openFileAtURL(url)
-        }
+        guard let firstFile = filenames.first else { return }
+        let url = URL(fileURLWithPath: firstFile)
+        openFileAtURL(url)
     }
 }
