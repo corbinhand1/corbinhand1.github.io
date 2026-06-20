@@ -1,7 +1,7 @@
 {
-  "syncTimestamp" : 1781993238.7721748,
-  "totalCueStacks" : 11,
   "selectedCueStackIndex" : 0,
-  "lastUpdated" : "2026-06-20T22:07:18.772Z",
-  "filename" : "WT_BOS_26_Spring.backup.cuestack"
+  "lastUpdated" : "2026-06-20T22:08:17.459Z",
+  "filename" : "WT_BOS_26_Spring.cuestack",
+  "totalCueStacks" : 11,
+  "syncTimestamp" : 1781993297.4589801
 }
