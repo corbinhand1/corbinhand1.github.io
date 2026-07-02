@@ -110,6 +110,9 @@ class HTTPHandler {
         case (.put, let path) where path.hasPrefix("/cues/"):
             return handleEditCue(request)
         case (.post, "/cues"):
+            if isOfflineStateSyncRequest(request) {
+                return acknowledgeOfflineStateSync()
+            }
             return handleAddCue(request)
         case (.delete, let path) where path.hasPrefix("/cues/"):
             return handleDeleteCue(request)
@@ -147,14 +150,12 @@ class HTTPHandler {
         let jsonData = onMainThread {
             dataSyncManager.generateJSONResponseForWebClient(timerServer: timerServer)
         }
-        
-        // Check if JSON generation failed (empty data indicates error)
+
         if jsonData.isEmpty {
-            // Return a simple error response without logging spam
             return HTTPResponse(
-                status: .internalServerError,
+                status: .serviceUnavailable,
                 headers: createCORSHeaders(["Content-Type": "application/json; charset=utf-8"]),
-                body: createErrorJSON(message: "No data available")
+                body: createErrorJSON(message: "Cue data temporarily unavailable")
             )
         }
         
@@ -483,6 +484,27 @@ class HTTPHandler {
         let errorDict = ["error": message]
         return (try? JSONSerialization.data(withJSONObject: errorDict)) ?? Data()
     }
+
+    private func isOfflineStateSyncRequest(_ request: HTTPRequest) -> Bool {
+        guard let body = request.body,
+              let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else {
+            return false
+        }
+        return json["action"] as? String == "sync"
+    }
+
+    private func acknowledgeOfflineStateSync() -> HTTPResponse {
+        let response: [String: Any] = [
+            "success": true,
+            "message": "Offline UI state is stored locally on this device"
+        ]
+        let responseData = (try? JSONSerialization.data(withJSONObject: response)) ?? Data()
+        return HTTPResponse(
+            status: .ok,
+            headers: createCORSHeaders(["Content-Type": "application/json"]),
+            body: responseData
+        )
+    }
     
     // MARK: - Protected Edit Endpoints
 
@@ -574,7 +596,7 @@ class HTTPHandler {
         // Require authentication
         guard let user = getCurrentUser(from: request) else {
             return HTTPResponse(
-                status: .internalServerError,
+                status: .unauthorized,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Authentication required")
             )
@@ -583,7 +605,7 @@ class HTTPHandler {
         guard let body = request.body,
               let addRequest = try? JSONDecoder().decode(AddCueRequest.self, from: body) else {
             return HTTPResponse(
-                status: .internalServerError,
+                status: .badRequest,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Invalid request body")
             )

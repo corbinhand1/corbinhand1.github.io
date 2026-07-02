@@ -39,6 +39,49 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
     // Web client cue stack selection (separate from macOS app)
     private var webClientCueStackIndex: Int = 0
     private let webClientQueue = DispatchQueue(label: "DataSyncManager.webClientQueue", attributes: .concurrent)
+
+    /// Monotonic version for LAN WebSocket clients to detect missed updates.
+    private(set) var dataVersion: UInt64 = 0
+    /// Monotonic version for cue selection / follow-state (independent of sheet data).
+    private(set) var showVersion: UInt64 = 0
+    weak var broadcastHub: LANBroadcastHub?
+
+    /// Cached LAN JSON snapshot — main thread only.
+    private var lastWebClientJSON: Data?
+    private var lastWebClientJSONVersion: UInt64 = UInt64.max
+
+    /// Suppress duplicate debounced snapshots right after an explicit LAN broadcast.
+    private(set) var lastLANBroadcastTime: Date = .distantPast
+
+    func invalidateWebClientJSONCache() {
+        lastWebClientJSONVersion = UInt64.max
+    }
+
+    func bumpShowVersion() {
+        showVersion += 1
+    }
+
+    /// Playback state for LAN `show_state` messages (green/yellow row highlights).
+    func buildShowStatePayload() -> [String: Any]? {
+        let webIndex = getWebClientCueStackIndex()
+        let stacks = cueStacks
+        guard webIndex >= 0, webIndex < stacks.count else { return nil }
+
+        let isViewingMacStack = webIndex == selectedCueStackIndex
+        let selected = isViewingMacStack ? selectedCueIndex : -1
+        let upNext = isViewingMacStack
+            ? (stacks[webIndex].cues.nextPlayableIndex(after: selected) ?? -1)
+            : -1
+
+        return [
+            "selectedCueIndex": selected,
+            "activeCueIndex": selected,
+            "upNextCueIndex": upNext,
+            "currentCueStackIndex": webIndex,
+            "cueStackId": stacks[webIndex].id.uuidString,
+            "cueStackName": stacks[webIndex].name
+        ]
+    }
     
     // Initialize web client state to match macOS app state
     init() {
@@ -55,12 +98,40 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
         self.selectedCueStackIndex = selectedCueStackIndex
         self.activeCueIndex = activeCueIndex
         self.selectedCueIndex = selectedCueIndex
-        
+
+        recordLANChange(kind: .snapshot)
         cacheDataForOffline()
     }
-    
+
     func updateHighlightColors(_ highlightColors: [HighlightColorSetting]) {
         self.highlightColors = highlightColors
+        recordLANChange(kind: .snapshot)
+    }
+
+    /// Bump data version and notify LAN WebSocket clients. Call on main thread.
+    func recordLANChange(kind: LANChangeKind, patch: LANCuePatch? = nil) {
+        dataVersion += 1
+        lastLANBroadcastTime = Date()
+        broadcastHub?.notifyChange(version: dataVersion, kind: kind, patch: patch)
+        if kind == .stackChanged {
+            broadcastHub?.broadcastShowStateIfNeeded()
+        }
+    }
+
+    /// Push a full snapshot when the Mac app mutates cue stacks (debounced observer).
+    func publishLANSnapshotFromMacIfNeeded() {
+        guard let hub = broadcastHub, hub.webSocketClientCount > 0 else { return }
+        if Date().timeIntervalSince(lastLANBroadcastTime) < 0.35 { return }
+        recordLANChange(kind: .snapshot)
+    }
+
+    /// Push a single-cell edit from the Mac UI (data already updated in memory).
+    func recordMacCueValueChange(cueId: UUID, columnIndex: Int, newValue: String) {
+        guard let hub = broadcastHub, hub.webSocketClientCount > 0 else { return }
+        recordLANChange(
+            kind: .cuePatch,
+            patch: LANCuePatch(cueId: cueId, columnIndex: columnIndex, newValue: newValue)
+        )
     }
     
     // MARK: - Cue Editing Methods
@@ -102,6 +173,10 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
         if success {
             recordWebChange()
             autoSaveToFile()
+            recordLANChange(
+                kind: .cuePatch,
+                patch: LANCuePatch(cueId: cueId, columnIndex: columnIndex, newValue: newValue)
+            )
             print("🔄 Desktop app notified of cue update: \(newValue) in column \(columnIndex)")
         }
 
@@ -129,6 +204,7 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
         let newCue = Cue(values: values, timerValue: timerValue)
         cueStacks[stackIndex].cues.append(newCue)
         print("✅ Added new cue with ID: \(newCue.id)")
+        recordLANChange(kind: .snapshot)
         return newCue.id
     }
     
@@ -145,6 +221,7 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
             if let cueIndex = cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
                 cueStacks[stackIndex].cues.remove(at: cueIndex)
                 print("✅ Deleted cue with ID: \(cueId)")
+                recordLANChange(kind: .snapshot)
                 return true
             }
         }
@@ -162,6 +239,7 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
                     if let cueIndex = self.cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
                         self.cueStacks[stackIndex].cues[cueIndex].isStruckThrough.toggle()
                         success = true
+                        self.recordLANChange(kind: .snapshot)
                         print("✅ Toggled strike-through for cue with ID: \(cueId) - now \(self.cueStacks[stackIndex].cues[cueIndex].isStruckThrough)")
                         break
                     }
@@ -251,6 +329,10 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
             let validIndex = max(0, min(index, maxIndex))
             self.webClientCueStackIndex = validIndex
         }
+        DispatchQueue.main.async {
+            self.bumpShowVersion()
+            self.recordLANChange(kind: .stackChanged)
+        }
     }
     
     func getWebClientCueStackIndex() -> Int {
@@ -267,154 +349,140 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
         }
     }
 
-    private func highlightUpNextCueIndex(for cues: [Cue], selectedIndex: Int, enabled: Bool) -> Int {
-        guard enabled, selectedIndex >= 0 else { return -1 }
-        return cues.nextPlayableIndex(after: selectedIndex) ?? -1
+    private func sheetJSONObject(
+        stack: CueStack,
+        stackIndex: Int,
+        stacks: [CueStack],
+        timerServer: AuthoritativeTimerServer
+    ) -> [String: Any] {
+        [
+            "dataVersion": dataVersion,
+            "cueStackId": stack.id.uuidString,
+            "cueStackName": stack.name,
+            "columns": stack.columns.map { ["name": $0.name, "width": Double($0.width)] },
+            "cues": stack.cues.enumerated().map { index, cue in
+                [
+                    "id": cue.id.uuidString,
+                    "index": index,
+                    "values": cue.values,
+                    "timerValue": cue.timerValue,
+                    "isStruckThrough": cue.isStruckThrough,
+                    "struck": Array(repeating: cue.isStruckThrough, count: stack.columns.count)
+                ]
+            },
+            "lastUpdateTime": Date().timeIntervalSince1970,
+            "currentDate": DataSyncManager.dateFormatter.string(from: timerServer.currentTime),
+            "currentTime": DataSyncManager.timeFormatter.string(from: timerServer.currentTime),
+            "currentAMPM": DataSyncManager.amPmFormatter.string(from: timerServer.currentTime),
+            "highlightColors": highlightColors.compactMap { colorSetting in
+                [
+                    "keyword": colorSetting.keyword,
+                    "color": colorSetting.color.toHex()
+                ]
+            },
+            "availableCueStacks": stacks.map { stack in
+                [
+                    "name": stack.name,
+                    "index": stacks.firstIndex(of: stack) ?? -1
+                ]
+            },
+            "currentCueStackIndex": stackIndex,
+            "countdownPlaylist": [
+                "entries": countdownPlaylist.entries.map { [
+                    "id": $0.id.uuidString,
+                    "timeString": $0.timeString,
+                    "label": $0.label ?? ""
+                ]},
+                "currentIndex": countdownPlaylist.currentIndex ?? -1,
+                "isActive": countdownPlaylist.isActive,
+                "loopPlaylist": countdownPlaylist.loopPlaylist
+            ]
+        ]
     }
     
     func generateJSONResponseForWebClient(timerServer: AuthoritativeTimerServer) -> Data {
+        if lastWebClientJSONVersion == dataVersion, let cached = lastWebClientJSON, !cached.isEmpty {
+            return cached
+        }
+
         let stacks = cueStacks
         let webClientIndex = getWebClientCueStackIndex()
-        
-        // Use web client's selection directly - no fallback to macOS app
         let selectedIndex = webClientIndex
-        
-        // Debug logging removed for cleaner console output
-        
+
         let jsonObject: [String: Any]
-        
-        if stacks.isEmpty || selectedIndex >= stacks.count || selectedIndex < 0 {
+
+        if stacks.isEmpty {
+            jsonObject = minimalWebClientJSON(timerServer: timerServer, stacks: stacks)
+        } else if selectedIndex >= stacks.count || selectedIndex < 0 {
             print("❌ No valid cue stack available for web client - using fallback to macOS app")
-            // Only fallback if web client selection is completely invalid
             let fallbackIndex = selectedCueStackIndex < stacks.count ? selectedCueStackIndex : 0
-            let fallbackStack = stacks[fallbackIndex]
-            
-            jsonObject = [
-                "cueStackId": fallbackStack.id.uuidString,
-                "cueStackName": fallbackStack.name,
-                "columns": fallbackStack.columns.map { ["name": $0.name, "width": Double($0.width)] },
-                "cues": fallbackStack.cues.enumerated().map { index, cue in
-                    [
-                        "id": cue.id.uuidString,
-                        "index": index,
-                        "values": cue.values,
-                        "timerValue": cue.timerValue,
-                        "isStruckThrough": cue.isStruckThrough,
-                        "struck": Array(repeating: cue.isStruckThrough, count: fallbackStack.columns.count)
-                    ]
-                },
-                "activeCueIndex": activeCueIndex,
-                "selectedCueIndex": selectedCueIndex,
-                "upNextCueIndex": highlightUpNextCueIndex(for: fallbackStack.cues, selectedIndex: selectedCueIndex, enabled: true),
-                "lastUpdateTime": Date().timeIntervalSince1970,
-                "currentDate": DataSyncManager.dateFormatter.string(from: timerServer.currentTime),
-                "currentTime": DataSyncManager.timeFormatter.string(from: timerServer.currentTime),
-                "currentAMPM": DataSyncManager.amPmFormatter.string(from: timerServer.currentTime),
-                "countdownTime": timerServer.countdownTime,
-                "countUpTime": timerServer.countUpTime,
-                "countdownRunning": timerServer.countdownRunning,
-                "countUpRunning": timerServer.countUpRunning,
-                "highlightColors": highlightColors.compactMap { colorSetting in
-                    return [
-                        "keyword": colorSetting.keyword,
-                        "color": colorSetting.color.toHex()
-                    ]
-                },
-                "availableCueStacks": stacks.map { stack in
-                    [
-                        "name": stack.name,
-                        "index": stacks.firstIndex(of: stack) ?? -1
-                    ]
-                },
-                "currentCueStackIndex": fallbackIndex,
-                "countdownPlaylist": [
-                    "entries": countdownPlaylist.entries.map { [
-                        "id": $0.id.uuidString,
-                        "timeString": $0.timeString,
-                        "label": $0.label ?? ""
-                    ]},
-                    "currentIndex": countdownPlaylist.currentIndex ?? -1,
-                    "isActive": countdownPlaylist.isActive,
-                    "loopPlaylist": countdownPlaylist.loopPlaylist
-                ]
-            ]
-        } else {
-            let selectedStack = stacks[selectedIndex]
-            
-            // Only show highlights (green/yellow) if web client is viewing the same cue stack as macOS app
-            let isViewingMacOSCueStack = (webClientIndex == selectedCueStackIndex)
-            let highlightSelectedCueIndex = isViewingMacOSCueStack ? selectedCueIndex : -1
-            let highlightActiveCueIndex = highlightSelectedCueIndex
-            let highlightUpNextCueIndex = highlightUpNextCueIndex(
-                for: selectedStack.cues,
-                selectedIndex: highlightSelectedCueIndex,
-                enabled: isViewingMacOSCueStack
+            jsonObject = sheetJSONObject(
+                stack: stacks[fallbackIndex],
+                stackIndex: fallbackIndex,
+                stacks: stacks,
+                timerServer: timerServer
             )
-            
-            jsonObject = [
-                "cueStackId": selectedStack.id.uuidString,
-                "cueStackName": selectedStack.name,
-                "columns": selectedStack.columns.map { ["name": $0.name, "width": Double($0.width)] },
-                "cues": selectedStack.cues.enumerated().map { index, cue in
-                    [
-                        "id": cue.id.uuidString,
-                        "index": index,
-                        "values": cue.values,
-                        "timerValue": cue.timerValue,
-                        "isStruckThrough": cue.isStruckThrough,
-                        "struck": Array(repeating: cue.isStruckThrough, count: selectedStack.columns.count)
-                    ]
-                },
-                // Only show highlights if viewing the macOS app's cue stack
-                "activeCueIndex": highlightActiveCueIndex,
-                "selectedCueIndex": highlightSelectedCueIndex,
-                "upNextCueIndex": highlightUpNextCueIndex,
-                "lastUpdateTime": Date().timeIntervalSince1970,
-                "currentDate": DataSyncManager.dateFormatter.string(from: timerServer.currentTime),
-                "currentTime": DataSyncManager.timeFormatter.string(from: timerServer.currentTime),
-                "currentAMPM": DataSyncManager.amPmFormatter.string(from: timerServer.currentTime),
-                "countdownTime": timerServer.countdownTime,
-                "countUpTime": timerServer.countUpTime,
-                "countdownRunning": timerServer.countdownRunning,
-                "countUpRunning": timerServer.countUpRunning,
-                "highlightColors": highlightColors.compactMap { colorSetting in
-                    return [
-                        "keyword": colorSetting.keyword,
-                        "color": colorSetting.color.toHex()
-                    ]
-                },
-                // New fields for cue stack dropdown
-                "availableCueStacks": stacks.map { stack in
-                    [
-                        "name": stack.name,
-                        "index": stacks.firstIndex(of: stack) ?? -1
-                    ]
-                },
-                "currentCueStackIndex": selectedIndex,
-                "countdownPlaylist": [
-                    "entries": countdownPlaylist.entries.map { [
-                        "id": $0.id.uuidString,
-                        "timeString": $0.timeString,
-                        "label": $0.label ?? ""
-                    ]},
-                    "currentIndex": countdownPlaylist.currentIndex ?? -1,
-                    "isActive": countdownPlaylist.isActive,
-                    "loopPlaylist": countdownPlaylist.loopPlaylist
-                ]
-            ]
+        } else {
+            jsonObject = sheetJSONObject(
+                stack: stacks[selectedIndex],
+                stackIndex: selectedIndex,
+                stacks: stacks,
+                timerServer: timerServer
+            )
         }
         
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: jsonObject, options: [])
+            lastWebClientJSON = jsonData
+            lastWebClientJSONVersion = dataVersion
             return jsonData
         } catch {
-            // Return a minimal error response instead of empty data
+            if let cached = lastWebClientJSON, !cached.isEmpty {
+                return cached
+            }
             let errorResponse = ["error": "Failed to generate JSON response", "details": error.localizedDescription]
             if let errorData = try? JSONSerialization.data(withJSONObject: errorResponse, options: []) {
                 return errorData
             }
             return Data()
         }
+    }
+
+    private func minimalWebClientJSON(timerServer: AuthoritativeTimerServer, stacks: [CueStack]) -> [String: Any] {
+        [
+            "dataVersion": dataVersion,
+            "cueStackId": "",
+            "cueStackName": "",
+            "columns": [],
+            "cues": [],
+            "lastUpdateTime": Date().timeIntervalSince1970,
+            "currentDate": DataSyncManager.dateFormatter.string(from: timerServer.currentTime),
+            "currentTime": DataSyncManager.timeFormatter.string(from: timerServer.currentTime),
+            "currentAMPM": DataSyncManager.amPmFormatter.string(from: timerServer.currentTime),
+            "highlightColors": highlightColors.compactMap { colorSetting in
+                [
+                    "keyword": colorSetting.keyword,
+                    "color": colorSetting.color.toHex()
+                ]
+            },
+            "availableCueStacks": stacks.map { stack in
+                [
+                    "name": stack.name,
+                    "index": stacks.firstIndex(of: stack) ?? -1
+                ]
+            },
+            "currentCueStackIndex": 0,
+            "countdownPlaylist": [
+                "entries": countdownPlaylist.entries.map { [
+                    "id": $0.id.uuidString,
+                    "timeString": $0.timeString,
+                    "label": $0.label ?? ""
+                ]},
+                "currentIndex": countdownPlaylist.currentIndex ?? -1,
+                "isActive": countdownPlaylist.isActive,
+                "loopPlaylist": countdownPlaylist.loopPlaylist
+            ]
+        ]
     }
     
     // MARK: - File Auto-Save

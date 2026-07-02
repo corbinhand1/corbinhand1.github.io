@@ -24,6 +24,7 @@ struct CueRowView: View {
     let getHighlightColor: (Cue) -> Color
     let saveState: () -> Void
     let updateWebClients: () -> Void
+    let onCueValueCommitted: (UUID, Int, String) -> Void
     let onSelect: (Int, Bool, Bool) -> Void // (index, isShiftDown, isCommandDown)
     let onAddCueAbove: (Int) -> Void
     let onAddCueBelow: (Int) -> Void
@@ -56,6 +57,7 @@ struct CueRowView: View {
                         if !editing {
                             NSApp.keyWindow?.makeFirstResponder(nil) // Resign first responder
                             saveState()
+                            onCueValueCommitted(cue.id, columnIndex, cue.values[columnIndex])
                         }
                     },
                     onCommit: {

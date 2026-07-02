@@ -64,6 +64,7 @@ enum HTTPStatus: Int {
     case notFound = 404
     case methodNotAllowed = 405
     case internalServerError = 500
+    case serviceUnavailable = 503
     
     var description: String {
         switch self {
@@ -74,6 +75,7 @@ enum HTTPStatus: Int {
         case .notFound: return "Not Found"
         case .methodNotAllowed: return "Method Not Allowed"
         case .internalServerError: return "Internal Server Error"
+        case .serviceUnavailable: return "Service Unavailable"
         }
     }
 }

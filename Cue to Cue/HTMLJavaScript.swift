@@ -36,12 +36,28 @@ struct HTMLJavaScript {
             clockSnapshot: {
                 countdownTime: 0,
                 countdownRunning: false,
+                countdownTarget: null,
                 countUpTime: 0,
                 countUpRunning: false,
+                countUpTarget: null,
                 receivedAt: 0
             },
             clockDisplayTimer: null,
             pollTimer: null,
+            ws: null,
+            wsConnected: false,
+            wsReconnectAttempt: 0,
+            lastDataVersion: 0,
+            lastPlaybackVersion: 0,
+            lastSnapshotAt: 0,
+            playback: {
+                selectedCueIndex: -1,
+                upNextCueIndex: -1,
+                activeCueIndex: -1,
+                cueStackId: null,
+                cueStackName: null,
+                currentCueStackIndex: -1
+            },
             // Track recently edited cells to prevent overwriting
             recentlyEditedCells: new Map(),
             lastEditTime: 0
@@ -255,11 +271,11 @@ struct HTMLJavaScript {
             const logoutButton = document.getElementById('logoutButton');
 
             if (state.isAuthenticated && state.currentUser) {
-                userInfo.textContent = `Logged in as: ${state.currentUser.username}${state.currentUser.isAdmin ? ' (Admin)' : ''}`;
+                userInfo.textContent = `Editing as ${state.currentUser.username}${state.currentUser.isAdmin ? ' (Admin)' : ''}`;
                 loginButton.style.display = 'none';
                 logoutButton.style.display = 'inline-block';
             } else {
-                userInfo.textContent = 'Not logged in';
+                userInfo.textContent = 'Viewing — log in to edit';
                 loginButton.style.display = 'inline-block';
                 logoutButton.style.display = 'none';
             }
@@ -391,8 +407,13 @@ struct HTMLJavaScript {
         function makeCellEditable(cell, cueId, columnIndex) {
             // Always add the click listener, but check permissions when clicked
             cell.addEventListener('click', () => {
+                if (!state.isAuthenticated) {
+                    showLoginModal();
+                    return;
+                }
                 // Check permissions at click time, not setup time
                 if (!canUserEditColumn(columnIndex)) {
+                    showNotification('You do not have permission to edit this column.', 'error');
                     return;
                 }
                 
@@ -421,10 +442,11 @@ struct HTMLJavaScript {
                     state.editingCell = null;
                     
                     const newValue = input.value.trim();
+                    let saved = true;
                     if (newValue !== originalValue) {
-                        await updateCueValue(cueId, columnIndex, newValue);
+                        saved = await updateCueValue(cueId, columnIndex, newValue);
                     }
-                    cell.textContent = newValue || originalValue;
+                    cell.textContent = saved ? newValue : originalValue;
                 };
                 
                 const cancelEdit = () => {
@@ -448,6 +470,14 @@ struct HTMLJavaScript {
             });
         }
 
+        function applyLocalCueValue(cueId, columnIndex, newValue) {
+            if (!state.data || !state.data.cues) return;
+            const cue = state.data.cues.find(c => c.id === cueId);
+            if (cue && columnIndex >= 0 && columnIndex < cue.values.length) {
+                cue.values[columnIndex] = newValue;
+            }
+        }
+
         async function updateCueValue(cueId, columnIndex, newValue) {
             console.log('💾 Saving:', { cueId, columnIndex, newValue });
             
@@ -456,7 +486,7 @@ struct HTMLJavaScript {
                 const errorMessage = 'You do not have permission to edit this column.';
                 console.error('❌ Permission denied:', errorMessage);
                 showNotification(errorMessage, 'error');
-                return;
+                return false;
             }
             
             try {
@@ -508,18 +538,17 @@ struct HTMLJavaScript {
                     timestamp: Date.now()
                 });
                 state.lastEditTime = Date.now();
+
+                applyLocalCueValue(cueId, columnIndex, newValue);
                 
                 // Show success notification
                 showNotification('Cue updated successfully', 'success');
-                
-                // Wait a moment before refreshing to ensure backend has processed the change
-                setTimeout(() => {
-                    fetchCues();
-                }, 100);
+                return true;
                 
             } catch (error) {
                 console.error('❌ Save failed:', error.message);
                 showNotification(error.message, 'error');
+                return false;
             }
         }
 
@@ -732,36 +761,282 @@ struct HTMLJavaScript {
         // Data Fetching
         let activeRequests = new Set();
         const POLL_INTERVAL_MS = 1000;
+        const POLL_FALLBACK_MS = 8000;
         const CLOCK_TICK_MS = 250;
-        
-        function schedulePoll(delayMs = POLL_INTERVAL_MS) {
+        const WS_RECONNECT_BASE_MS = 1000;
+        const WS_RECONNECT_MAX_MS = 15000;
+
+        function getPollIntervalMs() {
+            return state.wsConnected ? POLL_FALLBACK_MS : POLL_INTERVAL_MS;
+        }
+
+        function shouldSkipCuesPoll() {
+            if (!state.wsConnected || !state.lastSnapshotAt) return false;
+            return (Date.now() - state.lastSnapshotAt) < getPollIntervalMs();
+        }
+
+        function schedulePoll(delayMs = null) {
             if (state.pollTimer) {
                 clearTimeout(state.pollTimer);
             }
+            const delay = delayMs ?? getPollIntervalMs();
             state.pollTimer = setTimeout(() => {
-                fetchCues().finally(() => schedulePoll(POLL_INTERVAL_MS));
-            }, delayMs);
+                fetchCues().finally(() => schedulePoll());
+            }, delay);
+        }
+
+        // WebSocket (anonymous read — no login required)
+        function connectWebSocket() {
+            if (state.ws && (state.ws.readyState === WebSocket.OPEN || state.ws.readyState === WebSocket.CONNECTING)) {
+                return;
+            }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+            try {
+                state.ws = new WebSocket(wsUrl);
+            } catch (err) {
+                console.warn('WebSocket connect failed:', err);
+                scheduleWebSocketReconnect();
+                return;
+            }
+
+            state.ws.onopen = () => {
+                state.wsConnected = true;
+                state.wsReconnectAttempt = 0;
+                console.log('📡 LAN WebSocket connected');
+                updateConnectionStatus('connected');
+                fetchTimerState();
+            };
+
+            state.ws.onmessage = (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    handleWebSocketMessage(message);
+                } catch (err) {
+                    console.warn('WebSocket message parse error:', err);
+                }
+            };
+
+            state.ws.onclose = () => {
+                state.wsConnected = false;
+                state.ws = null;
+                console.log('📡 LAN WebSocket disconnected');
+                scheduleWebSocketReconnect();
+                schedulePoll(POLL_INTERVAL_MS);
+            };
+
+            state.ws.onerror = () => {
+                // onclose will handle reconnect
+            };
+        }
+
+        function scheduleWebSocketReconnect() {
+            const delay = Math.min(
+                WS_RECONNECT_BASE_MS * Math.pow(2, state.wsReconnectAttempt),
+                WS_RECONNECT_MAX_MS
+            );
+            state.wsReconnectAttempt += 1;
+            setTimeout(connectWebSocket, delay);
+        }
+
+        function handleWebSocketMessage(message) {
+            if (!message || !message.type) return;
+
+            switch (message.type) {
+                case 'snapshot':
+                    if (typeof message.version === 'number') {
+                        if (message.version < state.lastDataVersion) return;
+                        state.lastDataVersion = message.version;
+                    }
+                    if (message.data) {
+                        applySnapshot(message.data);
+                    }
+                    break;
+                case 'show_state':
+                    if (typeof message.version === 'number') {
+                        if (message.version < state.lastPlaybackVersion) return;
+                        state.lastPlaybackVersion = message.version;
+                    }
+                    if (message.data) {
+                        applyShowState(message.data);
+                    }
+                    break;
+                case 'timer_state':
+                    if (message.data) {
+                        syncClockSnapshot(message.data, 'timer');
+                    }
+                    break;
+                case 'cue_patch':
+                    if (message.data) {
+                        applyCuePatch(message.data);
+                    }
+                    break;
+                case 'pong':
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        function stripPlaybackFields(data) {
+            const sheet = Object.assign({}, data);
+            delete sheet.selectedCueIndex;
+            delete sheet.upNextCueIndex;
+            delete sheet.activeCueIndex;
+            delete sheet.countdownTime;
+            delete sheet.countUpTime;
+            delete sheet.countdownRunning;
+            delete sheet.countUpRunning;
+            return sheet;
+        }
+
+        function resolveUpNextCueIndex(playback) {
+            if (typeof playback.upNextCueIndex === 'number' && playback.upNextCueIndex >= 0) {
+                return playback.upNextCueIndex;
+            }
+            if (playback.selectedCueIndex < 0 || !state.data?.cues) {
+                return -1;
+            }
+            for (let i = playback.selectedCueIndex + 1; i < state.data.cues.length; i++) {
+                if (!state.data.cues[i].isStruckThrough) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        function applyPlaybackRowHighlights() {
+            if (!state.data?.cues) return;
+
+            const tbody = document.querySelector('#cueTable tbody');
+            if (!tbody) return;
+
+            const selected = state.playback.selectedCueIndex;
+            const upNext = resolveUpNextCueIndex(state.playback);
+
+            Array.from(tbody.children).forEach((row, rowIndex) => {
+                row.classList.remove('selected', 'next');
+                if (rowIndex === selected) {
+                    row.classList.add('selected');
+                } else if (upNext >= 0 && rowIndex === upNext) {
+                    row.classList.add('next');
+                }
+            });
+        }
+
+        function applyShowState(payload) {
+            state.playback = {
+                selectedCueIndex: payload.selectedCueIndex ?? -1,
+                upNextCueIndex: payload.upNextCueIndex ?? -1,
+                activeCueIndex: payload.activeCueIndex ?? payload.selectedCueIndex ?? -1,
+                cueStackId: payload.cueStackId ?? null,
+                cueStackName: payload.cueStackName ?? null,
+                currentCueStackIndex: payload.currentCueStackIndex ?? -1
+            };
+            applyPlaybackRowHighlights();
+            handleAutoScroll();
+        }
+
+        function applySnapshot(data) {
+            state.lastSnapshotAt = Date.now();
+            state.connectionAttempts = 0;
+            updateConnectionStatus('connected');
+            if (state.isEditing) return;
+            state.data = stripPlaybackFields(data);
+            updateUI(state.data);
+            applyPlaybackRowHighlights();
+            if (state.isAuthenticated) {
+                setTimeout(() => refreshTableEditability(), 100);
+            }
+        }
+
+        function applyCuePatch(patch) {
+            if (!state.data || !state.data.cues) return;
+            const cellKey = `${patch.cueId}-${patch.columnIndex}`;
+            const recentEdit = state.recentlyEditedCells.get(cellKey);
+            const now = Date.now();
+            if (recentEdit && (now - recentEdit.timestamp) < 5000) return;
+
+            const cue = state.data.cues.find(c => c.id === patch.cueId);
+            if (!cue) return;
+            if (patch.columnIndex < 0 || patch.columnIndex >= cue.values.length) return;
+            cue.values[patch.columnIndex] = patch.newValue;
+
+            const tbody = document.querySelector('#cueTable tbody');
+            if (!tbody) return;
+            const rowIndex = state.data.cues.indexOf(cue);
+            const row = tbody.children[rowIndex];
+            if (!row) return;
+            const cell = row.children[patch.columnIndex];
+            if (cell && cell.textContent !== patch.newValue) {
+                cell.textContent = patch.newValue;
+            }
+        }
+
+        function sendWebSocketPing() {
+            if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+                state.ws.send(JSON.stringify({ type: 'ping', version: state.lastDataVersion }));
+            }
         }
         
-        function syncClockSnapshot(data) {
+        function syncClockSnapshot(data, source) {
+            // Sheet snapshots and HTTP /cues must not overwrite live timer_state when WebSocket is up.
+            if (source !== 'timer' && state.wsConnected) {
+                return;
+            }
+
             const clockData = data.data || data;
             if (clockData.countdownTime !== undefined) {
                 state.clockSnapshot.countdownTime = clockData.countdownTime;
             }
             if (clockData.countdownRunning !== undefined) {
                 state.clockSnapshot.countdownRunning = clockData.countdownRunning;
+                if (!clockData.countdownRunning) {
+                    state.clockSnapshot.countdownTarget = null;
+                }
+            }
+            if (clockData.countdownTarget !== undefined) {
+                state.clockSnapshot.countdownTarget = clockData.countdownTarget;
             }
             if (clockData.countUpTime !== undefined) {
                 state.clockSnapshot.countUpTime = clockData.countUpTime;
             }
             if (clockData.countUpRunning !== undefined) {
                 state.clockSnapshot.countUpRunning = clockData.countUpRunning;
+                if (!clockData.countUpRunning) {
+                    state.clockSnapshot.countUpTarget = null;
+                }
+            }
+            if (clockData.countUpTarget !== undefined) {
+                state.clockSnapshot.countUpTarget = clockData.countUpTarget;
             }
             state.clockSnapshot.receivedAt = Date.now();
             renderClockDisplays();
         }
+
+        async function fetchTimerState() {
+            try {
+                const response = await robustFetch(`${window.location.origin}/timer-state`, { timeout: 3000 });
+                if (!response.ok) return;
+                const data = await response.json();
+                syncClockSnapshot(data, 'timer');
+            } catch (_) {
+                // Timer HTTP fetch is optional when WebSocket is down.
+            }
+        }
         
-        function interpolatedRemainingSeconds(baseSeconds, running) {
+        function remainingSecondsFromTarget(targetEpochSeconds) {
+            if (targetEpochSeconds == null || Number.isNaN(targetEpochSeconds)) {
+                return null;
+            }
+            return Math.max(0, Math.floor(targetEpochSeconds - Date.now() / 1000));
+        }
+
+        function interpolatedRemainingSeconds(baseSeconds, running, targetEpochSeconds) {
+            const fromTarget = running ? remainingSecondsFromTarget(targetEpochSeconds) : null;
+            if (fromTarget !== null) return fromTarget;
             if (!running) return baseSeconds;
             const elapsed = (Date.now() - state.clockSnapshot.receivedAt) / 1000;
             return Math.max(0, Math.floor(baseSeconds - elapsed));
@@ -774,7 +1049,11 @@ struct HTMLJavaScript {
             if (countdownElement) {
                 if (snapshot.countdownRunning) {
                     countdownElement.textContent = formatTime(
-                        interpolatedRemainingSeconds(snapshot.countdownTime, true)
+                        interpolatedRemainingSeconds(
+                            snapshot.countdownTime,
+                            true,
+                            snapshot.countdownTarget
+                        )
                     );
                 } else {
                     countdownElement.textContent = formatTime(snapshot.countdownTime);
@@ -785,7 +1064,11 @@ struct HTMLJavaScript {
             if (countupElement) {
                 if (snapshot.countUpRunning) {
                     countupElement.textContent = formatTime(
-                        interpolatedRemainingSeconds(snapshot.countUpTime, true)
+                        interpolatedRemainingSeconds(
+                            snapshot.countUpTime,
+                            true,
+                            snapshot.countUpTarget
+                        )
                     );
                 } else {
                     countupElement.textContent = '--:--:--';
@@ -811,8 +1094,13 @@ struct HTMLJavaScript {
         }
         
         async function fetchCues() {
+            if (shouldSkipCuesPoll()) {
+                return;
+            }
+
             // While editing a cell, still refresh clocks but skip table rebuilds.
-            const clocksOnly = state.isEditing;
+            // When WebSocket is live, HTTP is a clock fallback — don't overwrite show state.
+            const clocksOnly = state.isEditing || (state.wsConnected && !!state.data);
             
             // Clean up old recently edited cells (older than 10 seconds)
             const now = Date.now();
@@ -851,7 +1139,9 @@ struct HTMLJavaScript {
                 }
                 
                 const data = JSON.parse(text);
-                syncClockSnapshot(data);
+                if (!state.wsConnected) {
+                    await fetchTimerState();
+                }
                 state.connectionAttempts = 0;
                 updateConnectionStatus('connected');
                 
@@ -859,9 +1149,14 @@ struct HTMLJavaScript {
                     return;
                 }
                 
-                state.data = data;
+                const merged = stripPlaybackFields(data);
+                state.data = merged;
+                if (typeof merged.dataVersion === 'number') {
+                    state.lastDataVersion = merged.dataVersion;
+                }
                 console.log("🔍 Cues data received");
-                updateUI(data);
+                updateUI(merged);
+                applyPlaybackRowHighlights();
                 
                 // If user is authenticated, refresh table editability after data loads
                 if (state.isAuthenticated) {
@@ -965,7 +1260,7 @@ struct HTMLJavaScript {
                 }
             }
             
-            handleAutoScroll(data);
+            handleAutoScroll();
             document.getElementById('columnNames').textContent = data.cueStackName || 'Cue Stack';
             
             // Update cue stack dropdown if data is available
@@ -991,21 +1286,6 @@ struct HTMLJavaScript {
                     else state.columnWidths[colId] = 200; // Content columns
                 }
             });
-        }
-
-        function resolveUpNextCueIndex(data) {
-            if (typeof data.upNextCueIndex === 'number' && data.upNextCueIndex >= 0) {
-                return data.upNextCueIndex;
-            }
-            if (!data.cues || data.selectedCueIndex < 0) {
-                return -1;
-            }
-            for (let i = data.selectedCueIndex + 1; i < data.cues.length; i++) {
-                if (!data.cues[i].isStruckThrough) {
-                    return i;
-                }
-            }
-            return -1;
         }
 
         function buildTable(data) {
@@ -1045,15 +1325,9 @@ struct HTMLJavaScript {
             
             // Build body
             tbody.innerHTML = '';
-            const upNextCueIndex = resolveUpNextCueIndex(data);
             data.cues.forEach((cue, rowIndex) => {
                 const row = document.createElement('tr');
                 
-                if (rowIndex === data.selectedCueIndex) {
-                    row.classList.add('selected');
-                } else if (upNextCueIndex >= 0 && rowIndex === upNextCueIndex) {
-                    row.classList.add('next');
-                }
                 if (cue.isStruckThrough) {
                     row.classList.add('struck-row');
                 }
@@ -1096,6 +1370,7 @@ struct HTMLJavaScript {
             
             attachResizeHandlers();
             saveSettings();
+            applyPlaybackRowHighlights();
             // Update table permissions after building
             updateTablePermissions();
         }
@@ -1103,7 +1378,6 @@ struct HTMLJavaScript {
         function updateTableData(data) {
             const tbody = document.querySelector('#cueTable tbody');
             const rows = tbody.querySelectorAll('tr');
-            const upNextCueIndex = resolveUpNextCueIndex(data);
             
             // Batch all DOM updates to prevent visual lag
             const updates = [];
@@ -1123,15 +1397,10 @@ struct HTMLJavaScript {
                     cellUpdates: []
                 };
                 
-                // Determine row classes
+                // Prepare row class (strike-through only — playback highlights applied separately)
                 let rowClass = '';
-                if (rowIndex === data.selectedCueIndex) {
-                    rowClass = 'selected';
-                } else if (upNextCueIndex >= 0 && rowIndex === upNextCueIndex) {
-                    rowClass = 'next';
-                }
                 if (cue.isStruckThrough) {
-                    rowClass = rowClass ? `${rowClass} struck-row` : 'struck-row';
+                    rowClass = 'struck-row';
                 }
                 rowUpdate.rowClass = rowClass;
                 
@@ -1162,7 +1431,7 @@ struct HTMLJavaScript {
                         } else {
                             // Only update if the content has actually changed
                             const currentContent = td.textContent || '';
-                            const newContent = cue.values[colIndex] || '';
+                            const newContent = cue.values[colIndex] ?? '';
                             if (currentContent !== newContent) {
                                 cellUpdate.textContent = newContent;
                             }
@@ -1220,6 +1489,8 @@ struct HTMLJavaScript {
             while (tbody.children.length > data.cues.length) {
                 tbody.removeChild(tbody.lastChild);
             }
+
+            applyPlaybackRowHighlights();
         }
 
         // Column Resizing
@@ -1332,11 +1603,12 @@ struct HTMLJavaScript {
         }
 
         // Auto Scroll
-        function handleAutoScroll(data) {
-            if (state.autoScrollEnabled && data.selectedCueIndex != null) {
+        function handleAutoScroll() {
+            const selected = state.playback.selectedCueIndex;
+            if (state.autoScrollEnabled && selected != null && selected >= 0) {
                 const tbody = document.querySelector('#cueTable tbody');
-                if (tbody && tbody.children[data.selectedCueIndex]) {
-                    tbody.children[data.selectedCueIndex].scrollIntoView({ 
+                if (tbody && tbody.children[selected]) {
+                    tbody.children[selected].scrollIntoView({ 
                         behavior: 'smooth', 
                         block: 'center' 
                     });
@@ -1882,7 +2154,14 @@ struct HTMLJavaScript {
             loadAuthToken(); // Load authentication token
             updateConnectionStatus('disconnected'); // Start with disconnected status
             startClockDisplayLoop();
-            fetchCues().finally(() => schedulePoll(POLL_INTERVAL_MS));
+            fetchTimerState();
+            // Defer WebSocket until service worker / offline scripts finish registering.
+            setTimeout(connectWebSocket, 600);
+            // Give WebSocket a moment to deliver the snapshot before HTTP fallback poll.
+            setTimeout(() => {
+                fetchCues().finally(() => schedulePoll());
+            }, 900);
+            setInterval(sendWebSocketPing, 30000);
             
             // Authentication event listeners
             document.getElementById('loginButton').addEventListener('click', showLoginModal);

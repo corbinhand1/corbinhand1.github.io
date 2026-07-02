@@ -27,18 +27,28 @@ class ConnectionManager: ObservableObject {
     private var monitoringTimer: Timer?
     private var finishedConnections: Set<ObjectIdentifier> = []
     private var requestBuffers: [ObjectIdentifier: Data] = [:]
-    private let maxConnectionsPerIPAddress = 4
+    private var httpReceivePending: Set<ObjectIdentifier> = []
+    private var webSocketClientIds: [ObjectIdentifier: UUID] = [:]
+    private var webSocketBuffers: [ObjectIdentifier: Data] = [:]
+    // Browsers open several parallel connections per tab (document, assets, poll, WebSocket).
+    private let maxConnectionsPerIPAddress = 12
     
     // Published properties for UI updates
     @Published var connectionStats: (active: Int, max: Int) = (0, 100)
     @Published var detailedConnectionInfo: [ConnectionInfo] = []
     
     // MARK: - Dependencies
-    private let httpHandler: HTTPHandler
+    private var httpHandler: HTTPHandler
+    private weak var broadcastHub: LANBroadcastHub?
     
-    init(httpHandler: HTTPHandler) {
+    init(httpHandler: HTTPHandler, broadcastHub: LANBroadcastHub? = nil) {
         self.httpHandler = httpHandler
+        self.broadcastHub = broadcastHub
         initializePublishedProperties()
+    }
+
+    func setHTTPHandler(_ handler: HTTPHandler) {
+        httpHandler = handler
     }
     
     // MARK: - Connection Management
@@ -122,6 +132,8 @@ class ConnectionManager: ObservableObject {
                 self._connectionTimestamps.removeValue(forKey: connectionID)
                 self._connectionUserAgents.removeValue(forKey: connectionID)
                 self.requestBuffers.removeValue(forKey: connectionID)
+                self.httpReceivePending.remove(connectionID)
+                self.unregisterWebSocketClient(for: connection)
 
                 self.removeConnectionFromSession(for: connection, ipAddress: ipAddress, userAgent: userAgent)
             }
@@ -147,15 +159,38 @@ class ConnectionManager: ObservableObject {
     }
     
     // MARK: - Request Handling
-    
+
+    private func isExpectedDisconnect(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.code == 54 || nsError.code == 89 {
+            return true
+        }
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError {
+            return underlying.code == 54 || underlying.code == 89
+        }
+        return false
+    }
+
     private func receiveRequest(on connection: NWConnection) {
+        let connectionID = ObjectIdentifier(connection)
+        let shouldReceive = connectionQueue.sync { () -> Bool in
+            guard webSocketClientIds[connectionID] == nil else { return false }
+            guard !httpReceivePending.contains(connectionID) else { return false }
+            httpReceivePending.insert(connectionID)
+            return true
+        }
+        guard shouldReceive else { return }
+
         connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
             guard let self = self else { return }
-            
+
+            self.connectionQueue.sync {
+                self.httpReceivePending.remove(connectionID)
+            }
+
             if let error = error {
-                let nsError = error as NSError
-                if nsError.domain == "NSPOSIXErrorDomain" && (nsError.code == 89 || nsError.code == 54) {
-                    // Canceled or reset by peer — normal when a browser closes a socket.
+                if self.isExpectedDisconnect(error) {
+                    // Reset or canceled by peer — normal when a browser closes a socket.
                     self.cleanupConnection(connection)
                     return
                 }
@@ -165,32 +200,71 @@ class ConnectionManager: ObservableObject {
             }
             
             guard let data = data, !data.isEmpty else {
+                if isComplete {
+                    self.cleanupConnection(connection)
+                } else if self.connectionQueue.sync(execute: { self.webSocketClientIds[connectionID] == nil }) {
+                    self.continueListening(on: connection)
+                }
                 return
             }
 
-            let connectionID = ObjectIdentifier(connection)
             var buffer = self.requestBuffers[connectionID] ?? Data()
             buffer.append(data)
 
+            var upgradedToWebSocket = false
             while let requestData = HTTPRequest.extractNextCompleteMessage(from: &buffer) {
-                self.processRequest(requestData, on: connection)
-                self.incrementRequestCount(for: connection)
+                let connectionId = ObjectIdentifier(connection)
+                if self.webSocketClientIds[connectionId] != nil {
+                    continue
+                }
+                if self.processRequest(requestData, on: connection) {
+                    upgradedToWebSocket = true
+                } else {
+                    self.incrementRequestCount(for: connection)
+                }
             }
 
             if buffer.isEmpty {
                 self.requestBuffers.removeValue(forKey: connectionID)
-            } else {
+            } else if !upgradedToWebSocket {
                 self.requestBuffers[connectionID] = buffer
+            } else {
+                // Any bytes after the upgrade request belong to the WebSocket stream.
+                self.connectionQueue.async {
+                    var wsBuffer = self.webSocketBuffers[connectionID] ?? Data()
+                    wsBuffer.append(buffer)
+                    self.webSocketBuffers[connectionID] = wsBuffer
+                }
+                self.requestBuffers.removeValue(forKey: connectionID)
             }
 
-            self.continueListening(on: connection)
+            if !upgradedToWebSocket,
+               self.connectionQueue.sync(execute: { self.webSocketClientIds[connectionID] == nil }) {
+                self.continueListening(on: connection)
+            }
         }
     }
     
-    private func processRequest(_ data: Data, on connection: NWConnection) {
+    @discardableResult
+    private func processRequest(_ data: Data, on connection: NWConnection) -> Bool {
+        guard let request = HTTPRequest(from: data) else {
+            let response = HTTPResponse(
+                status: .internalServerError,
+                headers: ["Content-Type": "text/plain"],
+                body: Data("500 Internal Server Error".utf8)
+            )
+            httpHandler.sendResponse(response, on: connection)
+            return false
+        }
+
+        if LANWebSocketHandshake.isUpgradeRequest(request),
+           let secKey = request.headers["sec-websocket-key"] {
+            upgradeConnectionToWebSocket(connection, secWebSocketKey: secKey, request: request)
+            return true
+        }
+
         // Extract and store User-Agent header
-        if let request = HTTPRequest(from: data),
-           let userAgent = request.headers["user-agent"] {
+        if let userAgent = request.headers["user-agent"] {
             // Store User-Agent on connectionQueue to avoid data races
             connectionQueue.async { [weak self] in
                 guard let self = self else { return }
@@ -208,9 +282,136 @@ class ConnectionManager: ObservableObject {
         
         // Send the response
         httpHandler.sendResponse(response, on: connection)
+        return false
+    }
+
+    // MARK: - WebSocket
+
+    private func upgradeConnectionToWebSocket(_ connection: NWConnection, secWebSocketKey: String, request: HTTPRequest) {
+        let client = LANWebSocketClient(connection: connection)
+        let connectionId = ObjectIdentifier(connection)
+
+        // Mark as WebSocket immediately so HTTP keep-alive does not read on this socket.
+        connectionQueue.sync {
+            webSocketClientIds[connectionId] = client.id
+            webSocketBuffers[connectionId] = Data()
+        }
+
+        if let userAgent = request.headers["user-agent"] {
+            connectionQueue.async { [weak self] in
+                guard let self = self else { return }
+                self._connectionUserAgents[connectionId] = userAgent
+                let ipAddress = NetworkUtilities.extractIPAddress(from: String(describing: connection.endpoint))
+                self.updateClientSession(for: connection, ipAddress: ipAddress, userAgent: userAgent)
+            }
+        }
+
+        let accept = LANWebSocketHandshake.acceptKey(for: secWebSocketKey)
+        let responseData = LANWebSocketHandshake.switchingProtocolsResponse(acceptKey: accept)
+        connection.send(content: responseData, completion: .contentProcessed { [weak self] error in
+            guard let self = self else { return }
+            if error != nil {
+                self.connectionQueue.async {
+                    self.webSocketClientIds.removeValue(forKey: connectionId)
+                    self.webSocketBuffers.removeValue(forKey: connectionId)
+                }
+                self.cleanupConnection(connection)
+                return
+            }
+            self.broadcastHub?.register(client)
+            self.processBufferedWebSocketData(on: connection, clientId: client.id)
+            self.receiveWebSocket(on: connection, clientId: client.id)
+        })
+    }
+
+    private func processBufferedWebSocketData(on connection: NWConnection, clientId: UUID) {
+        let connectionId = ObjectIdentifier(connection)
+        connectionQueue.async { [weak self] in
+            guard let self = self else { return }
+            var buffer = self.webSocketBuffers[connectionId] ?? Data()
+            guard !buffer.isEmpty else { return }
+            let frames = LANWebSocketFraming.extractFrames(from: &buffer)
+            self.webSocketBuffers[connectionId] = buffer.isEmpty ? nil : buffer
+            for frame in frames {
+                self.handleWebSocketFrame(frame, connection: connection, clientId: clientId)
+            }
+        }
+    }
+
+    private func receiveWebSocket(on connection: NWConnection, clientId: UUID) {
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, _, error in
+            guard let self = self else { return }
+            let connectionId = ObjectIdentifier(connection)
+
+            if let error = error {
+                if self.isExpectedDisconnect(error) {
+                    self.cleanupConnection(connection)
+                    return
+                }
+                self.cleanupConnection(connection)
+                return
+            }
+
+            guard let data = data, !data.isEmpty else {
+                self.receiveWebSocket(on: connection, clientId: clientId)
+                return
+            }
+
+            self.connectionQueue.async {
+                var buffer = self.webSocketBuffers[connectionId] ?? Data()
+                buffer.append(data)
+                let frames = LANWebSocketFraming.extractFrames(from: &buffer)
+                self.webSocketBuffers[connectionId] = buffer.isEmpty ? nil : buffer
+
+                for frame in frames {
+                    self.handleWebSocketFrame(frame, connection: connection, clientId: clientId)
+                }
+            }
+
+            self.receiveWebSocket(on: connection, clientId: clientId)
+        }
+    }
+
+    private func handleWebSocketFrame(_ frame: LANWebSocketFraming.DecodedFrame, connection: NWConnection, clientId: UUID) {
+        switch frame.kind {
+        case .text(let message):
+            handleWebSocketMessage(message, connection: connection, clientId: clientId)
+        case .ping(let payload):
+            let pong = LANWebSocketFraming.encodePong(payload)
+            connection.send(content: pong, completion: .contentProcessed { _ in })
+        case .close:
+            cleanupConnection(connection)
+        }
+    }
+
+    private func handleWebSocketMessage(_ message: String, connection: NWConnection, clientId: UUID) {
+        guard let data = message.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let type = json["type"] as? String else { return }
+
+        if type == "ping" {
+            let pong: [String: Any] = ["type": "pong", "version": json["version"] ?? 0]
+            if let pongData = try? JSONSerialization.data(withJSONObject: pong),
+               let pongText = String(data: pongData, encoding: .utf8) {
+                LANWebSocketClient(id: clientId, connection: connection).send(text: pongText)
+            }
+        }
+    }
+
+    private func unregisterWebSocketClient(for connection: NWConnection) {
+        let connectionId = ObjectIdentifier(connection)
+        if let clientId = webSocketClientIds.removeValue(forKey: connectionId) {
+            webSocketBuffers.removeValue(forKey: connectionId)
+            broadcastHub?.unregister(clientId: clientId)
+        }
     }
     
     private func continueListening(on connection: NWConnection) {
+        let connectionId = ObjectIdentifier(connection)
+        if connectionQueue.sync(execute: { webSocketClientIds[connectionId] != nil }) {
+            return
+        }
+
         // Continue listening for more requests on the same connection
         // This enables HTTP Keep-Alive and connection reuse
         DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.1) { [weak self] in

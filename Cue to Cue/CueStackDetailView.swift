@@ -23,6 +23,7 @@ struct CueStackDetailView: View {
     var settingsManager: SettingsManager
     var appDelegate: AppDelegate
     var updateWebClients: () -> Void
+    var onCueValueCommitted: (UUID, Int, String) -> Void
     var saveState: () -> Void
     var addCue: () -> Void
     var advanceCue: () -> Void
@@ -141,6 +142,7 @@ struct CueStackDetailView: View {
             getHighlightColor: getHighlightColor,
             saveState: saveState,
             updateWebClients: updateWebClients,
+            onCueValueCommitted: onCueValueCommitted,
             onSelect: { idx, isShiftDown, isCommandDown in
                 // Only allow selection if not reordering
                 if !isReorderingCues {

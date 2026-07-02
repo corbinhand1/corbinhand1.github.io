@@ -8,6 +8,7 @@
 import Foundation
 import Network
 import Darwin
+import Combine
 
 // MARK: - WebServer Class
 
@@ -35,6 +36,8 @@ class WebServer: ObservableObject {
     private let networkUtilities: NetworkUtilities
     let authManager: AuthenticationManager
     private let timerServer: AuthoritativeTimerServer
+    let broadcastHub: LANBroadcastHub
+    private var lanCancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
     
@@ -47,22 +50,30 @@ class WebServer: ObservableObject {
         self.networkUtilities = NetworkUtilities()
         self.offlineFileServer = OfflineFileServer()
         self.authManager = AuthenticationManager(dataSyncManager: dataSyncManager)
-        
-        // Create test data if needed
-        self.dataSyncManager.createTestDataIfNeeded()
+
+        let broadcastHub = LANBroadcastHub()
+        broadcastHub.dataSyncManager = dataSyncManager
+        broadcastHub.timerServer = timerServer
+        dataSyncManager.broadcastHub = broadcastHub
+        self.broadcastHub = broadcastHub
         
         // Create a temporary HTTPHandler for ConnectionManager initialization
         let tempHTTPHandler = HTTPHandler(dataSyncManager: dataSyncManager, offlineFileServer: offlineFileServer, networkUtilities: networkUtilities, connectionManager: nil, authManager: authManager, timerServer: timerServer)
-        self.connectionManager = ConnectionManager(httpHandler: tempHTTPHandler)
+        self.connectionManager = ConnectionManager(httpHandler: tempHTTPHandler, broadcastHub: broadcastHub)
         
         // Now create the real HTTPHandler with the connection manager
         self.httpHandler = HTTPHandler(dataSyncManager: dataSyncManager, offlineFileServer: offlineFileServer, networkUtilities: networkUtilities, connectionManager: connectionManager, authManager: authManager, timerServer: timerServer)
+        self.connectionManager.setHTTPHandler(self.httpHandler)
+        
+        // Create test data if needed
+        self.dataSyncManager.createTestDataIfNeeded()
         
         // Initialize published properties safely for initialization
         initializePublishedProperties()
         
         // Set up bindings to connection manager
         setupBindings()
+        setupLANObservers()
         
         // Create test user if needed (after all initialization is complete)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -271,6 +282,63 @@ class WebServer: ObservableObject {
         
         connectionManager.$detailedConnectionInfo
             .assign(to: &$detailedConnectionInfo)
+    }
+
+    private func setupLANObservers() {
+        dataSyncManager.$selectedCueIndex
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.dataSyncManager.bumpShowVersion()
+                self?.broadcastHub.broadcastShowStateIfNeeded()
+            }
+            .store(in: &lanCancellables)
+
+        dataSyncManager.$selectedCueStackIndex
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.dataSyncManager.bumpShowVersion()
+                self?.broadcastHub.broadcastShowStateIfNeeded()
+            }
+            .store(in: &lanCancellables)
+
+        timerServer.$countdownTime
+            .combineLatest(timerServer.$countdownRunning, timerServer.$countUpTime, timerServer.$countUpRunning)
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.broadcastHub.broadcastTimerStateIfNeeded()
+            }
+            .store(in: &lanCancellables)
+
+        // Phase 4: Mac app edits → debounced LAN snapshot
+        dataSyncManager.$cueStacks
+            .dropFirst()
+            .debounce(for: .milliseconds(200), scheduler: DispatchQueue.main)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.dataSyncManager.publishLANSnapshotFromMacIfNeeded()
+            }
+            .store(in: &lanCancellables)
+
+        dataSyncManager.$countdownPlaylist
+            .dropFirst()
+            .debounce(for: .milliseconds(200), scheduler: DispatchQueue.main)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.dataSyncManager.publishLANSnapshotFromMacIfNeeded()
+            }
+            .store(in: &lanCancellables)
+
+        dataSyncManager.$highlightColors
+            .dropFirst()
+            .debounce(for: .milliseconds(200), scheduler: DispatchQueue.main)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.dataSyncManager.publishLANSnapshotFromMacIfNeeded()
+            }
+            .store(in: &lanCancellables)
     }
     
     private func updatePublishedProperties() {

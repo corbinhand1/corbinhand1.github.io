@@ -358,6 +358,7 @@ struct ContentView: View {
                                     settingsManager: settingsManager,
                                     appDelegate: appDelegate,
                                     updateWebClients: updateWebClients,
+                                    onCueValueCommitted: notifyMacCueValueCommitted,
                                     saveState: saveState,
                                     addCue: addCue,
                                     advanceCue: advanceCue,
@@ -461,11 +462,20 @@ struct ContentView: View {
     // MARK: - Helper Methods
     
     func updateWebClients() {
+        // Ensures LAN server is running and highlight colors are synced.
+        // Cue data pushes to browsers via WebSocket (Phase 4 observers + cue_patch).
         updateWebServer()
+    }
+
+    func notifyMacCueValueCommitted(cueId: UUID, columnIndex: Int, newValue: String) {
+        dataSyncManager.recordMacCueValueChange(cueId: cueId, columnIndex: columnIndex, newValue: newValue)
     }
     
     private func updateWebServer() {
-        dataSyncManager.updateHighlightColors(settingsManager.settings.highlightColors)
+        let colors = settingsManager.settings.highlightColors
+        if colors != dataSyncManager.highlightColors {
+            dataSyncManager.updateHighlightColors(colors)
+        }
 
         if let shared = ContentViewLifecycleSetup.sharedWebServer {
             if webServer == nil {

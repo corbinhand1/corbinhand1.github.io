@@ -52,13 +52,6 @@ class OfflineStateManager {
         window.addEventListener('online', () => this.handleOnline());
         window.addEventListener('offline', () => this.handleOffline());
         
-        // Listen for page visibility changes
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && navigator.onLine) {
-                this.syncState();
-            }
-        });
-        
         // Listen for beforeunload to save state
         window.addEventListener('beforeunload', () => {
             this.saveCurrentState();
@@ -283,9 +276,7 @@ class OfflineStateManager {
     disableOfflineMode() {
         this.offlineMode = false;
         this.notifyStateChange('online');
-        
-        // Sync any pending changes
-        this.syncState();
+        this.lastSyncTime = Date.now();
         
         console.log('🌐 Offline mode disabled');
     }
@@ -301,35 +292,9 @@ class OfflineStateManager {
             return;
         }
         
-        try {
-            // Try to sync with server
-            const response = await fetch('/cues', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    action: 'sync',
-                    state: this.currentState,
-                    timestamp: this.lastSyncTime
-                })
-            });
-            
-            if (response.ok) {
-                this.lastSyncTime = Date.now();
-                console.log('✅ State synced with server');
-            }
-            
-        } catch (error) {
-            console.warn('⚠️ Failed to sync state:', error);
-            
-            // Queue for later sync
-            this.syncQueue.push({
-                type: 'state_sync',
-                timestamp: Date.now(),
-                data: this.currentState
-            });
-        }
+        // Offline UI state (scroll position, column widths, etc.) is stored locally.
+        // Cue edits sync to the Mac app via authenticated PUT /cues/:id or WebSocket.
+        this.lastSyncTime = Date.now();
     }
     
     async processSyncQueue() {
