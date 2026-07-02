@@ -56,8 +56,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         // Start intercepting print statements to capture console output
         PrintInterceptor.shared.startIntercepting()
         
-        // Log app launch
-        LogManager.shared.addLog("Cue to Cue app launched", level: .info)
+        // Log app launch (PrintInterceptor captures print() into the debug console)
+        print("Cue to Cue app launched")
         
         // File opens from Finder are drained in ContentView.onAppear once
         // notification observers are registered (avoids a launch-time race).
@@ -121,7 +121,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     func openFileAtURL(_ url: URL) {
         guard CueStackDocumentType.shouldOpen(at: url) else {
-            LogManager.shared.addLog("Ignored open request for non-document file: \(url.lastPathComponent)", level: .info)
+            print("Ignored open request for non-document file: \(url.lastPathComponent)")
             return
         }
 

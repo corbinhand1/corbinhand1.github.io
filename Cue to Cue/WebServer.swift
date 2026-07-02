@@ -18,6 +18,7 @@ class WebServer: ObservableObject {
     private var listener: NWListener?
     private var port: UInt16
     private var _serverStartTime: Date?
+    private static var isListening = false
     
     // Published properties for UI updates
     @Published var connectionStats: (active: Int, max: Int) = (0, 100)
@@ -72,53 +73,53 @@ class WebServer: ObservableObject {
     // MARK: - Server Management
     
     func start(port: UInt16) {
-        // Stop any existing server first
-        stop()
-        
+        guard !Self.isListening, listener == nil else { return }
+        Self.isListening = true
+
         self.port = port
         self._serverStartTime = Date()
-        
+
         let parameters = NWParameters.tcp
         parameters.allowLocalEndpointReuse = true
-        
-        // Set TCP keep-alive options for better connection handling
+
         if let tcpOptions = parameters.defaultProtocolStack.internetProtocol as? NWProtocolTCP.Options {
             tcpOptions.enableKeepalive = true
             tcpOptions.keepaliveCount = 5
-            tcpOptions.connectionTimeout = 30 // 30 second timeout
+            tcpOptions.connectionTimeout = 30
         }
-        
+
         do {
             listener = try NWListener(using: parameters, on: NWEndpoint.Port(rawValue: port)!)
-        
-        listener?.stateUpdateHandler = { [weak self] state in
-            DispatchQueue.main.async {
-                self?.handleListenerStateChange(state)
+
+            listener?.stateUpdateHandler = { [weak self] state in
+                DispatchQueue.main.async {
+                    self?.handleListenerStateChange(state)
+                }
             }
-        }
-        
-        listener?.newConnectionHandler = { [weak self] connection in
-                        self?.connectionManager.handleNewConnection(connection)
-        }
-        
-        listener?.start(queue: .global(qos: .userInitiated))
-        
-        // Start periodic connection cleanup and monitoring
+
+            listener?.newConnectionHandler = { [weak self] connection in
+                self?.connectionManager.handleNewConnection(connection)
+            }
+
+            listener?.start(queue: .global(qos: .userInitiated))
+
             connectionManager.startConnectionCleanup()
             connectionManager.startConnectionMonitoring()
-        
-        // Initialize published properties
-        updatePublishedProperties()
-                } catch {
-                    DispatchQueue.main.async { [weak self] in
-                        self?.serverStatus = (isRunning: false, port: port)
-                    }
-                }
+            updatePublishedProperties()
+        } catch {
+            Self.isListening = false
+            DispatchQueue.main.async { [weak self] in
+                self?.serverStatus = (isRunning: false, port: port)
+            }
+        }
     }
-    
+
     func stop() {
         listener?.cancel()
         listener = nil
+        Self.isListening = false
+        LANLogState.hasLoggedServerReady = false
+        LANLogState.lastLoggedViewerCount = -1
         
         // Stop connection manager
         connectionManager.stop()
@@ -136,13 +137,20 @@ class WebServer: ObservableObject {
     private func handleListenerStateChange(_ state: NWListener.State) {
         switch state {
         case .ready:
-            break
-        case .failed(_):
-            break
+            serverStatus = (isRunning: true, port: port)
+            localIPAddress = getLocalIPAddress() ?? "Unknown"
+            guard !LANLogState.hasLoggedServerReady else { break }
+            LANLogState.hasLoggedServerReady = true
+            print("✅ LAN server ready on port \(port) — http://\(localIPAddress):\(port)")
+        case .failed(let error):
+            Self.isListening = false
+            serverStatus = (isRunning: false, port: port)
+            print("❌ LAN server failed: \(error)")
         case .cancelled:
-            break
-        case .waiting(_):
-            break
+            serverStatus = (isRunning: false, port: port)
+            print("🛑 LAN server stopped")
+        case .waiting(let error):
+            print("⏳ LAN server waiting: \(error)")
         case .setup:
             break
         @unknown default:

@@ -92,6 +92,11 @@ struct ContentView: View {
 
     // MARK: - Print Settings State
     @State private var showPrintSheet = false
+    @State private var showCSVImportSheet = false
+    @State private var pendingCSVImport: (sourceName: String, result: CueCSVImportResult)?
+    @State private var showCSVExportSheet = false
+    @State private var csvExportSelectedIndices: Set<Int> = []
+    @State private var pendingCSVExportIndices: Set<Int>?
     @State private var printSelectedCueStackIndices: Set<Int> = []  // indices of cueStacks to print
     @State private var printFontSize: CGFloat = 12
 
@@ -112,6 +117,13 @@ struct ContentView: View {
 
     private var displayFileName: String {
         currentFileStem
+    }
+
+    private var currentSelectedStackName: String {
+        let stacks = dataSyncManager.cueStacks
+        let index = dataSyncManager.selectedCueStackIndex
+        guard stacks.indices.contains(index) else { return "None" }
+        return stacks[index].name
     }
 
     // Computed binding to the currently selected cue stack
@@ -163,6 +175,19 @@ struct ContentView: View {
                 PlaylistEditorView(isPresented: $showPlaylistEditor)
                     .environmentObject(dataSyncManager)
                     .environmentObject(timerServer)
+            }
+            .sheet(isPresented: $showCSVExportSheet) {
+                csvExportSheet
+            }
+            .onChange(of: showCSVExportSheet) { _, isShowing in
+                guard !isShowing, let indices = pendingCSVExportIndices else { return }
+                pendingCSVExportIndices = nil
+                DispatchQueue.main.async {
+                    performCSVExport(selectedIndices: indices)
+                }
+            }
+            .sheet(isPresented: $showCSVImportSheet) {
+                csvImportSheet
             }
             .modifier(ContentViewLifecycleModifiers(
                 showSavePanel: $showSavePanel,
@@ -266,7 +291,7 @@ struct ContentView: View {
                     }
                 }
             } message: {
-                Text("Your file saved successfully, but one or more backup tiers reported an error:\n\n\(backupWarningDetail)\n\nYour data is still protected by the remaining tiers.")
+                Text("Your file saved successfully, but one or both backup copies reported an error:\n\n\(backupWarningDetail)\n\nYour data is still protected by the remaining backup.")
             }
             .onReceive(NotificationCenter.default.publisher(for: .documentStoreBackupsCompleted)) { note in
                 handleBackupReport(note)
@@ -290,21 +315,6 @@ struct ContentView: View {
                     settingsManager.settings.backgroundColor.edgesIgnoringSafeArea(.all)
                     
                     VStack(spacing: 0) {
-                        ZStack {
-                            HStack {
-                                Spacer()
-                                Text(displayFileName)
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .offset(x: 0, y: -16)
-                                Spacer()
-                            }
-                            .frame(alignment: .top)
-                            .padding(.bottom, 20)
-                        }
-                        .frame(height: 8, alignment: .top)
-                        .background(Color.gray.opacity(0.2))
-                        
                         VStack(spacing: 20) {
                             TopSectionView(
                                 currentTime: $timerServer.currentTime,
@@ -410,6 +420,43 @@ struct ContentView: View {
             }
         )
     }
+
+    @ViewBuilder
+    private var csvExportSheet: some View {
+        CSVExportSheetInline(
+            selectedIndices: $csvExportSelectedIndices,
+            cueStacks: dataSyncManager.cueStacks,
+            sourceDocumentName: currentFileStem.isEmpty ? "Untitled Document" : currentFileStem,
+            onExport: {
+                pendingCSVExportIndices = csvExportSelectedIndices
+                showCSVExportSheet = false
+            },
+            onCancel: {
+                showCSVExportSheet = false
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var csvImportSheet: some View {
+        if let pending = pendingCSVImport {
+            CSVImportSheet(
+                sourceName: pending.sourceName,
+                importResult: pending.result,
+                targetStackName: currentSelectedStackName,
+                canMergeIntoSelected: dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex),
+                onImport: { action in
+                    showCSVImportSheet = false
+                    pendingCSVImport = nil
+                    applyCSVImport(action: action, result: pending.result)
+                },
+                onCancel: {
+                    showCSVImportSheet = false
+                    pendingCSVImport = nil
+                }
+            )
+        }
+    }
     
     // MARK: - Helper Methods
     
@@ -418,19 +465,24 @@ struct ContentView: View {
     }
     
     private func updateWebServer() {
-        // Web server update implementation
-        if webServer == nil {
-            webServer = WebServer(dataSyncManager: dataSyncManager, timerServer: timerServer)
-            webServer?.start(port: 8080)
-            // Get the auth manager from the web server
-            authManager = webServer?.authManager
-        }
-        
-        // Synchronize highlight colors from SettingsManager to DataSyncManager
         dataSyncManager.updateHighlightColors(settingsManager.settings.highlightColors)
-        
-        // No need to manually update cues - WebServer now uses the same DataSyncManager
-        // The data is automatically synchronized through the shared instance
+
+        if let shared = ContentViewLifecycleSetup.sharedWebServer {
+            if webServer == nil {
+                webServer = shared
+                authManager = shared.authManager
+            }
+            return
+        }
+
+        guard !ContentViewLifecycleSetup.webServerStarted else { return }
+        ContentViewLifecycleSetup.webServerStarted = true
+
+        let server = WebServer(dataSyncManager: dataSyncManager, timerServer: timerServer)
+        ContentViewLifecycleSetup.sharedWebServer = server
+        webServer = server
+        authManager = server.authManager
+        server.start(port: 8080)
     }
     
     func getWebUpdateInfo() -> (cueStacks: [CueStack], selectedIndex: Int, activeIndex: Int) {
@@ -629,7 +681,6 @@ struct ContentView: View {
             let savedData = try DocumentStore.shared.load(from: url)
             applyLoadedData(savedData, from: url, persistAsLastSavedURL: true)
             CueStackDocumentType.repairContentTypeIfNeeded(at: url)
-            print("✅ File opened successfully: \(url.path)")
         } catch {
             print("❌ Error reading file: \(error.localizedDescription)")
             self.showOpenError(error: error)
@@ -650,13 +701,13 @@ struct ContentView: View {
         let hasContent = !savedData.cueStacks.isEmpty
         if hasContent {
             self.dataSyncManager.cueStacks = savedData.cueStacks
+            print("📂 Loaded \(savedData.cueStacks.count) cue stack(s) from \(url.lastPathComponent)")
         } else {
             print("⚠️ File decoded to empty cueStacks — keeping current in-memory data and NOT pointing autosave at this file.")
         }
         self.settingsManager.settings.highlightColors = savedData.highlightColors
         self.pdfNotes = savedData.pdfNotes
         self.dataSyncManager.countdownPlaylist = savedData.countdownPlaylist
-        self.timerServer.syncPlaylistState(savedData.countdownPlaylist)
 
         if persistAsLastSavedURL && hasContent {
             self.lastSavedURL = url
@@ -686,6 +737,7 @@ struct ContentView: View {
         self.isDirty = false
         self.lastRecoveryURL = nil
 
+        self.dataSyncManager.syncWebClientWithMacOSApp()
         self.updateWebClients()
 
         // Auto-sync to website if enabled (don't let it touch the local file).
@@ -861,18 +913,18 @@ struct ContentView: View {
     
     private func advanceCue() {
         guard dataSyncManager.selectedCueIndex >= 0 else { return }
-        if dataSyncManager.selectedCueIndex < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count - 1 {
-            selectCue(at: dataSyncManager.selectedCueIndex + 1)
-            updateWebClients()
-        }
+        let cues = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues
+        guard let nextIndex = cues.nextPlayableIndex(after: dataSyncManager.selectedCueIndex) else { return }
+        selectCue(at: nextIndex)
+        updateWebClients()
     }
-    
+
     private func previousCue() {
         guard dataSyncManager.selectedCueIndex >= 0 else { return }
-        if dataSyncManager.selectedCueIndex > 0 {
-            selectCue(at: dataSyncManager.selectedCueIndex - 1)
-            updateWebClients()
-        }
+        let cues = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues
+        guard let previousIndex = cues.previousPlayableIndex(before: dataSyncManager.selectedCueIndex) else { return }
+        selectCue(at: previousIndex)
+        updateWebClients()
     }
     
     private func selectCue(at index: Int) {
@@ -1238,10 +1290,10 @@ struct ContentView: View {
 
         timerServer.executeCommand(TimerCommand(action: "pause", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil))
         timerServer.executeCommand(TimerCommand(action: "reset", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil))
-        timerServer.syncPlaylistState(blank.countdownPlaylist)
         timerServer.executeCommand(TimerCommand(action: "pauseCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil))
 
         resetUndoHistory()
+        dataSyncManager.syncWebClientWithMacOSApp()
         updateWebClients()
         updateWindowChrome()
 
@@ -1421,15 +1473,9 @@ struct ContentView: View {
 
         // Skip loading if a file was explicitly opened
         if hasExplicitlyOpenedFile {
-            print("🔍 Skipping loadLastFile() - file was explicitly opened")
             return
         }
 
-        print("🔍 loadLastFile() called")
-
-        // Phase 2: migrate any legacy plain-URL value into a bookmark, then
-        // resolve. Bookmarks survive Finder rename/move which the plain URL
-        // does not.
         DocumentStore.shared.migrateLegacyLastSavedURLIfNeeded()
 
         let resolvedURL: URL?
@@ -1441,13 +1487,11 @@ struct ContentView: View {
         }
 
         guard let lastURL = resolvedURL else {
-            print("⚠️ No last document bookmark found, starting with default state")
             return
         }
-        print("🔍 Resolved bookmark to: \(lastURL.path)")
 
         guard FileManager.default.fileExists(atPath: lastURL.path) else {
-            print("❌ Last saved file no longer exists: \(lastURL.path)")
+            print("❌ Last saved file no longer exists: \(lastURL.lastPathComponent)")
             // Phase 2: tell the user instead of silently dropping the file
             // reference. They can locate it, save as, or continue without.
             pendingConflictURL = lastURL
@@ -1469,14 +1513,8 @@ struct ContentView: View {
         }
 
         do {
+            print("📂 Restoring last document: \(lastURL.lastPathComponent)")
             let result = try DocumentStore.shared.loadResult(from: lastURL)
-            print("🔍 Loaded \(result.savedData.cueStacks.count) cue stacks from \(lastURL.lastPathComponent)")
-            if let firstStack = result.savedData.cueStacks.first {
-                print("🔍 First stack: \(firstStack.name) with \(firstStack.cues.count) cues")
-            }
-            // applyLoadedData will refuse to set lastSavedURL if the file is
-            // empty (the previous trap that caused autosave to overwrite a
-            // user file with seed test data).
             applyLoadedData(result.savedData, from: lastURL, persistAsLastSavedURL: true)
             DocumentStore.shared.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
         } catch {
@@ -1806,26 +1844,37 @@ struct ContentView: View {
             return
         }
 
-        let stackCount = result.stacks.count
-        let cueCount = result.stacks.reduce(0) { $0 + $1.cues.count }
+        pendingCSVImport = (sourceName: sourceName, result: result)
+        showCSVImportSheet = true
+    }
 
-        let alert = NSAlert()
-        alert.messageText = "Import CSV"
-        var detail = "Found \(stackCount) cue stack(s) with \(cueCount) cue(s) in \"\(sourceName)\"."
-        if !result.warnings.isEmpty {
-            detail += "\n\n" + result.warnings.joined(separator: "\n")
-        }
-        alert.informativeText = detail
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "Add Stacks")
-        alert.addButton(withTitle: "Replace All Stacks")
-        alert.addButton(withTitle: "Cancel")
+    private func applyCSVImport(action: CSVImportAction, result: CueCSVImportResult) {
+        switch action.kind {
+        case .importOneStack(let stackName):
+            guard let stack = result.stacks.first(where: { $0.name == stackName }) else {
+                showCSVImportError(
+                    messageText: "Could not import CSV",
+                    informativeText: "The selected stack could not be found in the imported file."
+                )
+                return
+            }
 
-        switch alert.runModal() {
-        case .alertFirstButtonReturn:
-            dataSyncManager.cueStacks.append(contentsOf: result.stacks)
+            let stacksToAdd = CueCSVCodec.stacksForAdd(
+                imported: [stack],
+                existingNames: dataSyncManager.cueStacks.map(\.name)
+            )
+            dataSyncManager.cueStacks.append(contentsOf: stacksToAdd)
             saveState()
-        case .alertSecondButtonReturn:
+
+        case .addStacks:
+            let stacksToAdd = CueCSVCodec.stacksForAdd(
+                imported: result.stacks,
+                existingNames: dataSyncManager.cueStacks.map(\.name)
+            )
+            dataSyncManager.cueStacks.append(contentsOf: stacksToAdd)
+            saveState()
+
+        case .replaceAll:
             dataSyncManager.cueStacks = result.stacks
             dataSyncManager.selectedCueStackIndex = 0
             dataSyncManager.selectedCueIndex = 0
@@ -1834,8 +1883,23 @@ struct ContentView: View {
             isMultiSelectMode = false
             editingCueIndex = nil
             resetUndoHistory()
-        default:
-            return
+
+        case .mergeIntoSelected(let sourceStackName):
+            guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex),
+                  let importedStack = result.stacks.first(where: { $0.name == sourceStackName }) else {
+                showCSVImportError(
+                    messageText: "Could not merge CSV",
+                    informativeText: "The selected stack or imported stack could not be found."
+                )
+                return
+            }
+
+            let index = dataSyncManager.selectedCueStackIndex
+            dataSyncManager.cueStacks[index] = CueCSVCodec.mergedStack(
+                existing: dataSyncManager.cueStacks[index],
+                imported: importedStack
+            )
+            saveState()
         }
 
         isDirty = true
@@ -1853,22 +1917,13 @@ struct ContentView: View {
 
     // MARK: - CSV Export (redundancy export)
 
-    /// Export every cue stack into a single CSV file. Designed as a
+    /// Export selected cue stacks into a single CSV file. Designed as a
     /// human-readable redundancy artifact: open it in Excel/Numbers, archive
     /// it, attach it to email, drag a copy to a USB stick. Writes are
     /// atomic + coordinated so a CSV file on iCloud Drive can't be
     /// corrupted by a sync engine mid-export.
-    ///
-    /// Format (RFC 4180-compliant):
-    ///   Cue Stack,<col1>,<col2>,…,<colN>,Timer,Strikethrough\r\n
-    ///   "NYC Keynote","…","…",…,"08:00","FALSE"\r\n
-    ///   …
-    /// The column union across stacks is used so every value finds a home;
-    /// columns missing in a particular stack are written as empty strings.
-    /// Values containing commas, quotes, or newlines are quoted and escaped.
     func exportCSV() {
-        let stacks = dataSyncManager.cueStacks
-        guard !stacks.isEmpty else {
+        guard !dataSyncManager.cueStacks.isEmpty else {
             let alert = NSAlert()
             alert.messageText = "Nothing to export"
             alert.informativeText = "There are no cue stacks in this document yet."
@@ -1878,14 +1933,26 @@ struct ContentView: View {
             return
         }
 
+        csvExportSelectedIndices = Set(dataSyncManager.cueStacks.indices)
+        showCSVExportSheet = true
+    }
+
+    private func performCSVExport(selectedIndices: Set<Int>) {
+        let stacks = selectedIndices.sorted().compactMap { index -> CueStack? in
+            guard dataSyncManager.cueStacks.indices.contains(index) else { return nil }
+            return dataSyncManager.cueStacks[index]
+        }
+        guard !stacks.isEmpty else { return }
+
         let panel = NSSavePanel()
         panel.allowedContentTypes = [UTType.commaSeparatedText]
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
         panel.title = "Export CSV"
-        panel.message = "Exports every cue stack to a single CSV file. Useful as a redundancy backup that you can open in Excel or Numbers."
-        let trimmedStem = currentFileStem.trimmingCharacters(in: .whitespacesAndNewlines)
-        panel.nameFieldStringValue = (trimmedStem.isEmpty ? "Cue Stacks" : trimmedStem) + ".csv"
+        panel.message = stacks.count == 1
+            ? "Export \"\(stacks[0].name)\" to a CSV file."
+            : "Export \(stacks.count) cue stacks to a single CSV file."
+        panel.nameFieldStringValue = suggestedCSVExportFilename(for: stacks)
 
         let proceed: (URL) -> Void = { url in
             do {
@@ -1901,25 +1968,39 @@ struct ContentView: View {
                 }
                 if let e = thrown { throw e }
                 if let e = coordError { throw e }
-                print("✅ CSV exported to \(url.path) (\(data.count) bytes, \(stacks.count) stacks)")
+                print("✅ CSV exported to \(url.path) (\(data.count) bytes, \(stacks.count) stack\(stacks.count == 1 ? "" : "s"))")
             } catch {
                 print("❌ CSV export failed: \(error.localizedDescription)")
                 self.showSaveError(error: error)
             }
         }
 
-        if let window = NSApp.windows.first {
-            panel.beginSheetModal(for: window) { response in
-                if response == .OK, let url = panel.url {
-                    proceed(url)
-                }
-            }
-        } else {
-            // Fallback: no window yet, run modally.
-            if panel.runModal() == .OK, let url = panel.url {
+        panel.begin { response in
+            if response == .OK, let url = panel.url {
                 proceed(url)
             }
         }
+    }
+
+    private func suggestedCSVExportFilename(for stacks: [CueStack]) -> String {
+        if stacks.count == 1 {
+            let stackName = stacks[0].name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !stackName.isEmpty {
+                return sanitizedCSVFilename(stackName) + ".csv"
+            }
+        }
+
+        let trimmedStem = currentFileStem.trimmingCharacters(in: .whitespacesAndNewlines)
+        return sanitizedCSVFilename(trimmedStem.isEmpty ? "Cue Stacks" : trimmedStem) + ".csv"
+    }
+
+    private func sanitizedCSVFilename(_ name: String) -> String {
+        let invalidCharacters = CharacterSet(charactersIn: "/:\\?%*|\"<>")
+        let cleaned = name
+            .components(separatedBy: invalidCharacters)
+            .joined(separator: "-")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? "Cue Stacks" : cleaned
     }
 
     func saveState() {
@@ -1943,7 +2024,7 @@ struct ContentView: View {
         }
         stateHistory.append(currentState)
         currentStateIndex += 1
-        print("💾 Saved state #\(currentStateIndex) with \(currentState.cues.count) cues")
+        print("💾 Undo snapshot #\(currentStateIndex) (\(currentState.cues.count) cues)")
     }
 
     /// Establish a clean undo baseline after loading a file or resetting the
@@ -2107,7 +2188,8 @@ struct ContentView: View {
         
         let cueId = selectedStack.cues[dataSyncManager.selectedCueIndex].id
         Task {
-            await dataSyncManager.toggleStrikeThrough(cueId: cueId)
+            guard await dataSyncManager.toggleStrikeThrough(cueId: cueId) else { return }
+            updateWebClients()
         }
     }
     
@@ -2136,6 +2218,371 @@ enum ContentViewLifecycleSetup {
     static var autoSaveObserverRegistered = false
     static var keyEventMonitor: Any?
     static var isPerformingUndoRedo = false
+    static var didCompleteLaunchSetup = false
+    static var webServerStarted = false
+    static weak var sharedWebServer: WebServer?
+}
+
+/// Process-wide LAN log deduplication so duplicate ContentView instances
+/// or listener callbacks cannot spam the console.
+enum LANLogState {
+    static var hasLoggedServerReady = false
+    static var lastLoggedViewerCount = -1
+}
+
+private struct CSVExportSheetInline: View {
+    @Binding var selectedIndices: Set<Int>
+    let cueStacks: [CueStack]
+    let sourceDocumentName: String
+    let onExport: () -> Void
+    let onCancel: () -> Void
+
+    private var selectedStackCount: Int { selectedIndices.count }
+    private var selectedCueCount: Int {
+        selectedIndices.reduce(0) { total, index in
+            guard cueStacks.indices.contains(index) else { return total }
+            return total + cueStacks[index].cues.count
+        }
+    }
+    private var primarySelectedIndex: Int? {
+        selectedIndices.sorted().first ?? cueStacks.indices.first
+    }
+    private var selectedStack: CueStack? {
+        guard let index = primarySelectedIndex, cueStacks.indices.contains(index) else { return nil }
+        return cueStacks[index]
+    }
+
+    private let contentHeight: CGFloat = 380
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            Divider()
+
+            VStack(alignment: .leading, spacing: 16) {
+                summarySection
+
+                HStack(alignment: .top, spacing: 16) {
+                    exportOptionsColumn
+                        .frame(width: 320, height: contentHeight, alignment: .topLeading)
+                    stackBrowserColumn
+                        .frame(maxWidth: .infinity)
+                        .frame(height: contentHeight, alignment: .topLeading)
+                }
+            }
+            .padding(20)
+
+            Spacer(minLength: 0)
+
+            Divider()
+            footer
+        }
+        .frame(width: 920, height: 680)
+    }
+
+    private var header: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Export CSV")
+                    .font(.headline)
+                Text(sourceDocumentName)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Button(action: onCancel) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .background(Color(NSColor.controlBackgroundColor))
+    }
+
+    private var summarySection: some View {
+        HStack(spacing: 20) {
+            summaryStat(title: "Selected stacks", value: "\(selectedStackCount) of \(cueStacks.count)")
+            summaryStat(title: "Cues", value: "\(selectedCueCount)")
+            Spacer()
+            Text(exportSummary)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.trailing)
+                .frame(maxWidth: 280, alignment: .trailing)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.55))
+        .cornerRadius(10)
+    }
+
+    private func summaryStat(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.body)
+                .fontWeight(.medium)
+        }
+    }
+
+    private var exportOptionsColumn: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Export Options")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+
+            VStack(spacing: 8) {
+                exportOptionCard(
+                    title: "Export Selected Stacks",
+                    detail: "Choose exactly which cue stacks go into the CSV file."
+                )
+
+                exportOptionCard(
+                    title: "Quick Selection",
+                    detail: "Use Select All or Deselect All, then click stacks on the right to fine-tune."
+                )
+
+                exportOptionCard(
+                    title: "Single-Stack Export",
+                    detail: "Leave one stack selected to create a CSV you can move into another show."
+                )
+            }
+        }
+    }
+
+    private func exportOptionCard(title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(.accentColor)
+                .padding(.top, 1)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body)
+                    .fontWeight(.semibold)
+                Text(detail)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.leading)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.35))
+        .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.secondary.opacity(0.15), lineWidth: 1)
+        )
+    }
+
+    private var stackBrowserColumn: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Cue Stacks")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Spacer()
+                Text("Toggle the stacks to include in the CSV")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Button("Select All") {
+                    selectedIndices = Set(cueStacks.indices)
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+                Button("Deselect All") {
+                    selectedIndices.removeAll()
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+            }
+
+            HStack(alignment: .top, spacing: 12) {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(cueStacks.indices, id: \.self) { index in
+                            let stack = cueStacks[index]
+                            stackRow(stack, at: index)
+
+                            if index != cueStacks.indices.last {
+                                Divider()
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(NSColor.textBackgroundColor))
+                .cornerRadius(10)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                )
+
+                selectedStackDetail
+                    .frame(width: 250, alignment: .topLeading)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+
+    private func stackRow(_ stack: CueStack, at index: Int) -> some View {
+        Toggle(isOn: Binding(
+            get: { selectedIndices.contains(index) },
+            set: { isSelected in
+                if isSelected {
+                    selectedIndices.insert(index)
+                } else {
+                    selectedIndices.remove(index)
+                }
+            }
+        )) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(stack.name)
+                        .font(.body)
+                        .fontWeight(selectedIndices.contains(index) ? .semibold : .regular)
+                    Text("\(stack.cues.count) cue\(stack.cues.count == 1 ? "" : "s")")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    if !stack.columns.isEmpty {
+                        Text(stack.columns.map(\.name).joined(separator: ", "))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+
+                Spacer()
+            }
+            .padding(.vertical, 2)
+        }
+        .toggleStyle(.checkbox)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(selectedIndices.contains(index) ? Color.accentColor.opacity(0.08) : Color.clear)
+        .contentShape(Rectangle())
+    }
+
+    private var selectedStackDetail: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Primary Selection")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            if let selectedStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(selectedStack.name)
+                        .font(.headline)
+                        .lineLimit(2)
+
+                    HStack(spacing: 16) {
+                        detailStat(title: "Cues", value: "\(selectedStack.cues.count)")
+                        detailStat(title: "Columns", value: "\(selectedStack.columns.count)")
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Columns")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(selectedStack.columns.isEmpty ? "No columns" : selectedStack.columns.map(\.name).joined(separator: ", "))
+                            .font(.caption)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    if let firstCue = selectedStack.cues.first {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("First cue")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(firstCue.values.first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) ?? "Empty cue")
+                                .font(.caption)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    Text(selectionHelpText)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 4)
+                }
+            } else {
+                Text("Select at least one stack to export.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.45))
+        .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.secondary.opacity(0.15), lineWidth: 1)
+        )
+    }
+
+    private func detailStat(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.body)
+                .fontWeight(.medium)
+        }
+    }
+
+    private var footer: some View {
+        HStack {
+            Button("Cancel", action: onCancel)
+                .keyboardShortcut(.cancelAction)
+
+            Spacer()
+
+            Button(exportButtonTitle, action: onExport)
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedIndices.isEmpty)
+        }
+        .padding(16)
+        .background(Color(NSColor.controlBackgroundColor))
+    }
+
+    private var exportButtonTitle: String {
+        switch selectedStackCount {
+        case 0:
+            return "Export"
+        case 1:
+            return "Export 1 Stack"
+        default:
+            return "Export \(selectedStackCount) Stacks"
+        }
+    }
+
+    private var exportSummary: String {
+        if selectedStackCount == 0 {
+            return "Choose one or more cue stacks to include in the CSV export."
+        }
+        if selectedStackCount == 1, let selectedStack {
+            return "\"\(selectedStack.name)\" will be exported as a single-stack CSV."
+        }
+        return "\(selectedStackCount) stacks will be bundled into one CSV export."
+    }
+
+    private var selectionHelpText: String {
+        if selectedStackCount == 1 {
+            return "Only this stack is selected, so the exported CSV can be imported into another show as a single stack."
+        }
+        return "This panel shows the first selected stack. The export will include every checked stack in the list."
+    }
 }
 
 struct ContentView_Previews: PreviewProvider {
@@ -2215,23 +2662,19 @@ struct ContentViewLifecycleModifiers: ViewModifier {
                 }
             }
             .onChange(of: dataSyncManager.selectedCueStackIndex) { _, _ in
+                dataSyncManager.syncWebClientWithMacOSApp()
                 clearCueSelection()
+                updateWebClients()
             }
             .onChange(of: dataSyncManager.selectedCueIndex) { _, _ in
+                dataSyncManager.syncWebClientWithMacOSApp()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     updateWebClients()
                 }
             }
             .onChange(of: dataSyncManager.countdownPlaylist) { oldValue, newValue in
+                guard oldValue != newValue else { return }
                 timerServer.syncPlaylistState(newValue)
-                // If playlist has current index, update timer target
-                if let idx = newValue.currentIndex,
-                   idx < newValue.entries.count {
-                    let entry = newValue.entries[idx]
-                    let command = TimerCommand(action: "setCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: entry.timeString)
-                    timerServer.executeCommand(command)
-                }
-                // Mark document dirty unless this change came from a load.
                 if !isLoadingFromDisk { markDirty() }
             }
             .onChange(of: dataSyncManager.cueStacks) { _, _ in
@@ -2243,11 +2686,6 @@ struct ContentViewLifecycleModifiers: ViewModifier {
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("PlaylistAdvanced"))) { notification in
                 if let newIndex = notification.userInfo?["newIndex"] as? Int {
                     dataSyncManager.setCurrentPlaylistIndex(newIndex)
-                    if newIndex < dataSyncManager.countdownPlaylist.entries.count {
-                        let entry = dataSyncManager.countdownPlaylist.entries[newIndex]
-                        let command = TimerCommand(action: "setCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: entry.timeString)
-                        timerServer.executeCommand(command)
-                    }
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("PlaylistIndexChanged"))) { notification in
@@ -2267,6 +2705,18 @@ struct ContentViewLifecycleModifiers: ViewModifier {
             .onAppear {
                 setupAppDelegate()
                 setupAppDelegateNotifications()
+
+                if ContentViewLifecycleSetup.keyEventMonitor == nil {
+                    ContentViewLifecycleSetup.keyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                        if handleKeyDown(event) {
+                            return nil
+                        }
+                        return event
+                    }
+                }
+
+                guard !ContentViewLifecycleSetup.didCompleteLaunchSetup else { return }
+                ContentViewLifecycleSetup.didCompleteLaunchSetup = true
 
                 if let url = appDelegate.pendingFileToOpen {
                     appDelegate.pendingFileToOpen = nil
@@ -2289,15 +2739,6 @@ struct ContentViewLifecycleModifiers: ViewModifier {
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     updateWebClients()
-                    timerServer.syncPlaylistState(dataSyncManager.countdownPlaylist)
-                }
-                if ContentViewLifecycleSetup.keyEventMonitor == nil {
-                    ContentViewLifecycleSetup.keyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                        if handleKeyDown(event) {
-                            return nil
-                        }
-                        return event
-                    }
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in

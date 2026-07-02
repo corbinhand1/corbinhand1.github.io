@@ -45,6 +45,8 @@ class LogManager: ObservableObject {
     }
     
     func addLog(_ message: String, level: LogLevel = .info) {
+        // Do not call print() here. PrintInterceptor already forwards stdout to
+        // LogManager; echoing would duplicate every line in the Xcode console.
         guard isCapturing && !isPaused else { return }
         
         let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -112,9 +114,6 @@ class LogManager: ObservableObject {
                 self.logs.removeFirst(self.logs.count - self.logLimit)
             }
         }
-        
-        // Also print to console for Xcode
-        print(trimmedMessage)
     }
     
     private func shouldFilterMessage(_ message: String) -> Bool {
@@ -141,6 +140,11 @@ class LogManager: ObservableObject {
             "nsviewbridgeerror",
             "textinputui",
             "remoteviewservice terminated",
+            // Routine Network.framework noise when browsers close idle sockets
+            "nw_socket_handle_socket_event",
+            "nw_protocol_socket_reset_linger",
+            "is already cancelled, ignoring cancel",
+            "connection reset by peer",
             // Only filter very routine timer messages
             "🕐 timer server synchronized"
         ]

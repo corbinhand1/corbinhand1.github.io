@@ -56,9 +56,6 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
         self.activeCueIndex = activeCueIndex
         self.selectedCueIndex = selectedCueIndex
         
-        print("🔄 DataSyncManager: selectedCueIndex updated to \(selectedCueIndex)")
-        
-        // Automatically cache data for offline use
         cacheDataForOffline()
     }
     
@@ -69,78 +66,91 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
     // MARK: - Cue Editing Methods
     
     func updateCueValue(cueId: UUID, columnIndex: Int, newValue: String) async -> Bool {
-        return await withCheckedContinuation { continuation in
+        await withCheckedContinuation { continuation in
             DispatchQueue.main.async {
-                var success = false
-                
-                for stackIndex in 0..<self.cueStacks.count {
-                    if let cueIndex = self.cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
-                        if columnIndex < self.cueStacks[stackIndex].cues[cueIndex].values.count {
-                            let oldValue = self.cueStacks[stackIndex].cues[cueIndex].values[columnIndex]
-                            self.cueStacks[stackIndex].cues[cueIndex].values[columnIndex] = newValue
-                            print("🔍 Updated cue \(cueId) column \(columnIndex): '\(oldValue)' -> '\(newValue)'")
-                            success = true
-                            break
-                        }
-                    }
-                }
-                
-                // Notify the desktop app of the change and auto-save
-                if success {
-                    // Record that this was a web change IMMEDIATELY
-                    self.recordWebChange()
-                    
-                    // Auto-save to file
-                    self.autoSaveToFile()
-                    
-                    print("🔄 Desktop app notified of cue update: \(newValue) in column \(columnIndex)")
-                }
-                
-                continuation.resume(returning: success)
+                continuation.resume(returning: self.updateCueValueSync(
+                    cueId: cueId,
+                    columnIndex: columnIndex,
+                    newValue: newValue
+                ))
             }
         }
+    }
+
+    /// Main-thread cue update used by the LAN HTTP server.
+    func updateCueValueSync(cueId: UUID, columnIndex: Int, newValue: String) -> Bool {
+        var success = false
+
+        for stackIndex in 0..<cueStacks.count {
+            if let cueIndex = cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
+                if columnIndex < cueStacks[stackIndex].cues[cueIndex].values.count {
+                    let oldValue = cueStacks[stackIndex].cues[cueIndex].values[columnIndex]
+                    cueStacks[stackIndex].cues[cueIndex].values[columnIndex] = newValue
+                    print("🔍 Updated cue \(cueId) column \(columnIndex): '\(oldValue)' -> '\(newValue)'")
+                    success = true
+                } else {
+                    print("❌ Column index \(columnIndex) out of range for cue \(cueId)")
+                }
+                break
+            }
+        }
+
+        if !success {
+            print("❌ Cue not found for update: \(cueId)")
+        }
+
+        if success {
+            recordWebChange()
+            autoSaveToFile()
+            print("🔄 Desktop app notified of cue update: \(newValue) in column \(columnIndex)")
+        }
+
+        return success
     }
     
     func addCue(to cueStackId: UUID, values: [String], timerValue: String = "") async -> UUID? {
-        return await withCheckedContinuation { continuation in
+        await withCheckedContinuation { continuation in
             DispatchQueue.main.async {
-                var newCueId: UUID?
-                
-                if let stackIndex = self.cueStacks.firstIndex(where: { $0.id == cueStackId }) {
-                    let newCue = Cue(values: values, timerValue: timerValue)
-                    self.cueStacks[stackIndex].cues.append(newCue)
-                    newCueId = newCue.id
-                    print("✅ Added new cue with ID: \(newCue.id)")
-                } else {
-                    print("❌ Failed to find cue stack with ID: \(cueStackId)")
-                }
-                
-                continuation.resume(returning: newCueId)
+                continuation.resume(returning: self.addCueSync(
+                    to: cueStackId,
+                    values: values,
+                    timerValue: timerValue
+                ))
             }
         }
     }
+
+    func addCueSync(to cueStackId: UUID, values: [String], timerValue: String = "") -> UUID? {
+        guard let stackIndex = cueStacks.firstIndex(where: { $0.id == cueStackId }) else {
+            print("❌ Failed to find cue stack with ID: \(cueStackId)")
+            return nil
+        }
+
+        let newCue = Cue(values: values, timerValue: timerValue)
+        cueStacks[stackIndex].cues.append(newCue)
+        print("✅ Added new cue with ID: \(newCue.id)")
+        return newCue.id
+    }
     
     func deleteCue(cueId: UUID) async -> Bool {
-        return await withCheckedContinuation { continuation in
+        await withCheckedContinuation { continuation in
             DispatchQueue.main.async {
-                var success = false
-                
-                for stackIndex in 0..<self.cueStacks.count {
-                    if let cueIndex = self.cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
-                        self.cueStacks[stackIndex].cues.remove(at: cueIndex)
-                        success = true
-                        print("✅ Deleted cue with ID: \(cueId)")
-                        break
-                    }
-                }
-                
-                if !success {
-                    print("❌ Failed to find cue with ID: \(cueId)")
-                }
-                
-                continuation.resume(returning: success)
+                continuation.resume(returning: self.deleteCueSync(cueId: cueId))
             }
         }
+    }
+
+    func deleteCueSync(cueId: UUID) -> Bool {
+        for stackIndex in 0..<cueStacks.count {
+            if let cueIndex = cueStacks[stackIndex].cues.firstIndex(where: { $0.id == cueId }) {
+                cueStacks[stackIndex].cues.remove(at: cueIndex)
+                print("✅ Deleted cue with ID: \(cueId)")
+                return true
+            }
+        }
+
+        print("❌ Failed to find cue with ID: \(cueId)")
+        return false
     }
     
     func toggleStrikeThrough(cueId: UUID) async -> Bool {
@@ -236,10 +246,9 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
     // MARK: - Web Client Cue Stack Management
     
     func setWebClientCueStackIndex(_ index: Int) {
-        webClientQueue.async(flags: .barrier) {
-            // Validate the index before setting
-            let validIndex = max(0, min(index, self.cueStacks.count - 1))
-            print("🔄 Web client cue stack changing from \(self.webClientCueStackIndex) to \(validIndex) (requested: \(index))")
+        webClientQueue.sync(flags: .barrier) {
+            let maxIndex = max(0, self.cueStacks.count - 1)
+            let validIndex = max(0, min(index, maxIndex))
             self.webClientCueStackIndex = validIndex
         }
     }
@@ -251,10 +260,16 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
     }
     
     func syncWebClientWithMacOSApp() {
-        webClientQueue.async(flags: .barrier) {
-            print("🔄 Syncing web client with macOS app: \(self.selectedCueStackIndex)")
-            self.webClientCueStackIndex = self.selectedCueStackIndex
+        webClientQueue.sync(flags: .barrier) {
+            let maxIndex = max(0, self.cueStacks.count - 1)
+            let validIndex = max(0, min(self.selectedCueStackIndex, maxIndex))
+            self.webClientCueStackIndex = validIndex
         }
+    }
+
+    private func highlightUpNextCueIndex(for cues: [Cue], selectedIndex: Int, enabled: Bool) -> Int {
+        guard enabled, selectedIndex >= 0 else { return -1 }
+        return cues.nextPlayableIndex(after: selectedIndex) ?? -1
     }
     
     func generateJSONResponseForWebClient(timerServer: AuthoritativeTimerServer) -> Data {
@@ -290,6 +305,7 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
                 },
                 "activeCueIndex": activeCueIndex,
                 "selectedCueIndex": selectedCueIndex,
+                "upNextCueIndex": highlightUpNextCueIndex(for: fallbackStack.cues, selectedIndex: selectedCueIndex, enabled: true),
                 "lastUpdateTime": Date().timeIntervalSince1970,
                 "currentDate": DataSyncManager.dateFormatter.string(from: timerServer.currentTime),
                 "currentTime": DataSyncManager.timeFormatter.string(from: timerServer.currentTime),
@@ -327,8 +343,13 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
             
             // Only show highlights (green/yellow) if web client is viewing the same cue stack as macOS app
             let isViewingMacOSCueStack = (webClientIndex == selectedCueStackIndex)
-            let highlightActiveCueIndex = isViewingMacOSCueStack ? activeCueIndex : -1
             let highlightSelectedCueIndex = isViewingMacOSCueStack ? selectedCueIndex : -1
+            let highlightActiveCueIndex = highlightSelectedCueIndex
+            let highlightUpNextCueIndex = highlightUpNextCueIndex(
+                for: selectedStack.cues,
+                selectedIndex: highlightSelectedCueIndex,
+                enabled: isViewingMacOSCueStack
+            )
             
             jsonObject = [
                 "cueStackId": selectedStack.id.uuidString,
@@ -347,6 +368,7 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
                 // Only show highlights if viewing the macOS app's cue stack
                 "activeCueIndex": highlightActiveCueIndex,
                 "selectedCueIndex": highlightSelectedCueIndex,
+                "upNextCueIndex": highlightUpNextCueIndex,
                 "lastUpdateTime": Date().timeIntervalSince1970,
                 "currentDate": DataSyncManager.dateFormatter.string(from: timerServer.currentTime),
                 "currentTime": DataSyncManager.timeFormatter.string(from: timerServer.currentTime),
@@ -510,7 +532,6 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
             if self.countdownPlaylist.currentIndex == nil && !self.countdownPlaylist.entries.isEmpty {
                 self.countdownPlaylist.currentIndex = 0
             }
-            print("✅ Playlist is always active (playlist-only mode)")
         }
     }
     
@@ -523,7 +544,6 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
                 }
             }
             self.countdownPlaylist.currentIndex = index
-            print("✅ Current playlist index set to: \(index?.description ?? "nil")")
         }
     }
     
@@ -537,13 +557,8 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
     // MARK: - Test Data Initialization
     
     func createTestDataIfNeeded() {
-        print("🔍 createTestDataIfNeeded() called - cueStacks.count: \(cueStacks.count)")
         if cueStacks.isEmpty {
-            print("🔍 Creating test cue stack...")
             createTestCueStack()
-            print("🔍 After creation - cueStacks.count: \(cueStacks.count)")
-        } else {
-            print("🔍 Test data already exists, skipping creation")
         }
     }
     
@@ -573,6 +588,6 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
         )
         
         cueStacks.append(testCueStack)
-        print("✅ Created test cue stack with \(testCueStack.cues.count) cues and \(testCueStack.columns.count) columns")
+        print("📋 Created default cue stack: \(testCueStack.name) (\(testCueStack.cues.count) cues)")
     }
 }

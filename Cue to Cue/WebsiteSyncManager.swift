@@ -143,33 +143,48 @@ final class WebsiteSyncManager: ObservableObject {
         filename: String,
         settingsManager: SettingsManager
     ) -> [String: Any] {
-        let columns = cueStacks.first?.columns ?? []
         var availableCueStacks: [[String: Any]] = []
 
         for stack in cueStacks {
+            let stackColumns = stack.columns
             var cues: [[String: Any]] = []
 
             for cue in stack.cues {
-                var cueData: [String: Any] = [:]
+                var cueData: [String: Any] = [
+                    "id": cue.id.uuidString,
+                    "timerValue": cue.timerValue,
+                    "isStruckThrough": cue.isStruckThrough,
+                ]
 
-                for (index, column) in columns.enumerated() {
+                for (index, column) in stackColumns.enumerated() {
                     let value = index < cue.values.count ? cue.values[index] : ""
                     cueData[column.name] = value
                 }
 
-                cueData["timerValue"] = cue.timerValue
-                cueData["isStruckThrough"] = cue.isStruckThrough
                 cues.append(cueData)
+            }
+
+            let webStackColumns = stackColumns.map { column in
+                [
+                    "id": column.id.uuidString,
+                    "name": column.name,
+                    "width": column.width,
+                ] as [String: Any]
             }
 
             availableCueStacks.append([
                 "id": stack.id.uuidString,
                 "name": stack.name,
+                "columns": webStackColumns,
                 "cues": cues,
             ])
         }
 
-        let webColumns = columns.map { column in
+        let primaryColumns = cueStacks.indices.contains(selectedCueStackIndex)
+            ? cueStacks[selectedCueStackIndex].columns
+            : (cueStacks.first?.columns ?? [])
+
+        let webColumns = primaryColumns.map { column in
             [
                 "id": column.id.uuidString,
                 "name": column.name,
@@ -202,6 +217,7 @@ final class WebsiteSyncManager: ObservableObject {
                 "allCues": availableCueStacks,
                 "columns": webColumns,
                 "highlightColors": webHighlightColors,
+                "selectedCueStackIndex": selectedCueStackIndex,
             ],
             "metadata": metadata,
         ]
@@ -230,42 +246,29 @@ final class WebsiteSyncManager: ObservableObject {
         repoName: String,
         completion: @escaping (Bool, String?) -> Void
     ) {
-        let group = DispatchGroup()
-        var success = true
-        var errorMessage: String?
-
-        group.enter()
+        // Update cue data first, then metadata — avoids reporting success when
+        // parallel writes race on stale SHAs (GitHub 409).
         updateGitHubFile(
             path: "cuetocue/cuetocue-data.json",
             content: cueData["cueData"] as Any,
             githubToken: githubToken,
             repoOwner: repoOwner,
             repoName: repoName
-        ) { fileSuccess, fileError in
-            if !fileSuccess {
-                success = false
-                errorMessage = fileError
+        ) { cueSuccess, cueError in
+            guard cueSuccess else {
+                completion(false, cueError)
+                return
             }
-            group.leave()
-        }
 
-        group.enter()
-        updateGitHubFile(
-            path: "cuetocue/metadata.json",
-            content: cueData["metadata"] as Any,
-            githubToken: githubToken,
-            repoOwner: repoOwner,
-            repoName: repoName
-        ) { fileSuccess, fileError in
-            if !fileSuccess {
-                success = false
-                errorMessage = fileError
+            self.updateGitHubFile(
+                path: "cuetocue/metadata.json",
+                content: cueData["metadata"] as Any,
+                githubToken: githubToken,
+                repoOwner: repoOwner,
+                repoName: repoName
+            ) { metadataSuccess, metadataError in
+                completion(metadataSuccess, metadataError)
             }
-            group.leave()
-        }
-
-        group.notify(queue: .main) {
-            completion(success, errorMessage)
         }
     }
 
@@ -275,6 +278,7 @@ final class WebsiteSyncManager: ObservableObject {
         githubToken: String,
         repoOwner: String,
         repoName: String,
+        retryCount: Int = 0,
         completion: @escaping (Bool, String?) -> Void
     ) {
         let url = URL(string: "https://api.github.com/repos/\(repoOwner)/\(repoName)/contents/\(path)")!
@@ -314,8 +318,20 @@ final class WebsiteSyncManager: ObservableObject {
                         }
 
                         switch httpResponse.statusCode {
-                        case 200, 201, 409:
+                        case 200, 201:
                             completion(true, nil)
+                        case 409 where retryCount < 3:
+                            self.updateGitHubFile(
+                                path: path,
+                                content: content,
+                                githubToken: githubToken,
+                                repoOwner: repoOwner,
+                                repoName: repoName,
+                                retryCount: retryCount + 1,
+                                completion: completion
+                            )
+                        case 409:
+                            completion(false, "HTTP 409: Could not update \(path) — file changed on GitHub. Try syncing again.")
                         case 401:
                             var message = "HTTP 401: Authentication failed"
                             if let data,

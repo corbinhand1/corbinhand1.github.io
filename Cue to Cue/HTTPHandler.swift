@@ -264,7 +264,6 @@ class HTTPHandler {
             
             // Store the web client's selected cue stack index for this session
             // We'll use this in generateJSONResponseForWebClient() method
-            print("🔄 HTTPHandler: Setting web client cue stack to \(cueStackIndex)")
             dataSyncManager.setWebClientCueStackIndex(cueStackIndex)
             
             let response: [String: Any] = [
@@ -299,7 +298,7 @@ class HTTPHandler {
                 // Only log non-connection errors
                 let nsError = error as NSError
                 if nsError.domain != "NSPOSIXErrorDomain" || 
-                   (nsError.code != 32 && nsError.code != 57 && nsError.code != 89) {
+                   (nsError.code != 32 && nsError.code != 54 && nsError.code != 57 && nsError.code != 89) {
                     print("Error sending response: \(error)")
                 }
             }
@@ -486,9 +485,15 @@ class HTTPHandler {
     }
     
     // MARK: - Protected Edit Endpoints
-    
+
+    private enum CueEditOutcome {
+        case success
+        case notFound
+        case forbidden
+        case failed
+    }
+
     private func handleEditCue(_ request: HTTPRequest) -> HTTPResponse {
-        // Require authentication
         guard let user = getCurrentUser(from: request) else {
             return HTTPResponse(
                 status: .unauthorized,
@@ -496,7 +501,7 @@ class HTTPHandler {
                 body: createErrorJSON(message: "Authentication required")
             )
         }
-        
+
         guard let body = request.body else {
             return HTTPResponse(
                 status: .internalServerError,
@@ -504,67 +509,65 @@ class HTTPHandler {
                 body: createErrorJSON(message: "No request body")
             )
         }
-        
-        
+
         guard let editRequest = try? JSONDecoder().decode(EditCueRequest.self, from: body) else {
+            print("❌ LAN edit failed: could not decode request body")
             return HTTPResponse(
                 status: .internalServerError,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Invalid request body")
             )
         }
-        
-        
-        // Find the cue and its cue stack
-        guard let (cueStack, _) = dataSyncManager.findCue(by: editRequest.cueId) else {
+
+        let outcome = onMainThread { () -> CueEditOutcome in
+            guard let (cueStack, _) = dataSyncManager.findCue(by: editRequest.cueId) else {
+                return .notFound
+            }
+
+            guard authManager.canUserEditColumn(
+                user.id,
+                cueStackId: cueStack.id,
+                columnIndex: editRequest.columnIndex
+            ) else {
+                return .forbidden
+            }
+
+            return dataSyncManager.updateCueValueSync(
+                cueId: editRequest.cueId,
+                columnIndex: editRequest.columnIndex,
+                newValue: editRequest.newValue
+            ) ? .success : .failed
+        }
+
+        switch outcome {
+        case .success:
+            let response: [String: Any] = ["success": true, "message": "Cue updated successfully"]
+            let responseData = try? JSONSerialization.data(withJSONObject: response)
+            return HTTPResponse(
+                status: .ok,
+                headers: createCORSHeaders(["Content-Type": "application/json"]),
+                body: responseData ?? Data()
+            )
+        case .notFound:
             return HTTPResponse(
                 status: .notFound,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Cue not found")
             )
-        }
-        
-        // Check permission for this column
-        let canEdit = authManager.canUserEditColumn(user.id, cueStackId: cueStack.id, columnIndex: editRequest.columnIndex)
-        
-        guard canEdit else {
+        case .forbidden:
             return HTTPResponse(
                 status: .forbidden,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Permission denied for this column")
             )
-        }
-        
-        // Update the cue value
-        var updateSuccess = false
-        let group = DispatchGroup()
-        group.enter()
-        
-        Task {
-            updateSuccess = await dataSyncManager.updateCueValue(cueId: editRequest.cueId, columnIndex: editRequest.columnIndex, newValue: editRequest.newValue)
-            group.leave()
-        }
-        
-        group.wait()
-        
-        guard updateSuccess else {
+        case .failed:
+            print("❌ LAN edit failed: updateCueValueSync returned false for \(editRequest.cueId)")
             return HTTPResponse(
                 status: .internalServerError,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Failed to update cue")
             )
         }
-        
-        
-        // Return success response
-        let response: [String: Any] = ["success": true, "message": "Cue updated successfully"]
-        let responseData = try? JSONSerialization.data(withJSONObject: response)
-        
-        return HTTPResponse(
-            status: .ok,
-            headers: ["Content-Type": "application/json"],
-            body: responseData ?? Data()
-        )
     }
     
     private func handleAddCue(_ request: HTTPRequest) -> HTTPResponse {
@@ -606,17 +609,14 @@ class HTTPHandler {
         }
         
         // Create new cue
-        var newCueId: UUID?
-        let group = DispatchGroup()
-        group.enter()
-        
-        Task {
-            newCueId = await dataSyncManager.addCue(to: addRequest.cueStackId, values: addRequest.values, timerValue: addRequest.timerValue)
-            group.leave()
+        let newCueId = onMainThread {
+            dataSyncManager.addCueSync(
+                to: addRequest.cueStackId,
+                values: addRequest.values,
+                timerValue: addRequest.timerValue
+            )
         }
-        
-        group.wait()
-        
+
         guard let cueId = newCueId else {
             return HTTPResponse(
                 status: .internalServerError,
@@ -658,53 +658,49 @@ class HTTPHandler {
             )
         }
         
-        // Find the cue and its cue stack
-        guard let (cueStack, _) = dataSyncManager.findCue(by: cueId) else {
+        // Find, authorize, and delete on the main thread.
+        let outcome = onMainThread { () -> CueEditOutcome in
+            guard let (cueStack, _) = dataSyncManager.findCue(by: cueId) else {
+                return .notFound
+            }
+
+            let userPermissions = authManager.permissions.filter {
+                $0.userId == user.id && $0.cueStackId == cueStack.id
+            }
+            guard !userPermissions.isEmpty || user.isAdmin else {
+                return .forbidden
+            }
+
+            return dataSyncManager.deleteCueSync(cueId: cueId) ? .success : .failed
+        }
+
+        switch outcome {
+        case .success:
+            let response: [String: Any] = ["success": true, "message": "Cue deleted successfully"]
+            let responseData = try? JSONSerialization.data(withJSONObject: response)
+            return HTTPResponse(
+                status: .ok,
+                headers: createCORSHeaders(["Content-Type": "application/json"]),
+                body: responseData ?? Data()
+            )
+        case .notFound:
             return HTTPResponse(
                 status: .notFound,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Cue not found")
             )
-        }
-        
-        // Check if user has any permissions for this cue stack
-        let userPermissions = authManager.permissions.filter { $0.userId == user.id && $0.cueStackId == cueStack.id }
-        guard !userPermissions.isEmpty || user.isAdmin else {
+        case .forbidden:
             return HTTPResponse(
                 status: .forbidden,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Permission denied for this cue stack")
             )
-        }
-        
-        // Delete the cue
-        var deleteSuccess = false
-        let group = DispatchGroup()
-        group.enter()
-        
-        Task {
-            deleteSuccess = await dataSyncManager.deleteCue(cueId: cueId)
-            group.leave()
-        }
-        
-        group.wait()
-        
-        guard deleteSuccess else {
+        case .failed:
             return HTTPResponse(
                 status: .internalServerError,
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Failed to delete cue")
             )
         }
-        
-        // Return success response
-        let response: [String: Any] = ["success": true, "message": "Cue deleted successfully"]
-        let responseData = try? JSONSerialization.data(withJSONObject: response)
-        
-        return HTTPResponse(
-            status: .ok,
-            headers: ["Content-Type": "application/json"],
-            body: responseData ?? Data()
-        )
     }
 }

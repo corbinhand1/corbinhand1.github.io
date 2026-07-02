@@ -271,7 +271,6 @@ struct KeynotePreviewWindow: View {
         let pageHeight = printInfo.paperSize.height - printInfo.topMargin - printInfo.bottomMargin
         let totalHeight = pageHeight * CGFloat(newPDFDocument.pageCount)
         pdfView.frame = NSRect(x: 0, y: 0, width: pageWidth, height: totalHeight)
-        pdfView.layoutSubtreeIfNeeded()
 
         // Perform the print operation on the main thread
         DispatchQueue.main.async {

@@ -64,7 +64,7 @@ class AuthoritativeTimerServer: ObservableObject {
         // countUpRunning starts as false - user must click Start
         
         startTimerBroadcast()
-        print("🚀 AuthoritativeTimerServer initialized with countdown-to-time target: \(targetTimeString) (not running)")
+        print("🚀 Timer server ready (countdown-to-time target: \(targetTimeString))")
     }
     
     deinit {
@@ -211,7 +211,6 @@ class AuthoritativeTimerServer: ObservableObject {
         if countdownRunning {
             countdownTarget = Date().addingTimeInterval(TimeInterval(time))
         }
-        print("⏱️ Countdown time set to: \(time) seconds")
     }
     
     private func adjustCountdownTime(by seconds: Int) {
@@ -233,13 +232,13 @@ class AuthoritativeTimerServer: ObservableObject {
             if countUpRunning {
                 // updateTimers() keeps countUpTime in sync while running.
             } else if isNewTarget || countUpTime == 0 {
-                // New target or first load — show current remaining time.
                 countUpTime = max(0, Int(date.timeIntervalSince(Date())))
             }
-            // When paused on the same target, preserve the frozen countUpTime value.
-            print("🎯 Countdown to time set to: \(timeString)")
-            
-            // If updating current entry, update the playlist state
+
+            if isNewTarget {
+                print("🎯 Countdown to time: \(timeString)")
+            }
+
             if let currentIdx = playlistState.currentIndex,
                currentIdx < playlistState.entries.count {
                 playlistState.entries[currentIdx].timeString = timeString
@@ -359,22 +358,24 @@ class AuthoritativeTimerServer: ObservableObject {
         countdownTime = newTime
         countdownTarget = Date().addingTimeInterval(TimeInterval(newTime))
         countdownRunning = true
-        print("🔄 Countdown reset with new time: \(newTime) seconds")
+        countdownTarget = Date().addingTimeInterval(TimeInterval(newTime))
+        print("🔄 Countdown reset: \(newTime)s")
     }
     
     // MARK: - Playlist Management
     
     func syncPlaylistState(_ playlist: CountdownPlaylist) {
         playlistState = playlist
-        print("🔄 Playlist state synced: \(playlist.entries.count) entries, current: \(playlist.currentIndex?.description ?? "nil")")
-        
-        // If playlist has a current index, update the target (but don't start automatically)
-        if let idx = playlist.currentIndex,
-           idx < playlist.entries.count {
+
+        let entryLabel: String
+        if let idx = playlist.currentIndex, idx < playlist.entries.count {
             let entry = playlist.entries[idx]
+            entryLabel = entry.label.map { " — \($0)" } ?? ""
             setCountdownToTime(entry.timeString)
-            // Don't set countUpRunning = true here - user must click Start
+        } else {
+            entryLabel = ""
         }
+        print("🔄 Playlist: \(playlist.entries.count) entries, current: \(playlist.currentIndex?.description ?? "none")\(entryLabel)")
     }
     
     func getCurrentPlaylistEntry() -> PlaylistEntry? {

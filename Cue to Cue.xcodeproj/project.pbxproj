@@ -70,6 +70,8 @@
 		31WEBSYNC001 /* WebsiteSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSYNC002 /* WebsiteSyncManager.swift */; };
 		31WEBSYNC003 /* WebsiteSyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSYNC004 /* WebsiteSyncSettingsView.swift */; };
 		31CSV001 /* CueCSVCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSV002 /* CueCSVCodec.swift */; };
+		31CSVIMP001 /* CSVImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSVIMP002 /* CSVImportSheet.swift */; };
+		31CSVEXP001 /* CSVExportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSVEXP002 /* CSVExportSheet.swift */; };
 		31TIMER001 /* AuthoritativeTimerServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31TIMER002 /* AuthoritativeTimerServer.swift */; };
 		31WEBSERVER001 /* WebServerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER002 /* WebServerModels.swift */; };
 		31WEBSERVER003 /* NetworkUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER004 /* NetworkUtilities.swift */; };
@@ -191,6 +193,8 @@
 		31WEBSYNC002 /* WebsiteSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteSyncManager.swift; sourceTree = "<group>"; };
 		31WEBSYNC004 /* WebsiteSyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteSyncSettingsView.swift; sourceTree = "<group>"; };
 		31CSV002 /* CueCSVCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueCSVCodec.swift; sourceTree = "<group>"; };
+		31CSVIMP002 /* CSVImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportSheet.swift; sourceTree = "<group>"; };
+		31CSVEXP002 /* CSVExportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVExportSheet.swift; sourceTree = "<group>"; };
 		31TIMER002 /* AuthoritativeTimerServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoritativeTimerServer.swift; sourceTree = "<group>"; };
 		31WEBSERVER002 /* WebServerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebServerModels.swift; sourceTree = "<group>"; };
 		31WEBSERVER004 /* NetworkUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkUtilities.swift; sourceTree = "<group>"; };
@@ -333,6 +337,8 @@
 				31WEBSYNC002 /* WebsiteSyncManager.swift */,
 				31WEBSYNC004 /* WebsiteSyncSettingsView.swift */,
 				31CSV002 /* CueCSVCodec.swift */,
+				31CSVIMP002 /* CSVImportSheet.swift */,
+				31CSVEXP002 /* CSVExportSheet.swift */,
 				31CADDE42C856B200072CFCE /* CompleteHTML.swift */,
 				31OFFLINE001 /* offline.html */,
 				31OFFLINE002 /* offline-styles.css */,
@@ -611,6 +617,8 @@
 				31WEBSYNC001 /* WebsiteSyncManager.swift in Sources */,
 				31WEBSYNC003 /* WebsiteSyncSettingsView.swift in Sources */,
 				31CSV001 /* CueCSVCodec.swift in Sources */,
+				31CSVIMP001 /* CSVImportSheet.swift in Sources */,
+				31CSVEXP001 /* CSVExportSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

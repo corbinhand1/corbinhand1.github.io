@@ -56,54 +56,14 @@ struct ConnectionMonitorView: View {
             
             Spacer()
             
-            HStack(spacing: 12) {
-                Button(action: {
-                    let connectionString = webServer.getConnectionString()
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(connectionString, forType: .string)
-                }) {
-                    Image(systemName: "doc.on.doc")
-                        .font(.system(size: 14, weight: .medium))
-                }
-                .buttonStyle(ConnectionMonitorButtonStyle(color: .green))
-                .help("Copy \(webServer.getConnectionString()) to clipboard")
-                
-                Button(action: {
-                    webServer.forceCleanupInactiveSessions()
-                }) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 14, weight: .medium))
-                }
-                .buttonStyle(ConnectionMonitorButtonStyle(color: .purple))
-                .help("Force Cleanup Inactive Sessions")
-                
-                Button(action: {
-                    webServer.debugConnectionCount()
-                }) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 14, weight: .medium))
-                }
-                .buttonStyle(ConnectionMonitorButtonStyle(color: .orange))
-                .help("Debug Connections")
-                
-                Button(action: {
-                    webServer.refreshPublishedProperties()
-                }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 14, weight: .medium))
-                }
-                .buttonStyle(ConnectionMonitorButtonStyle(color: .blue))
-                .help("Refresh Data")
-                
-                Button(action: {
-                    isPresented = false
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .medium))
-                }
-                .buttonStyle(ConnectionMonitorButtonStyle(color: .red))
-                .help("Close Window")
+            Button(action: {
+                isPresented = false
+            }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .medium))
             }
+            .buttonStyle(ConnectionMonitorButtonStyle(color: .red))
+            .help("Close Window")
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)

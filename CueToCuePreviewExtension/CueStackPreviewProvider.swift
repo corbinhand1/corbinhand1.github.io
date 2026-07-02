@@ -93,14 +93,12 @@ final class CueStackPreviewProvider: NSViewController, QLPreviewingController, N
                 DispatchQueue.main.async {
                     self.loadViewIfNeeded()
                     self.apply(document)
-                    self.view.layoutSubtreeIfNeeded()
                     handler(nil)
                 }
             } catch {
                 DispatchQueue.main.async {
                     self.loadViewIfNeeded()
                     self.showError(error.localizedDescription)
-                    self.view.layoutSubtreeIfNeeded()
                     handler(error)
                 }
             }

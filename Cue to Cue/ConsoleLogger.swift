@@ -43,63 +43,39 @@ class PrintInterceptor {
         
         // Set up reading from pipes
         pipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
-            let data = handle.availableData
-            if !data.isEmpty {
-                if let string = String(data: data, encoding: .utf8) {
-                    // Write to original stdout for Xcode console
-                    if let self = self, self.originalStdout >= 0 {
-                        let originalHandle = FileHandle(fileDescriptor: self.originalStdout, closeOnDealloc: false)
-                        originalHandle.write(data)
-                    }
-                    
-                    // Also capture to LogManager
-                    let lines = string.components(separatedBy: .newlines)
-                    for line in lines {
-                        let trimmed = line.trimmingCharacters(in: .whitespaces)
-                        if !trimmed.isEmpty {
-                            // Pre-filter spam before sending to LogManager
-                            if shouldFilterSpam(trimmed) {
-                                continue
-                            }
-                            
-                            DispatchQueue.main.async {
-                                let level: LogLevel = determineLogLevel(from: trimmed)
-                                LogManager.shared.addLog(trimmed, level: level)
-                            }
-                        }
-                    }
+            self?.relayInterceptedOutput(
+                data: handle.availableData,
+                originalFD: self?.originalStdout ?? -1
+            )
+        }
+
+        stderrPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            self?.relayInterceptedOutput(
+                data: handle.availableData,
+                originalFD: self?.originalStderr ?? -1
+            )
+        }
+    }
+
+    private func relayInterceptedOutput(data: Data, originalFD: Int32) {
+        guard !data.isEmpty, let string = String(data: data, encoding: .utf8) else { return }
+
+        let lines = string.components(separatedBy: .newlines)
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+            if shouldFilterSpam(trimmed) { continue }
+
+            if originalFD >= 0 {
+                let originalHandle = FileHandle(fileDescriptor: originalFD, closeOnDealloc: false)
+                if let lineData = (line + "\n").data(using: .utf8) {
+                    originalHandle.write(lineData)
                 }
             }
-        }
-        
-        stderrPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
-            let data = handle.availableData
-            if !data.isEmpty {
-                if let string = String(data: data, encoding: .utf8) {
-                    // Write to original stderr for Xcode console
-                    if let self = self, self.originalStderr >= 0 {
-                        let originalHandle = FileHandle(fileDescriptor: self.originalStderr, closeOnDealloc: false)
-                        originalHandle.write(data)
-                    }
-                    
-                    // Also capture to LogManager as error
-                    let lines = string.components(separatedBy: .newlines)
-                    for line in lines {
-                        let trimmed = line.trimmingCharacters(in: .whitespaces)
-                        if !trimmed.isEmpty {
-                            // Pre-filter spam before sending to LogManager
-                            if shouldFilterSpam(trimmed) {
-                                continue
-                            }
-                            
-                            DispatchQueue.main.async {
-                                // Determine log level based on content
-                                let level: LogLevel = determineLogLevel(from: trimmed)
-                                LogManager.shared.addLog(trimmed, level: level)
-                            }
-                        }
-                    }
-                }
+
+            DispatchQueue.main.async {
+                let level: LogLevel = determineLogLevel(from: trimmed)
+                LogManager.shared.addLog(trimmed, level: level)
             }
         }
     }
@@ -142,7 +118,11 @@ private func shouldFilterSpam(_ message: String) -> Bool {
        (lowercased.contains("connection status:") && lowercased.contains("active: 0/")) ||
        lowercased.contains("nw_proto_tcp_route_init") ||
        lowercased.contains("nw_connection_copy_protocol_metadata") ||
-       lowercased.contains("nw_endpoint_flow_failed") {
+       lowercased.contains("nw_endpoint_flow_failed") ||
+       lowercased.contains("nw_socket_handle_socket_event") ||
+       lowercased.contains("nw_protocol_socket_reset_linger") ||
+       lowercased.contains("is already cancelled, ignoring cancel") ||
+       (lowercased.contains("so_error") && lowercased.contains("connection reset by peer")) {
         return true
     }
     
@@ -190,11 +170,10 @@ private func determineLogLevel(from message: String) -> LogLevel {
 
 // Global logging functions that automatically capture to LogManager
 func debugLog(_ message: String, level: LogLevel = .info) {
-    // Print to console (for Xcode)
+    // PrintInterceptor forwards stdout to LogManager; do not call addLog here
+    // or every line appears twice in the Xcode console.
+    _ = level
     print(message)
-    
-    // Also capture to LogManager for debug window
-    LogManager.shared.addLog(message, level: level)
 }
 
 // Convenience functions

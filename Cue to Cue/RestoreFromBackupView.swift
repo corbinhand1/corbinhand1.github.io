@@ -58,7 +58,7 @@ struct RestoreFromBackupView: View {
             Divider()
             footer
         }
-        .frame(minWidth: 720, minHeight: 480)
+        .frame(minWidth: 820, idealWidth: 900, minHeight: 560, idealHeight: 640)
         .onAppear { reload() }
         .alert("Restore this backup?", isPresented: $confirmRestore) {
             Button("Restore", role: .destructive) {
@@ -69,7 +69,7 @@ struct RestoreFromBackupView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             if let s = selected {
-                Text("Your current document will be saved to a recovery file first. Then \(s.url.lastPathComponent) (saved \(dateFormatter.string(from: s.date))) will be loaded.")
+                Text("Your current document will be saved to a recovery file first. Then \(s.displayFileName) (saved \(dateFormatter.string(from: s.date))) will be loaded from \(s.locationTitle.lowercased()).")
             } else {
                 Text("Pick a backup to restore.")
             }
@@ -79,26 +79,66 @@ struct RestoreFromBackupView: View {
     // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Restore from Backup")
                 .font(.title2)
                 .fontWeight(.semibold)
+
             Text(headerSubtitle)
                 .font(.callout)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            backupLocationsLegend
         }
         .padding()
     }
 
     private var headerSubtitle: String {
         if let url = mainFileURL {
-            return "Showing every known backup of \(url.lastPathComponent) across all tiers, newest first. Your current document is preserved automatically when you restore."
+            return "Backups of \(url.lastPathComponent), newest first. Cue to Cue keeps one copy on your Desktop and one in its library. Older backup locations are shown for restore only."
         } else {
-            return "No document is currently open. Showing backups from Application Support history."
+            return "No document is currently open. Showing backups from Cue to Cue's library."
         }
     }
 
-    // MARK: - Content (the table)
+    private var backupLocationsLegend: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Where backups are stored")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+
+            HStack(alignment: .top, spacing: 16) {
+                legendItem(
+                    title: "Desktop backup folder",
+                    detail: "~/Desktop/Cue to Cue Backups"
+                )
+                legendItem(
+                    title: "App backup library",
+                    detail: "~/Library/.../Cue to Cue/Backups"
+                )
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.55))
+        .cornerRadius(8)
+    }
+
+    private func legendItem(title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption)
+                .fontWeight(.medium)
+            Text(detail)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Content
 
     @ViewBuilder
     private var content: some View {
@@ -125,55 +165,124 @@ struct RestoreFromBackupView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()
         } else {
-            Table(snapshots, selection: Binding(
-                get: { selected?.id },
-                set: { newID in
-                    selected = snapshots.first(where: { $0.id == newID })
-                }
-            )) {
-                TableColumn("Saved") { s in
-                    Text(dateFormatter.string(from: s.date))
-                        .font(.system(.body, design: .monospaced))
-                }
-                .width(min: 160, ideal: 180)
-
-                TableColumn("Tier") { s in
-                    Text(s.tierLabel)
-                }
-                .width(min: 140, ideal: 160)
-
-                TableColumn("Size") { s in
-                    Text(byteFormatter.string(fromByteCount: s.byteCount))
-                        .foregroundStyle(.secondary)
-                }
-                .width(min: 80, ideal: 90)
-
-                TableColumn("Validity") { s in
-                    validityBadge(for: s)
-                }
-                .width(min: 130, ideal: 150)
-
-                TableColumn("Path") { s in
-                    Text(s.url.path)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .font(.system(.callout, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .help(s.url.path)
-                }
-            }
-            .contextMenu(forSelectionType: BackupManager.Snapshot.ID.self) { ids in
-                if let id = ids.first, let snap = snapshots.first(where: { $0.id == id }) {
-                    Button("Reveal in Finder") {
-                        NSWorkspace.shared.activateFileViewerSelecting([snap.url])
+            VStack(spacing: 0) {
+                Table(snapshots, selection: Binding(
+                    get: { selected?.id },
+                    set: { newID in
+                        selected = snapshots.first(where: { $0.id == newID })
                     }
-                    Button("Copy Path") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(snap.url.path, forType: .string)
+                )) {
+                    TableColumn("Saved") { s in
+                        Text(dateFormatter.string(from: s.date))
+                            .font(.system(.body, design: .monospaced))
+                    }
+                    .width(min: 170, ideal: 190)
+
+                    TableColumn("Where") { s in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(s.locationTitle)
+                            Text(s.shortenedFolderPath)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+                    }
+                    .width(min: 220, ideal: 260)
+
+                    TableColumn("Backup File") { s in
+                        Text(s.displayFileName)
+                            .lineLimit(2)
+                    }
+                    .width(min: 180, ideal: 220)
+
+                    TableColumn("Size") { s in
+                        Text(byteFormatter.string(fromByteCount: s.byteCount))
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(min: 70, ideal: 80)
+
+                    TableColumn("Status") { s in
+                        validityBadge(for: s)
+                    }
+                    .width(min: 110, ideal: 120)
+                }
+                .contextMenu(forSelectionType: BackupManager.Snapshot.ID.self) { ids in
+                    if let id = ids.first, let snap = snapshots.first(where: { $0.id == id }) {
+                        Button("Reveal in Finder") {
+                            NSWorkspace.shared.activateFileViewerSelecting([snap.url])
+                        }
+                        Button("Copy Path") {
+                            copyPath(snap.shortenedPath)
+                        }
                     }
                 }
+
+                Divider()
+                selectionDetail
             }
         }
+    }
+
+    private var selectionDetail: some View {
+        Group {
+            if let snapshot = selected {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(snapshot.displayFileName)
+                                .font(.headline)
+                            Text(snapshot.locationTitle)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Button("Reveal in Finder") {
+                            NSWorkspace.shared.activateFileViewerSelecting([snapshot.url])
+                        }
+
+                        Button("Copy Path") {
+                            copyPath(snapshot.shortenedPath)
+                        }
+                    }
+
+                    Text(snapshot.locationExplanation)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Full path")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+
+                        Text(snapshot.shortenedPath)
+                            .font(.system(.body, design: .monospaced))
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(10)
+                            .background(Color(NSColor.textBackgroundColor))
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                            )
+                    }
+                }
+                .padding(16)
+            } else {
+                Text("Select a backup above to see its full path and location.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.35))
     }
 
     private var noBackupsMessage: String {
@@ -192,10 +301,10 @@ struct RestoreFromBackupView: View {
                 Text("Verified")
             } else if s.isValid {
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(.blue)
-                Text("Decodes OK")
+                Text("OK")
             } else {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("Decode failed")
+                Text("Bad file")
             }
         }
         .font(.caption)
@@ -249,6 +358,11 @@ struct RestoreFromBackupView: View {
                 self.isLoading = false
             }
         }
+    }
+
+    private func copyPath(_ path: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(path, forType: .string)
     }
 }
 

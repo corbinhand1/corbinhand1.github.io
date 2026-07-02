@@ -165,4 +165,37 @@ final class CueCSVCodecTests: XCTestCase {
         XCTAssertEqual(records.count, 1)
         XCTAssertEqual(records[0], ["a", "line1\nline2", "b"])
     }
+
+    func testStacksForAddRenamesDuplicateNames() {
+        let imported = [
+            CueStack(name: "BOS Keynote", cues: [Cue(values: ["1"], timerValue: "", isStruckThrough: false)], columns: [Column(name: "#", width: 50)]),
+            CueStack(name: "BOS Keynote", cues: [Cue(values: ["2"], timerValue: "", isStruckThrough: false)], columns: [Column(name: "#", width: 50)]),
+        ]
+
+        let result = CueCSVCodec.stacksForAdd(imported: imported, existingNames: ["BOS Keynote"])
+
+        XCTAssertEqual(result.map(\.name), ["BOS Keynote (2)", "BOS Keynote (3)"])
+    }
+
+    func testMergedStackUnionsColumnsAndAppendsCues() {
+        let existing = CueStack(
+            name: "BOS Keynote",
+            cues: [Cue(values: ["100", "Doors"], timerValue: "10:00", isStruckThrough: false)],
+            columns: [Column(name: "#", width: 50), Column(name: "Description", width: 200)]
+        )
+        let imported = CueStack(
+            name: "Imported",
+            cues: [Cue(values: ["Walk in", "Rock"], timerValue: "", isStruckThrough: true)],
+            columns: [Column(name: "Description", width: 200), Column(name: "Audio", width: 100)]
+        )
+
+        let merged = CueCSVCodec.mergedStack(existing: existing, imported: imported)
+
+        XCTAssertEqual(merged.name, "BOS Keynote")
+        XCTAssertEqual(merged.columns.map(\.name), ["#", "Description", "Audio"])
+        XCTAssertEqual(merged.cues.count, 2)
+        XCTAssertEqual(merged.cues[0].values, ["100", "Doors", ""])
+        XCTAssertEqual(merged.cues[1].values, ["", "Walk in", "Rock"])
+        XCTAssertEqual(merged.cues[1].isStruckThrough, true)
+    }
 }

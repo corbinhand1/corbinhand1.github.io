@@ -41,14 +41,12 @@ struct TopSectionView: View {
     /// Shared height for all three clock panels so they stay aligned.
     private var clockPanelHeight: CGFloat {
         let fontSize = settingsManager.settings.clockFontSize
-        // caption + spacing + button row + padding (single button row since layout change)
-        let base: CGFloat = fontSize + 60
-        let playlistExtra: CGFloat = dataSyncManager.countdownPlaylist.entries.isEmpty ? 0 : 18
-        return base + playlistExtra
+        let playlistExtra: CGFloat = dataSyncManager.countdownPlaylist.entries.isEmpty ? 0 : 26
+        return fontSize + 96 + playlistExtra
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 20) {
+        HStack(alignment: .center, spacing: 16) {
             // Timer displays in horizontal row
             currentTimeView
             countdownView(time: countdownTime, running: countdownRunning)
@@ -64,7 +62,7 @@ struct TopSectionView: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
         .background(Color.black.opacity(0.8))
         .cornerRadius(20)
         .shadow(color: settingsManager.settings.fontColor.opacity(0.3), radius: 10, x: 0, y: 5)
@@ -184,7 +182,9 @@ struct TopSectionView: View {
 
     private var currentTimeView: some View {
         timeBox {
-            VStack(alignment: .center, spacing: 4) {
+            VStack(spacing: 8) {
+                Spacer(minLength: 0)
+
                 Text(dateFormatter.string(from: currentTime).uppercased())
                     .font(.custom("Digital-7Mono", size: settingsManager.settings.clockFontSize * 0.4))
                     .foregroundColor(settingsManager.settings.dateTimeColor)
@@ -200,17 +200,21 @@ struct TopSectionView: View {
                         .font(.custom("Digital-7Mono", size: settingsManager.settings.clockFontSize / 2))
                 }
                 .foregroundColor(settingsManager.settings.dateTimeColor)
+
+                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .center)
         }
     }
 
     private func countdownView(time: Int, running: Bool) -> some View {
         timeBox {
-            VStack(alignment: .center, spacing: 4) {
+            VStack(spacing: 8) {
                 Text("Countdown")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.7))
+
+                Spacer(minLength: 0)
+
                 if isEditingCountdown {
                     TextField("", text: $editableCountdownTime, onCommit: {
                         if let newTime = parseTimeString(editableCountdownTime) {
@@ -231,6 +235,9 @@ struct TopSectionView: View {
                             isEditingCountdown = true
                         }
                 }
+
+                Spacer(minLength: 0)
+
                 HStack(spacing: 10) {
                     TimerButton(title: "Start", action: startCountdownTimer)
                     TimerButton(title: "Pause", action: pauseCountdownTimer)
@@ -244,14 +251,12 @@ struct TopSectionView: View {
 
     private func countdownToTimeView() -> some View {
         timeBox {
-            VStack(alignment: .center, spacing: 4) {
-                // Countdown to time with label
+            VStack(spacing: 8) {
                 HStack(spacing: 4) {
                     Text("Countdown to \(targetTimeString.isEmpty ? "00:00:00" : targetTimeString)")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.7))
-                    
-                    // Show label if available
+
                     if let currentIdx = dataSyncManager.countdownPlaylist.currentIndex,
                        currentIdx < dataSyncManager.countdownPlaylist.entries.count,
                        let label = dataSyncManager.countdownPlaylist.entries[currentIdx].label,
@@ -261,24 +266,24 @@ struct TopSectionView: View {
                             .foregroundColor(.white.opacity(0.6))
                     }
                 }
+                .lineLimit(1)
+
+                Spacer(minLength: 0)
+
                 if isEditingCountdownToTime {
                     VStack(spacing: 4) {
                         TextField("HH:mm:ss", text: $targetTimeString, onCommit: {
-                            // If playlist has current entry, update it in DataSyncManager
                             if let currentIdx = dataSyncManager.countdownPlaylist.currentIndex,
                                currentIdx < dataSyncManager.countdownPlaylist.entries.count {
-                                // Update the playlist entry in DataSyncManager
                                 let currentEntry = dataSyncManager.countdownPlaylist.entries[currentIdx]
                                 dataSyncManager.updatePlaylistEntry(
                                     at: currentIdx,
                                     timeString: targetTimeString,
                                     label: currentEntry.label
                                 )
-                                // Sync the updated playlist to timer server
                                 timerServer.syncPlaylistState(dataSyncManager.countdownPlaylist)
                             }
-                            
-                            // Set the countdown target time
+
                             let command = TimerCommand(action: "setCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: targetTimeString)
                             timerServer.executeCommand(command)
                             isEditingCountdownToTime = false
@@ -298,12 +303,10 @@ struct TopSectionView: View {
                         .font(.custom("Digital-7Mono", size: settingsManager.settings.clockFontSize))
                         .foregroundColor(countUpRunning ? settingsManager.settings.countdownColor : settingsManager.settings.countdownColor.opacity(0.4))
                         .onTapGesture {
-                            // If playlist has current entry, get that entry's time
                             if let currentIdx = dataSyncManager.countdownPlaylist.currentIndex,
                                currentIdx < dataSyncManager.countdownPlaylist.entries.count {
                                 targetTimeString = dataSyncManager.countdownPlaylist.entries[currentIdx].timeString
                             } else {
-                                // Otherwise use current target time or default
                                 updateTargetTimeString()
                                 if targetTimeString.isEmpty {
                                     targetTimeString = "10:00:00"
@@ -312,14 +315,16 @@ struct TopSectionView: View {
                             isEditingCountdownToTime = true
                         }
                 }
+
+                Spacer(minLength: 0)
+
                 HStack(spacing: 10) {
                     TimerButton(title: "Start", action: startCountdownToTime)
                     TimerButton(title: "Pause", action: pauseCountdownToTime, isEnabled: countUpRunning)
                     TimerButton(title: "Next", action: nextPlaylistEntry, isEnabled: hasNextPlaylistEntry)
                     TimerButton(title: "Playlist", action: { showPlaylistEditor = true })
                 }
-                
-                // Tiny playlist bar at bottom
+
                 if !dataSyncManager.countdownPlaylist.entries.isEmpty {
                     GeometryReader { geometry in
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -340,7 +345,7 @@ struct TopSectionView: View {
                             .frame(minWidth: geometry.size.width)
                         }
                     }
-                    .frame(height: 18)
+                    .frame(height: 22)
                 }
             }
         }
@@ -378,7 +383,9 @@ struct TopSectionView: View {
     
     private var syncButton: some View {
         Button(action: {
-            // Trigger sync to GitHub Pages
+            // Commit any in-progress cell edit before publishing.
+            NSApp.keyWindow?.makeFirstResponder(nil)
+
             websiteSyncManager.syncCueData(
                 cueStacks: dataSyncManager.cueStacks,
                 selectedCueStackIndex: dataSyncManager.selectedCueStackIndex,
@@ -478,9 +485,9 @@ struct TopSectionView: View {
 
     private func timeBox<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .frame(maxWidth: .infinity, minHeight: clockPanelHeight, maxHeight: clockPanelHeight, alignment: .top)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, minHeight: clockPanelHeight, maxHeight: clockPanelHeight)
             .background(settingsManager.settings.backgroundColor.opacity(0.2))
             .cornerRadius(15)
     }
@@ -586,7 +593,7 @@ struct PlaylistMiniCard: View {
             .padding(.horizontal, 3)
             .padding(.vertical, 1)
             .frame(maxWidth: .infinity)
-            .contentShape(Rectangle()) // Make entire area tappable
+            .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
         .background(isCurrent ? Color.accentColor.opacity(0.25) : Color.white.opacity(0.08))

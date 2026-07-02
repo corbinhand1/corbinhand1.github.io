@@ -5,31 +5,19 @@
 //  Phase 3 of the file-safety audit.
 //
 //  After every successful write through `DocumentStore.save`, the verified
-//  bytes are fanned out to multiple, deliberately-independent backup tiers
-//  so a single failure (iCloud rolling back a version, a sync engine
-//  corrupting a file, the user accidentally deleting a backup) cannot
-//  destroy every copy.
+//  bytes are written to two backup destinations:
 //
-//  Tier 2 — sibling backup
-//      <main file directory>/<stem>.backup.<ext>
-//      where <ext> matches the main file (.cuestack or .json)
-//      Atomic + coordinated. Replaced after every successful main save.
-//      Visible in Finder so the user can drag/copy it manually.
+//  Desktop — ~/Desktop/Cue to Cue Backups/<stem>.backup.<ext>
+//      One latest copy per document, replaced after every successful save.
+//      Easy to find on the Desktop.
 //
-//  Tier 3 — sibling history
-//      <main file directory>/<stem>.backups/<UTC timestamp>.<ext>
-//      Same volume as the main file. Rotated on a 50-file / 200 MB budget,
-//      whichever hits first. Snapshot files are chmod'd 0444 after write
-//      so accidental in-place edits are refused by the OS.
+//  Library — ~/Library/Application Support/Cue to Cue/Backups/<stem>.backup.<ext>
+//      One latest copy per document in Cue to Cue's backup library.
+//      Survives if you move or rename the document file.
 //
-//  Tier 4 — Application Support history
-//      ~/Library/Application Support/Cue to Cue/Backups/<stem>/<timestamp>.<ext>
-//      Plus a Manifest.json with sha256 + byte-size + timestamp for every
-//      snapshot. Lives on the local SSD outside iCloud so a syncing
-//      catastrophe cannot reach it. This is the iCloud-went-sideways
-//      lifeline.
+//  Older sibling/history backups next to documents are no longer created,
+//  but remain discoverable for restore.
 //
-//  All tiers:
 //      - Atomic write (`Data.WritingOptions = [.atomic]`).
 //      - NSFileCoordinator-coordinated writes.
 //      - Encode-once. The exact bytes that just verified for the main
@@ -122,22 +110,10 @@ final class BackupManager: @unchecked Sendable {
 
     // MARK: - Tunables
 
-    /// Maximum number of Tier 3 (sibling history) files to keep per document.
-    var siblingHistoryCountCap: Int = 50
+    /// Folder on the Desktop that holds the latest backup for each document.
+    var desktopBackupFolderName: String = "Cue to Cue Backups"
 
-    /// Maximum total bytes of Tier 3 (sibling history) per document.
-    var siblingHistoryByteCap: Int64 = 200 * 1024 * 1024  // 200 MB
-
-    /// Tier 4 retention: most recent N + earliest of each of the last D days.
-    var appSupportRecentCap: Int = 50
-    var appSupportDailyDays: Int = 30
-
-    /// File mode applied to rotated history files so accidents can't
-    /// overwrite them in place.
-    var rotatedFileMode: UInt16 = 0o444
-
-    /// Folder name suffix for Tier 3 sibling history. Phase 3 uses
-    /// `<stem>.backups`.
+    /// Folder name suffix for legacy sibling history folders (restore only).
     var siblingHistoryFolderSuffix: String = "backups"
 
     // MARK: - Dependencies
@@ -145,14 +121,6 @@ final class BackupManager: @unchecked Sendable {
     private let fileManager = FileManager.default
     private let coordinator = NSFileCoordinator(filePresenter: nil)
     private let queue = DispatchQueue(label: "com.cuetocue.backups", qos: .utility)
-
-    private let isoTimestampFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd_HH-mm-ss"
-        f.timeZone = TimeZone(secondsFromGMT: 0)
-        return f
-    }()
 
     private init() {}
 
@@ -190,149 +158,47 @@ final class BackupManager: @unchecked Sendable {
         // original data loss. Belt-and-braces: DocumentStore.save also
         // refuses, but BackupManager checks independently.
         if savedData.cueStacks.isEmpty {
-            results.append(TierResult(tier: "Sibling", url: nil, succeeded: false, error: .empty))
-            results.append(TierResult(tier: "SiblingHistory", url: nil, succeeded: false, error: .empty))
-            results.append(TierResult(tier: "AppSupportHistory", url: nil, succeeded: false, error: .empty))
+            results.append(TierResult(tier: "Desktop", url: nil, succeeded: false, error: .empty))
+            results.append(TierResult(tier: "Library", url: nil, succeeded: false, error: .empty))
             return Report(writtenCount: 0, totalCount: results.count, tiers: results)
         }
 
-        // Tier 2 — sibling backup
-        results.append(writeSibling(verifiedData: verifiedData, mainFileURL: mainFileURL))
-
-        // Tier 3 — sibling history
-        results.append(writeSiblingHistory(verifiedData: verifiedData, mainFileURL: mainFileURL))
-
-        // Tier 4 — Application Support history (with manifest)
-        results.append(writeAppSupportHistory(verifiedData: verifiedData, mainFileURL: mainFileURL))
+        results.append(writeDesktopBackup(verifiedData: verifiedData, mainFileURL: mainFileURL))
+        results.append(writeLibraryBackup(verifiedData: verifiedData, mainFileURL: mainFileURL))
 
         let written = results.filter { $0.succeeded }.count
         return Report(writtenCount: written, totalCount: results.count, tiers: results)
     }
 
-    // MARK: - Tier 2 — sibling backup
+    // MARK: - Desktop backup
 
-    private func writeSibling(verifiedData: Data, mainFileURL: URL) -> TierResult {
-        let tier = "Sibling"
-        let parent = mainFileURL.deletingLastPathComponent()
-        let stem = mainFileURL.deletingPathExtension().lastPathComponent
-        let payloadExt = backupPayloadExtension(for: mainFileURL)
-        let dst = siblingBackupURL(for: mainFileURL)
-
-        // Collision check: if a file is at the destination, only overwrite
-        // it if it is one of OUR backups (decodes as SavedData). Otherwise
-        // we step around the user's file by appending " 1", " 2", etc.
-        let safeDst: URL
-        if fileManager.fileExists(atPath: dst.path) {
-            if let data = try? Data(contentsOf: dst),
-               (try? JSONDecoder().decode(SavedData.self, from: data)) != nil {
-                safeDst = dst
-            } else {
-                // Don't overwrite a non-CueToCue file with our backup name.
-                let alt = nextNonCollidingURL(stem: "\(stem) Backup", extension: payloadExt, in: parent)
-                NSLog("BackupManager: \(dst.path) exists but is not a Cue to Cue backup; using \(alt.path) instead.")
-                safeDst = alt
-            }
-        } else {
-            safeDst = dst
-        }
-
+    private func writeDesktopBackup(verifiedData: Data, mainFileURL: URL) -> TierResult {
+        let tier = "Desktop"
         do {
+            let dst = try desktopBackupURL(for: mainFileURL)
+            try ensureDirectory(dst.deletingLastPathComponent())
+            let safeDst = safeReplacementURL(for: dst, mainFileURL: mainFileURL)
             try writeAtomicCoordinated(verifiedData, to: safeDst)
             try verifyDecodes(at: safeDst)
             return TierResult(tier: tier, url: safeDst, succeeded: true, error: nil)
         } catch let e as BackupError {
-            return TierResult(tier: tier, url: safeDst, succeeded: false, error: e)
-        } catch {
-            return TierResult(tier: tier, url: safeDst, succeeded: false, error: .writeFailed(tier: tier, underlying: error))
-        }
-    }
-
-    // MARK: - Tier 3 — sibling history
-
-    private func writeSiblingHistory(verifiedData: Data, mainFileURL: URL) -> TierResult {
-        let tier = "SiblingHistory"
-        let parent = mainFileURL.deletingLastPathComponent()
-        let stem = mainFileURL.deletingPathExtension().lastPathComponent
-        let payloadExt = backupPayloadExtension(for: mainFileURL)
-        let dir = parent.appendingPathComponent("\(stem).\(siblingHistoryFolderSuffix)", isDirectory: true)
-        do {
-            try ensureDirectory(dir)
-            let stamp = isoTimestampFormatter.string(from: Date())
-            let dst = uniqueTimestampURL(in: dir, stamp: stamp, ext: payloadExt)
-
-            try writeAtomicCoordinated(verifiedData, to: dst)
-            try verifyDecodes(at: dst)
-            // Make this snapshot read-only so the OS refuses accidental
-            // in-place edits / atomic-write replacements by other tools.
-            applyReadOnly(to: dst)
-
-            // Rotate this folder according to count + byte budget.
-            rotateSiblingHistory(in: dir, keepingMostRecent: dst)
-
-            return TierResult(tier: tier, url: dst, succeeded: true, error: nil)
-        } catch let e as BackupError {
             return TierResult(tier: tier, url: nil, succeeded: false, error: e)
         } catch {
             return TierResult(tier: tier, url: nil, succeeded: false, error: .writeFailed(tier: tier, underlying: error))
         }
     }
 
-    private func rotateSiblingHistory(in dir: URL, keepingMostRecent newest: URL) {
-        guard let entries = listDatedFiles(in: dir) else { return }
-        let sortedNewestFirst = entries.sorted { $0.date > $1.date }
+    // MARK: - Library backup
 
-        // Apply count cap.
-        var keep = Array(sortedNewestFirst.prefix(siblingHistoryCountCap))
-
-        // Apply byte cap by walking newest → oldest, dropping anything that
-        // pushes the running total past the cap.
-        var running: Int64 = 0
-        keep = keep.filter { entry in
-            let size = sizeOfFile(at: entry.url)
-            if running + size <= siblingHistoryByteCap {
-                running += size
-                return true
-            }
-            return false
-        }
-
-        // Always keep the file we just wrote.
-        if !keep.contains(where: { $0.url == newest }),
-           let newestEntry = sortedNewestFirst.first(where: { $0.url == newest }) {
-            keep.append(newestEntry)
-        }
-
-        let keepSet = Set(keep.map { $0.url })
-        for entry in sortedNewestFirst where !keepSet.contains(entry.url) {
-            // Files are read-only; clear the bit before unlink.
-            applyReadWrite(to: entry.url)
-            try? fileManager.removeItem(at: entry.url)
-        }
-    }
-
-    // MARK: - Tier 4 — Application Support history (with manifest)
-
-    private func writeAppSupportHistory(verifiedData: Data, mainFileURL: URL) -> TierResult {
-        let tier = "AppSupportHistory"
+    private func writeLibraryBackup(verifiedData: Data, mainFileURL: URL) -> TierResult {
+        let tier = "Library"
         do {
-            let stem = mainFileURL.deletingPathExtension().lastPathComponent
-            let safeStem = stem.isEmpty ? "_Untitled" : stem
-            let dir = try appSupportBackupsDirectory().appendingPathComponent(safeStem, isDirectory: true)
+            let dir = try appSupportBackupsDirectory()
+            let dst = libraryBackupURL(for: mainFileURL, in: dir)
             try ensureDirectory(dir)
-            let stamp = isoTimestampFormatter.string(from: Date())
-            let payloadExt = backupPayloadExtension(for: mainFileURL)
-            let dst = uniqueTimestampURL(in: dir, stamp: stamp, ext: payloadExt)
-
             try writeAtomicCoordinated(verifiedData, to: dst)
             try verifyDecodes(at: dst)
-
-            // Update manifest with sha256 + size before we rotate. The
-            // manifest survives rotations and tells us, on demand, whether
-            // any snapshot has silently bit-rotted.
             updateManifest(in: dir, addingFile: dst, data: verifiedData)
-
-            applyReadOnly(to: dst)
-            rotateAppSupportHistory(in: dir, keepingMostRecent: dst)
             return TierResult(tier: tier, url: dst, succeeded: true, error: nil)
         } catch let e as BackupError {
             return TierResult(tier: tier, url: nil, succeeded: false, error: e)
@@ -341,36 +207,23 @@ final class BackupManager: @unchecked Sendable {
         }
     }
 
-    private func rotateAppSupportHistory(in dir: URL, keepingMostRecent newest: URL) {
-        guard let entries = listDatedFiles(in: dir) else { return }
-        let sortedNewestFirst = entries.sorted { $0.date > $1.date }
-
-        // Most recent N
-        let recent = Set(sortedNewestFirst.prefix(appSupportRecentCap).map { $0.url })
-
-        // Earliest snapshot of each of the last D calendar days
-        let calendar = Calendar(identifier: .gregorian)
-        let cutoff = calendar.date(byAdding: .day, value: -appSupportDailyDays, to: Date()) ?? .distantPast
-        var earliestByDay: [Date: (url: URL, date: Date)] = [:]
-        for entry in sortedNewestFirst where entry.date >= cutoff {
-            let day = calendar.startOfDay(for: entry.date)
-            if let existing = earliestByDay[day] {
-                if entry.date < existing.date { earliestByDay[day] = entry }
-            } else {
-                earliestByDay[day] = entry
+    private func safeReplacementURL(for dst: URL, mainFileURL: URL) -> URL {
+        if fileManager.fileExists(atPath: dst.path) {
+            if let data = try? Data(contentsOf: dst),
+               (try? JSONDecoder().decode(SavedData.self, from: data)) != nil {
+                return dst
             }
+            let parent = dst.deletingLastPathComponent()
+            let stem = mainFileURL.deletingPathExtension().lastPathComponent
+            let ext = backupPayloadExtension(for: mainFileURL)
+            let alt = nextNonCollidingURL(stem: "\(stem) Backup", extension: ext, in: parent)
+            NSLog("BackupManager: \(dst.path) exists but is not a Cue to Cue backup; using \(alt.path) instead.")
+            return alt
         }
-        let dailyKept = Set(earliestByDay.values.map { $0.url })
-
-        var keep = recent.union(dailyKept)
-        keep.insert(newest)
-
-        for entry in sortedNewestFirst where !keep.contains(entry.url) {
-            applyReadWrite(to: entry.url)
-            try? fileManager.removeItem(at: entry.url)
-            removeManifestEntry(in: dir, fileURL: entry.url)
-        }
+        return dst
     }
+
+    // Legacy tier writers removed — sibling and sibling-history backups are no longer created.
 
     // MARK: - Manifest
 
@@ -438,31 +291,34 @@ final class BackupManager: @unchecked Sendable {
     func discoverSnapshots(forMainFile mainFileURL: URL?) -> [Snapshot] {
         var out: [Snapshot] = []
 
-        // Tier 2 + Tier 3 require the main file URL.
         if let mainURL = mainFileURL {
-            let parent = mainURL.deletingLastPathComponent()
-            let stem = mainURL.deletingPathExtension().lastPathComponent
+            let stem = safeDocumentStem(for: mainURL)
 
-            // Tier 2 (sibling backup) — current extension plus legacy .backup.json
-            let siblingURLs = siblingBackupURLs(for: mainURL)
-            for sibling in siblingURLs where fileManager.fileExists(atPath: sibling.path) {
-                out.append(makeSnapshot(at: sibling, tierLabel: "Sibling Backup", manifestDir: nil))
+            if let desktopURL = try? desktopBackupURL(for: mainURL),
+               fileManager.fileExists(atPath: desktopURL.path) {
+                out.append(makeSnapshot(at: desktopURL, tierLabel: "Desktop Backup", manifestDir: nil))
             }
 
-            // Tier 3 (sibling history)
+            if let libraryRoot = try? appSupportBackupsDirectory() {
+                let libraryURL = libraryBackupURL(for: mainURL, in: libraryRoot)
+                if fileManager.fileExists(atPath: libraryURL.path) {
+                    out.append(makeSnapshot(at: libraryURL, tierLabel: "Application Support", manifestDir: libraryRoot))
+                }
+
+                let legacyDir = libraryRoot.appendingPathComponent(stem, isDirectory: true)
+                if fileManager.fileExists(atPath: legacyDir.path) {
+                    out.append(contentsOf: listSnapshots(in: legacyDir, tierLabel: "Application Support (older)", manifestDir: legacyDir))
+                }
+            }
+
+            // Legacy backups next to the document (no longer created).
+            let parent = mainURL.deletingLastPathComponent()
+            for sibling in siblingBackupURLs(for: mainURL) where fileManager.fileExists(atPath: sibling.path) {
+                out.append(makeSnapshot(at: sibling, tierLabel: "Legacy — next to file", manifestDir: nil))
+            }
             let historyDir = parent.appendingPathComponent("\(stem).\(siblingHistoryFolderSuffix)", isDirectory: true)
             if fileManager.fileExists(atPath: historyDir.path) {
-                out.append(contentsOf: listSnapshots(in: historyDir, tierLabel: "Sibling History", manifestDir: nil))
-            }
-        }
-
-        // Tier 4 (Application Support history) — works even without the main file
-        if let mainURL = mainFileURL {
-            let stem = mainURL.deletingPathExtension().lastPathComponent
-            let safeStem = stem.isEmpty ? "_Untitled" : stem
-            if let dir = try? appSupportBackupsDirectory().appendingPathComponent(safeStem, isDirectory: true),
-               fileManager.fileExists(atPath: dir.path) {
-                out.append(contentsOf: listSnapshots(in: dir, tierLabel: "Application Support", manifestDir: dir))
+                out.append(contentsOf: listSnapshots(in: historyDir, tierLabel: "Legacy — nearby history", manifestDir: nil))
             }
         }
 
@@ -475,12 +331,18 @@ final class BackupManager: @unchecked Sendable {
     func discoverAllAppSupportSnapshots() -> [Snapshot] {
         var out: [Snapshot] = []
         guard let root = try? appSupportBackupsDirectory(),
-              let stems = try? fileManager.contentsOfDirectory(at: root, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else {
+              let entries = try? fileManager.contentsOfDirectory(at: root, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]) else {
             return out
         }
-        for stemDir in stems where (try? stemDir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
-            let label = "App Support — \(stemDir.lastPathComponent)"
-            out.append(contentsOf: listSnapshots(in: stemDir, tierLabel: label, manifestDir: stemDir))
+
+        for entry in entries {
+            let isDirectory = (try? entry.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+            if isDirectory {
+                let label = "App Support — \(entry.lastPathComponent)"
+                out.append(contentsOf: listSnapshots(in: entry, tierLabel: label, manifestDir: entry))
+            } else if isBackupSnapshotFile(entry) {
+                out.append(makeSnapshot(at: entry, tierLabel: "Application Support", manifestDir: root))
+            }
         }
         return out.sorted { $0.date > $1.date }
     }
@@ -537,17 +399,20 @@ final class BackupManager: @unchecked Sendable {
     /// Best directory to reveal in Finder for the current document.
     /// Order of preference: sibling history dir → app support dir → app support root.
     func revealableBackupURL(forMainFile mainFileURL: URL?) -> URL? {
-        if let mainURL = mainFileURL {
-            let parent = mainURL.deletingLastPathComponent()
-            let stem = mainURL.deletingPathExtension().lastPathComponent
-            let history = parent.appendingPathComponent("\(stem).\(siblingHistoryFolderSuffix)", isDirectory: true)
-            if fileManager.fileExists(atPath: history.path) { return history }
-            for sibling in siblingBackupURLs(for: mainURL) where fileManager.fileExists(atPath: sibling.path) {
-                return sibling
+        if let desktop = try? desktopBackupsDirectory(),
+           fileManager.fileExists(atPath: desktop.path) {
+            return desktop
+        }
+        if let mainURL = mainFileURL,
+           let libraryRoot = try? appSupportBackupsDirectory() {
+            let libraryURL = libraryBackupURL(for: mainURL, in: libraryRoot)
+            if fileManager.fileExists(atPath: libraryURL.path) {
+                return libraryURL
             }
-            if let stemDir = try? appSupportBackupsDirectory().appendingPathComponent(stem, isDirectory: true),
-               fileManager.fileExists(atPath: stemDir.path) {
-                return stemDir
+            let stem = safeDocumentStem(for: mainURL)
+            let legacyDir = libraryRoot.appendingPathComponent(stem, isDirectory: true)
+            if fileManager.fileExists(atPath: legacyDir.path) {
+                return legacyDir
             }
         }
         return try? appSupportBackupsDirectory()
@@ -589,21 +454,37 @@ final class BackupManager: @unchecked Sendable {
 
     // MARK: - Internals: file mode
 
-    private func applyReadOnly(to url: URL) {
-        let attrs: [FileAttributeKey: Any] = [.posixPermissions: NSNumber(value: rotatedFileMode)]
-        do {
-            try fileManager.setAttributes(attrs, ofItemAtPath: url.path)
-        } catch {
-            NSLog("BackupManager: chmod 0\(String(rotatedFileMode, radix: 8)) failed for \(url.path): \(error.localizedDescription)")
-        }
-    }
-
     private func applyReadWrite(to url: URL) {
         let attrs: [FileAttributeKey: Any] = [.posixPermissions: NSNumber(value: UInt16(0o644))]
         try? fileManager.setAttributes(attrs, ofItemAtPath: url.path)
     }
 
     // MARK: - Internals: directories + paths
+
+    private func safeDocumentStem(for mainFileURL: URL) -> String {
+        let stem = mainFileURL.deletingPathExtension().lastPathComponent
+        return stem.isEmpty ? "_Untitled" : stem
+    }
+
+    /// `~/Desktop/Cue to Cue Backups/`
+    func desktopBackupsDirectory() throws -> URL {
+        let desktop = fileManager.homeDirectoryForCurrentUser
+            .appendingPathComponent("Desktop", isDirectory: true)
+        let dir = desktop.appendingPathComponent(desktopBackupFolderName, isDirectory: true)
+        try ensureDirectory(dir)
+        return dir
+    }
+
+    func desktopBackupURL(for mainFileURL: URL) throws -> URL {
+        let dir = try desktopBackupsDirectory()
+        return libraryBackupURL(for: mainFileURL, in: dir)
+    }
+
+    func libraryBackupURL(for mainFileURL: URL, in dir: URL) -> URL {
+        let stem = safeDocumentStem(for: mainFileURL)
+        let ext = backupPayloadExtension(for: mainFileURL)
+        return dir.appendingPathComponent("\(stem).backup.\(ext)")
+    }
 
     /// Backup file extension mirrors the main document (.cuestack or .json).
     private func backupPayloadExtension(for mainFileURL: URL) -> String {
@@ -659,17 +540,6 @@ final class BackupManager: @unchecked Sendable {
         return url
     }
 
-    private func uniqueTimestampURL(in dir: URL, stamp: String, ext: String) -> URL {
-        var candidate = dir.appendingPathComponent("\(stamp).\(ext)")
-        var counter = 1
-        while fileManager.fileExists(atPath: candidate.path) {
-            candidate = dir.appendingPathComponent("\(stamp)-\(counter).\(ext)")
-            counter += 1
-            if counter > 1000 { break }
-        }
-        return candidate
-    }
-
     private func nextNonCollidingURL(stem: String, extension ext: String, in dir: URL) -> URL {
         var candidate = dir.appendingPathComponent("\(stem).\(ext)")
         var counter = 1
@@ -680,25 +550,66 @@ final class BackupManager: @unchecked Sendable {
         }
         return candidate
     }
+}
 
-    private func listDatedFiles(in dir: URL) -> [(url: URL, date: Date)]? {
-        guard let urls = try? fileManager.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles]) else {
-            return nil
+// MARK: - Restore UI helpers
+
+extension BackupManager.Snapshot {
+    var displayFileName: String { url.lastPathComponent }
+
+    var shortenedPath: String {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        if url.path.hasPrefix(home + "/") {
+            return "~/" + url.path.dropFirst(home.count + 1)
         }
-        return urls
-            .filter(isBackupSnapshotFile)
-            .compactMap { u in
-                let values = try? u.resourceValues(forKeys: [.contentModificationDateKey])
-                guard let date = values?.contentModificationDate else { return nil }
-                return (u, date)
-            }
+        return url.path
     }
 
-    private func sizeOfFile(at url: URL) -> Int64 {
-        let attrs = (try? fileManager.attributesOfItem(atPath: url.path)) ?? [:]
-        if let n = attrs[.size] as? NSNumber { return n.int64Value }
-        if let i = attrs[.size] as? Int64 { return i }
-        if let i = attrs[.size] as? Int { return Int64(i) }
-        return 0
+    var shortenedFolderPath: String {
+        let folder = url.deletingLastPathComponent()
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        if folder.path.hasPrefix(home + "/") {
+            return "~/" + folder.path.dropFirst(home.count + 1)
+        }
+        return folder.path
+    }
+
+    var locationTitle: String {
+        switch tierLabel {
+        case "Desktop Backup":
+            return "Desktop backup folder"
+        case "Application Support", "Application Support (older)":
+            return "App backup library"
+        case "Legacy — next to file":
+            return "Legacy — next to file"
+        case "Legacy — nearby history":
+            return "Legacy — nearby history"
+        default:
+            if tierLabel.hasPrefix("App Support —") {
+                return "App backup library (older)"
+            }
+            return tierLabel
+        }
+    }
+
+    var locationExplanation: String {
+        switch tierLabel {
+        case "Desktop Backup":
+            return "Latest copy in ~/Desktop/Cue to Cue Backups/. Replaced each time you save."
+        case "Application Support":
+            return "Latest copy in Cue to Cue's backup library under ~/Library/Application Support/. Kept even if you move the document."
+        case "Application Support (older)":
+            return "Older timestamped copy from a previous backup scheme. Kept for restore only."
+        case "Legacy — next to file":
+            return "Older backup saved next to your document. Cue to Cue no longer writes these."
+        case "Legacy — nearby history":
+            return "Older backups from a .backups folder next to your document. Cue to Cue no longer writes these."
+        default:
+            if tierLabel.hasPrefix("App Support —") {
+                let documentName = tierLabel.replacingOccurrences(of: "App Support — ", with: "")
+                return "Older backup library folder for «\(documentName)»."
+            }
+            return "Backup file saved on disk."
+        }
     }
 }

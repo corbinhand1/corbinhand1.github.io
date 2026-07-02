@@ -96,51 +96,87 @@ struct HTTPRequest {
     let body: Data?
     
     init?(from data: Data) {
-        guard let requestString = String(data: data, encoding: .utf8) else {
+        guard let headerTerminator = data.range(of: Data([0x0D, 0x0A, 0x0D, 0x0A])) else {
             return nil
         }
-        
-        let lines = requestString.components(separatedBy: "\r\n")
+
+        let headerData = data.subdata(in: 0..<headerTerminator.lowerBound)
+        guard let headerString = String(data: headerData, encoding: .utf8) else {
+            return nil
+        }
+
+        let lines = headerString.components(separatedBy: "\r\n")
         guard let requestLine = lines.first else { return nil }
-        
+
         let requestComponents = requestLine.components(separatedBy: " ")
-        guard requestComponents.count >= 3 else { return nil }
-        
+        guard requestComponents.count >= 2 else { return nil }
+
         guard let method = HTTPMethod(rawValue: requestComponents[0]) else { return nil }
-        let path = requestComponents[1]
-        
-        // Parse headers
+        let path = requestComponents[1].components(separatedBy: "?").first ?? requestComponents[1]
+
         var headers: [String: String] = [:]
-        var bodyStartIndex = 0
-        
-        for (index, line) in lines.enumerated() {
-            if line.isEmpty {
-                bodyStartIndex = index + 1
-                break
-            }
-            
+        var contentLength = 0
+
+        for line in lines.dropFirst() {
+            if line.isEmpty { break }
+
             if line.contains(": ") {
                 let headerComponents = line.components(separatedBy: ": ")
                 if headerComponents.count >= 2 {
                     let key = headerComponents[0].lowercased()
                     let value = headerComponents[1...].joined(separator: ": ")
                     headers[key] = value
+                    if key == "content-length" {
+                        contentLength = Int(value.trimmingCharacters(in: .whitespaces)) ?? 0
+                    }
                 }
             }
         }
-        
-        // Parse body if present
+
+        let bodyStart = headerTerminator.upperBound
+        let expectedMessageLength = bodyStart + contentLength
+        guard data.count >= expectedMessageLength else { return nil }
+
         var body: Data?
-        if bodyStartIndex < lines.count {
-            let bodyLines = lines[bodyStartIndex...]
-            let bodyString = bodyLines.joined(separator: "\r\n")
-            body = bodyString.data(using: .utf8)
+        if contentLength > 0 {
+            body = data.subdata(in: bodyStart..<(bodyStart + contentLength))
         }
-        
+
         self.method = method
         self.path = path
         self.headers = headers
         self.body = body
+    }
+
+    /// Removes and returns the first complete HTTP message from `buffer`, if present.
+    static func extractNextCompleteMessage(from buffer: inout Data) -> Data? {
+        guard let headerTerminator = buffer.range(of: Data([0x0D, 0x0A, 0x0D, 0x0A])) else {
+            return nil
+        }
+
+        let headerData = buffer.subdata(in: 0..<headerTerminator.lowerBound)
+        guard let headerString = String(data: headerData, encoding: .utf8) else {
+            return nil
+        }
+
+        var contentLength = 0
+        for line in headerString.components(separatedBy: "\r\n").dropFirst() {
+            if line.isEmpty { break }
+            let lower = line.lowercased()
+            if lower.hasPrefix("content-length:") {
+                let value = line.dropFirst("content-length:".count)
+                    .trimmingCharacters(in: .whitespaces)
+                contentLength = Int(value) ?? 0
+                break
+            }
+        }
+
+        let messageLength = headerTerminator.upperBound + contentLength
+        guard buffer.count >= messageLength else { return nil }
+
+        let message = buffer.subdata(in: 0..<messageLength)
+        buffer.removeSubrange(0..<messageLength)
+        return message
     }
 }
 

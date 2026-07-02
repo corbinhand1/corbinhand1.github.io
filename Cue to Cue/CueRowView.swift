@@ -13,6 +13,7 @@ struct CueRowView: View {
     @Binding var columns: [Column]
     let index: Int
     let selectedIndex: Int?
+    let upNextIndex: Int?
     let selectedIndices: Set<Int>
     let fontSize: CGFloat
     let tableBackgroundColor: Color
@@ -22,6 +23,7 @@ struct CueRowView: View {
     let onPaste: (Int) -> Void
     let getHighlightColor: (Cue) -> Color
     let saveState: () -> Void
+    let updateWebClients: () -> Void
     let onSelect: (Int, Bool, Bool) -> Void // (index, isShiftDown, isCommandDown)
     let onAddCueAbove: (Int) -> Void
     let onAddCueBelow: (Int) -> Void
@@ -154,6 +156,7 @@ struct CueRowView: View {
     private func toggleStrikethrough() {
         cue.isStruckThrough.toggle()
         saveState()
+        updateWebClients()
     }
 
     // MARK: - Row Appearance Helpers
@@ -165,8 +168,8 @@ struct CueRowView: View {
         } else if index == selectedIndex {
             // Active row
             return Color.green.opacity(0.1)
-        } else if let selected = selectedIndex, index == selected + 1 {
-            // Up next row
+        } else if let upNextIndex, index == upNextIndex {
+            // Up next row (skips struck-through cues)
             return Color.yellow.opacity(0.1)
         } else {
             return tableBackgroundColor
@@ -174,7 +177,7 @@ struct CueRowView: View {
     }
 
     private func nsFontForCell(columnIndex: Int) -> NSFont {
-        if let selected = selectedIndex, index == selected + 1 {
+        if let upNextIndex, index == upNextIndex {
             return NSFont.boldSystemFont(ofSize: fontSize)
         } else {
             return NSFont.systemFont(ofSize: fontSize)
@@ -182,7 +185,7 @@ struct CueRowView: View {
     }
 
     private var nsFontForTimerCell: NSFont {
-        if let selected = selectedIndex, index == selected + 1 {
+        if let upNextIndex, index == upNextIndex {
             return NSFont.boldSystemFont(ofSize: fontSize)
         } else {
             return NSFont.systemFont(ofSize: fontSize)

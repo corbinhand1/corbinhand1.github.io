@@ -23,6 +23,11 @@ class ConnectionManager: ObservableObject {
     
     // Connection management - use serial queue for thread safety
     private let connectionQueue = DispatchQueue(label: "ConnectionManager.connectionQueue")
+    private var cleanupTimer: Timer?
+    private var monitoringTimer: Timer?
+    private var finishedConnections: Set<ObjectIdentifier> = []
+    private var requestBuffers: [ObjectIdentifier: Data] = [:]
+    private let maxConnectionsPerIPAddress = 4
     
     // Published properties for UI updates
     @Published var connectionStats: (active: Int, max: Int) = (0, 100)
@@ -48,18 +53,17 @@ class ConnectionManager: ObservableObject {
                 return
             }
             
-            // Check for duplicate connections from the same endpoint
+            // Limit parallel sockets from the same viewer IP. Browsers often open
+            // several TCP connections per tab; one viewer should not look like many.
             let connectionEndpoint = String(describing: connection.endpoint)
-            let existingConnections = self._activeConnections.filter { 
-                String(describing: $0.endpoint) == connectionEndpoint 
+            let ipAddress = NetworkUtilities.extractIPAddress(from: connectionEndpoint)
+            let connectionsFromSameIP = self._activeConnections.filter {
+                NetworkUtilities.extractIPAddress(from: String(describing: $0.endpoint)) == ipAddress
             }
-            
-            if existingConnections.count >= 1 {
+            if connectionsFromSameIP.count >= self.maxConnectionsPerIPAddress {
                 connection.cancel()
                 return
             }
-            
-            // Add connection to tracking arrays BEFORE setting up handlers
             self._activeConnections.append(connection)
             self._connectionRequestCounts[ObjectIdentifier(connection)] = 0
             self._connectionTimestamps[ObjectIdentifier(connection)] = Date()
@@ -104,28 +108,32 @@ class ConnectionManager: ObservableObject {
     }
     
     func cleanupConnection(_ connection: NWConnection) {
+        let connectionID = ObjectIdentifier(connection)
         connectionQueue.async { [weak self] in
             guard let self = self else { return }
+            guard self.finishedConnections.insert(connectionID).inserted else { return }
+
             if let index = self._activeConnections.firstIndex(where: { $0 === connection }) {
                 self._activeConnections.remove(at: index)
-                // Remove request count tracking
-                let id = ObjectIdentifier(connection)
-                let _ = self._connectionRequestCounts[id] ?? 0 // Track request count
-                let userAgent = self._connectionUserAgents[id] ?? "Unknown"
+                let userAgent = self._connectionUserAgents[connectionID] ?? "Unknown"
                 let ipAddress = NetworkUtilities.extractIPAddress(from: String(describing: connection.endpoint))
-                
-                // Clean up tracking data
-                self._connectionRequestCounts.removeValue(forKey: id)
-                self._connectionTimestamps.removeValue(forKey: id)
-                self._connectionUserAgents.removeValue(forKey: id)
-                
-                // Update client session
+
+                self._connectionRequestCounts.removeValue(forKey: connectionID)
+                self._connectionTimestamps.removeValue(forKey: connectionID)
+                self._connectionUserAgents.removeValue(forKey: connectionID)
+                self.requestBuffers.removeValue(forKey: connectionID)
+
                 self.removeConnectionFromSession(for: connection, ipAddress: ipAddress, userAgent: userAgent)
             }
-            // Update published properties safely
+
+            switch connection.state {
+            case .cancelled, .failed:
+                break
+            default:
+                connection.cancel()
+            }
             self.updatePublishedProperties()
         }
-        connection.cancel()
     }
     
     func incrementRequestCount(for connection: NWConnection) {
@@ -134,10 +142,7 @@ class ConnectionManager: ObservableObject {
             let id = ObjectIdentifier(connection)
             let currentCount = self._connectionRequestCounts[id] ?? 0
             self._connectionRequestCounts[id] = currentCount + 1
-            self._connectionTimestamps[id] = Date() // Update last seen time
-            
-            // Update published properties safely
-            self.updatePublishedProperties()
+            self._connectionTimestamps[id] = Date()
         }
     }
     
@@ -148,10 +153,10 @@ class ConnectionManager: ObservableObject {
             guard let self = self else { return }
             
             if let error = error {
-                // Only log and cleanup on actual errors, not cancellations
                 let nsError = error as NSError
-                if nsError.domain == "NSPOSIXErrorDomain" && nsError.code == 89 {
-                    // Operation canceled - this is normal, don't log as error
+                if nsError.domain == "NSPOSIXErrorDomain" && (nsError.code == 89 || nsError.code == 54) {
+                    // Canceled or reset by peer — normal when a browser closes a socket.
+                    self.cleanupConnection(connection)
                     return
                 }
                 print("❌ Error receiving request: \(error)")
@@ -159,18 +164,25 @@ class ConnectionManager: ObservableObject {
                 return
             }
             
-            guard let data = data else {
-                // No data but no error - this might be normal
+            guard let data = data, !data.isEmpty else {
                 return
             }
-            
-            // Process the request
-            self.processRequest(data, on: connection)
-            
-            // Increment request count for this connection
-            self.incrementRequestCount(for: connection)
-            
-            // After sending response, continue listening for more requests on the same connection
+
+            let connectionID = ObjectIdentifier(connection)
+            var buffer = self.requestBuffers[connectionID] ?? Data()
+            buffer.append(data)
+
+            while let requestData = HTTPRequest.extractNextCompleteMessage(from: &buffer) {
+                self.processRequest(requestData, on: connection)
+                self.incrementRequestCount(for: connection)
+            }
+
+            if buffer.isEmpty {
+                self.requestBuffers.removeValue(forKey: connectionID)
+            } else {
+                self.requestBuffers[connectionID] = buffer
+            }
+
             self.continueListening(on: connection)
         }
     }
@@ -231,7 +243,6 @@ class ConnectionManager: ObservableObject {
         
         // Check if this device was previously inactive and remove it from inactive list
         if let inactiveSession = _inactiveClientSessions[sessionKey] {
-            print("🔄 Device \(inactiveSession.deviceName) (\(ipAddress)) is back online - removing from inactive list")
             _inactiveClientSessions.removeValue(forKey: sessionKey)
         }
         
@@ -280,23 +291,23 @@ class ConnectionManager: ObservableObject {
     // MARK: - Cleanup and Monitoring
     
     func startConnectionCleanup() {
-        Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+        cleanupTimer?.invalidate()
+        cleanupTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
             self?.cleanupStaleConnections()
         }
     }
     
     func startConnectionMonitoring() {
-        Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
+        monitoringTimer?.invalidate()
+        monitoringTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
             self?.logConnectionStatus()
         }
     }
     
     private func logConnectionStatus() {
         let stats = getConnectionStats()
-        if stats.active > stats.max * 9 / 10 { // 90% of capacity
+        if stats.active > stats.max * 9 / 10 {
             print("⚠️ High connection usage: \(getConnectionDetails())")
-        } else if stats.active > 0 {
-            print("📊 Connection status: \(getConnectionDetails())")
         }
     }
     
@@ -394,6 +405,7 @@ class ConnectionManager: ObservableObject {
         
         // Capture the data we need
         let activeCount = _activeConnections.count
+        let viewerCount = _clientSessions.count
         let connections = _activeConnections
         let requestCounts = _connectionRequestCounts
         let timestamps = _connectionTimestamps
@@ -404,6 +416,18 @@ class ConnectionManager: ObservableObject {
             
             // Update connection stats
             self.connectionStats = (active: activeCount, max: self.maxConnections)
+
+            if viewerCount != LANLogState.lastLoggedViewerCount {
+                let previous = LANLogState.lastLoggedViewerCount
+                LANLogState.lastLoggedViewerCount = viewerCount
+                if viewerCount > 0 || previous > 0 {
+                    if activeCount == viewerCount {
+                        print("📊 LAN viewers: \(viewerCount)")
+                    } else {
+                        print("📊 LAN viewers: \(viewerCount) (\(activeCount) sockets)")
+                    }
+                }
+            }
             
             // Update detailed connection info
             self.detailedConnectionInfo = connections.enumerated().map { index, connection in
@@ -613,12 +637,23 @@ class ConnectionManager: ObservableObject {
     }
     
     func stop() {
-        // Close all active connections
+        cleanupTimer?.invalidate()
+        cleanupTimer = nil
+        monitoringTimer?.invalidate()
+        monitoringTimer = nil
+
         connectionQueue.async { [weak self] in
-            self?._activeConnections.forEach { connection in
-                connection.cancel()
+            guard let self = self else { return }
+            for connection in self._activeConnections {
+                switch connection.state {
+                case .cancelled, .failed:
+                    break
+                default:
+                    connection.cancel()
+                }
             }
-            self?._activeConnections.removeAll()
+            self._activeConnections.removeAll()
+            self.finishedConnections.removeAll()
         }
     }
 }

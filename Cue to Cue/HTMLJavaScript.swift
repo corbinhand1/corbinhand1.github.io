@@ -993,6 +993,21 @@ struct HTMLJavaScript {
             });
         }
 
+        function resolveUpNextCueIndex(data) {
+            if (typeof data.upNextCueIndex === 'number' && data.upNextCueIndex >= 0) {
+                return data.upNextCueIndex;
+            }
+            if (!data.cues || data.selectedCueIndex < 0) {
+                return -1;
+            }
+            for (let i = data.selectedCueIndex + 1; i < data.cues.length; i++) {
+                if (!data.cues[i].isStruckThrough) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
         function buildTable(data) {
             const table = document.getElementById('cueTable');
             const thead = table.querySelector('thead');
@@ -1030,13 +1045,17 @@ struct HTMLJavaScript {
             
             // Build body
             tbody.innerHTML = '';
+            const upNextCueIndex = resolveUpNextCueIndex(data);
             data.cues.forEach((cue, rowIndex) => {
                 const row = document.createElement('tr');
                 
                 if (rowIndex === data.selectedCueIndex) {
                     row.classList.add('selected');
-                } else if (rowIndex === data.selectedCueIndex + 1) {
+                } else if (upNextCueIndex >= 0 && rowIndex === upNextCueIndex) {
                     row.classList.add('next');
+                }
+                if (cue.isStruckThrough) {
+                    row.classList.add('struck-row');
                 }
                 
                 state.columns.forEach((col, colIndex) => {
@@ -1084,6 +1103,7 @@ struct HTMLJavaScript {
         function updateTableData(data) {
             const tbody = document.querySelector('#cueTable tbody');
             const rows = tbody.querySelectorAll('tr');
+            const upNextCueIndex = resolveUpNextCueIndex(data);
             
             // Batch all DOM updates to prevent visual lag
             const updates = [];
@@ -1107,8 +1127,11 @@ struct HTMLJavaScript {
                 let rowClass = '';
                 if (rowIndex === data.selectedCueIndex) {
                     rowClass = 'selected';
-                } else if (rowIndex === data.selectedCueIndex + 1) {
+                } else if (upNextCueIndex >= 0 && rowIndex === upNextCueIndex) {
                     rowClass = 'next';
+                }
+                if (cue.isStruckThrough) {
+                    rowClass = rowClass ? `${rowClass} struck-row` : 'struck-row';
                 }
                 rowUpdate.rowClass = rowClass;
                 
@@ -1149,6 +1172,7 @@ struct HTMLJavaScript {
                     } else {
                         cellUpdate.textContent = cue.timerValue || '';
                         cellUpdate.isTimerCell = true;
+                        cellUpdate.shouldStrike = cue.isStruckThrough;
                     }
                     
                     cellUpdate.isHidden = !state.columnVisibility[colId];

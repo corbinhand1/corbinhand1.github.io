@@ -351,6 +351,11 @@ struct HTMLStyles {
             background-color: rgba(186, 176, 32, 0.5);
         }
 
+        #cueTable tbody tr.struck-row td {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
         .timer-cell {
             font-family: 'Digital-7Mono', 'Source Code Pro', monospace;
             text-align: center;

@@ -335,7 +335,7 @@ struct DebugWindowView: View {
         if !logManager.isCapturing {
             logManager.startCapturing()
         }
-        logManager.addLog("Debug Console opened", level: .info)
+        print("Debug Console opened")
     }
     
     private func scrollToBottom(proxy: ScrollViewProxy) {

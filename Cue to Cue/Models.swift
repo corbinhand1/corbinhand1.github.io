@@ -45,6 +45,36 @@ struct CueStack: Identifiable, Equatable, Codable {
     var columns: [Column]
 }
 
+// MARK: - Cue navigation (skip struck-through cues)
+
+extension Array where Element == Cue {
+    /// Next cue index after `index` that is not struck through.
+    func nextPlayableIndex(after index: Int) -> Int? {
+        guard index >= -1 else { return nil }
+        var candidate = index + 1
+        while candidate < count {
+            if !self[candidate].isStruckThrough {
+                return candidate
+            }
+            candidate += 1
+        }
+        return nil
+    }
+
+    /// Previous cue index before `index` that is not struck through.
+    func previousPlayableIndex(before index: Int) -> Int? {
+        guard index > 0 else { return nil }
+        var candidate = index - 1
+        while candidate >= 0 {
+            if !self[candidate].isStruckThrough {
+                return candidate
+            }
+            candidate -= 1
+        }
+        return nil
+    }
+}
+
 // MARK: - Countdown Playlist Models
 
 struct PlaylistEntry: Identifiable, Codable, Equatable {

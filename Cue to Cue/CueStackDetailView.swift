@@ -124,11 +124,14 @@ struct CueStackDetailView: View {
 
     // The actual CueRowView
     private func cueRow(for rowIndex: Int) -> some View {
-        CueRowView(
+        let upNextIndex = selectedCueIndex.flatMap { cueStack.cues.nextPlayableIndex(after: $0) }
+
+        return CueRowView(
             cue: $cueStack.cues[rowIndex],
             columns: $cueStack.columns,
             index: rowIndex,
             selectedIndex: selectedCueIndex,
+            upNextIndex: upNextIndex,
             selectedIndices: selectedCueIndices,
             fontSize: settingsManager.settings.fontSize,
             tableBackgroundColor: settingsManager.settings.tableBackgroundColor,
@@ -137,6 +140,7 @@ struct CueStackDetailView: View {
             onPaste: pasteCue,
             getHighlightColor: getHighlightColor,
             saveState: saveState,
+            updateWebClients: updateWebClients,
             onSelect: { idx, isShiftDown, isCommandDown in
                 // Only allow selection if not reordering
                 if !isReorderingCues {

@@ -312,6 +312,71 @@ enum CueCSVCodec {
     }
 }
 
+// MARK: - Import application
+
+extension CueCSVCodec {
+    /// Returns imported stacks with names disambiguated against existing stack names.
+    static func stacksForAdd(imported: [CueStack], existingNames: [String]) -> [CueStack] {
+        var used = Set(existingNames)
+        return imported.map { stack in
+            var name = stack.name
+            if used.contains(name) {
+                name = disambiguatedName(base: name, used: used)
+            }
+            used.insert(name)
+            return CueStack(name: name, cues: stack.cues, columns: stack.columns)
+        }
+    }
+
+    /// Merges cues from an imported stack into an existing stack, unioning columns by name.
+    static func mergedStack(existing: CueStack, imported: CueStack) -> CueStack {
+        var unionNames = existing.columns.map(\.name)
+        for column in imported.columns where !unionNames.contains(column.name) {
+            unionNames.append(column.name)
+        }
+
+        let existingColumnNames = existing.columns.map(\.name)
+        let importedColumnNames = imported.columns.map(\.name)
+        let unionColumns = unionNames.map { name -> Column in
+            if let column = existing.columns.first(where: { $0.name == name }) {
+                return column
+            }
+            if let column = imported.columns.first(where: { $0.name == name }) {
+                return column
+            }
+            return Column(name: name, width: 100)
+        }
+
+        let cues = existing.cues.map {
+            remappedCue($0, columnNames: existingColumnNames, unionNames: unionNames)
+        } + imported.cues.map {
+            remappedCue($0, columnNames: importedColumnNames, unionNames: unionNames)
+        }
+
+        return CueStack(name: existing.name, cues: cues, columns: unionColumns)
+    }
+
+    private static func disambiguatedName(base: String, used: Set<String>) -> String {
+        var suffix = 2
+        var candidate = "\(base) (\(suffix))"
+        while used.contains(candidate) {
+            suffix += 1
+            candidate = "\(base) (\(suffix))"
+        }
+        return candidate
+    }
+
+    private static func remappedCue(_ cue: Cue, columnNames: [String], unionNames: [String]) -> Cue {
+        let values = unionNames.map { name in
+            if let index = columnNames.firstIndex(of: name), index < cue.values.count {
+                return cue.values[index]
+            }
+            return ""
+        }
+        return Cue(values: values, timerValue: cue.timerValue, isStruckThrough: cue.isStruckThrough)
+    }
+}
+
 // MARK: - Round-trip comparison (tests & validation)
 
 extension CueCSVCodec {
