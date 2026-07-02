@@ -226,10 +226,10 @@ class WebTimerClient {
             this.displayState.countdownTime = this.timerState.countdownTime;
         }
         
-        // Smooth interpolation for count-up timer
+        // Smooth interpolation for countdown-to-start (remaining seconds decrease)
         if (this.timerState.countUpRunning) {
             const timeSinceUpdate = (now - this.timerState.timestamp) / 1000;
-            this.displayState.countUpTime = this.timerState.countUpTime + timeSinceUpdate;
+            this.displayState.countUpTime = Math.max(0, this.timerState.countUpTime - timeSinceUpdate);
         } else {
             this.displayState.countUpTime = this.timerState.countUpTime;
         }
@@ -248,10 +248,14 @@ class WebTimerClient {
             countdownElement.textContent = this.formatTime(this.displayState.countdownTime);
         }
         
-        // Update count-up display
+        // Update count-up display (countdown-to-start)
         const countupElement = document.getElementById('countup');
         if (countupElement) {
-            countupElement.textContent = this.formatTime(this.displayState.countUpTime);
+            if (this.timerState.countUpRunning) {
+                countupElement.textContent = this.formatTime(this.displayState.countUpTime);
+            } else {
+                countupElement.textContent = '--:--:--';
+            }
         }
         
         // Update current time display

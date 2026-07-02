@@ -8,13 +8,6 @@
 import Foundation
 import Combine
 
-// MARK: - Notification Names
-
-extension Notification.Name {
-    static let dragOperationStarted = Notification.Name("dragOperationStarted")
-    static let dragOperationEnded = Notification.Name("dragOperationEnded")
-}
-
 // MARK: - Timer State Models
 
 struct TimerState: Codable {
@@ -54,11 +47,6 @@ class AuthoritativeTimerServer: ObservableObject {
     private var countdownTarget: Date?
     private var countUpTarget: Date?
     private var targetTimeString: String = "10:00:00"
-    private var timeOffset: TimeInterval = 0
-    
-    // Drag operation state tracking
-    private var isDragOperationActive = false
-    private var dragOperationStartTime: Date?
     
     // Playlist state
     private var playlistState: CountdownPlaylist = CountdownPlaylist()
@@ -75,53 +63,12 @@ class AuthoritativeTimerServer: ObservableObject {
         }
         // countUpRunning starts as false - user must click Start
         
-        startNTPSync()
         startTimerBroadcast()
-        setupDragOperationObservers()
         print("🚀 AuthoritativeTimerServer initialized with countdown-to-time target: \(targetTimeString) (not running)")
     }
     
     deinit {
         timer?.invalidate()
-        NotificationCenter.default.removeObserver(self)
-    }
-    
-    // MARK: - Drag Operation Observers
-    
-    private func setupDragOperationObservers() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleDragOperationStarted),
-            name: .dragOperationStarted,
-            object: nil
-        )
-        
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleDragOperationEnded),
-            name: .dragOperationEnded,
-            object: nil
-        )
-    }
-    
-    @objc private func handleDragOperationStarted() {
-        startDragOperation()
-    }
-    
-    @objc private func handleDragOperationEnded() {
-        endDragOperation()
-    }
-    
-    // MARK: - NTP Synchronization
-    
-    private func startNTPSync() {
-        // For now, we'll use system time with a placeholder for NTP
-        // In production, integrate with actual NTP client
-        Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
-            // TODO: Implement actual NTP synchronization
-            // For now, we'll use system time which is usually accurate enough
-            self.timeOffset = 0
-        }
     }
     
     // MARK: - Timer Broadcasting
@@ -134,7 +81,7 @@ class AuthoritativeTimerServer: ObservableObject {
     }
     
     private func updateTimers() {
-        let now = Date().addingTimeInterval(timeOffset)
+        let now = Date()
         
         // Always update currentTime every second for consistent web client updates
         let newCurrentTime = now
@@ -196,20 +143,6 @@ class AuthoritativeTimerServer: ObservableObject {
             // Timer is paused - keep the current countUpTime value (don't update it)
             // This allows pause to work properly
         }
-    }
-    
-    // MARK: - Drag Operation Management
-    
-    func startDragOperation() {
-        isDragOperationActive = true
-        dragOperationStartTime = Date()
-        print("🔄 Timer server: Drag operation started - reducing update frequency")
-    }
-    
-    func endDragOperation() {
-        isDragOperationActive = false
-        dragOperationStartTime = nil
-        print("✅ Timer server: Drag operation ended - resuming normal update frequency")
     }
     
     // MARK: - Timer Commands
@@ -293,14 +226,17 @@ class AuthoritativeTimerServer: ObservableObject {
     // MARK: - Countdown to Time Controls
     
     private func setCountdownToTime(_ timeString: String) {
+        let isNewTarget = timeString != targetTimeString
         targetTimeString = timeString
         if let date = parseAsTodayTime(timeString) {
             countUpTarget = date
-            // Only update countUpTime if not running (if running, let updateTimers handle it)
-            // If paused or stopped, update the time display
-            if !countUpRunning {
+            if countUpRunning {
+                // updateTimers() keeps countUpTime in sync while running.
+            } else if isNewTarget || countUpTime == 0 {
+                // New target or first load — show current remaining time.
                 countUpTime = max(0, Int(date.timeIntervalSince(Date())))
             }
+            // When paused on the same target, preserve the frozen countUpTime value.
             print("🎯 Countdown to time set to: \(timeString)")
             
             // If updating current entry, update the playlist state
@@ -352,6 +288,7 @@ class AuthoritativeTimerServer: ObservableObject {
     private func pauseCountdownToTime() {
         if countUpRunning {
             countUpRunning = false
+            objectWillChange.send()
             // Keep countUpTarget and countUpTime so we can resume later
             print("⏸️ Countdown to time paused at \(countUpTime) seconds")
         } else {

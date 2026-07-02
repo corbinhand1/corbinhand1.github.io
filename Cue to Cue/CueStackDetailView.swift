@@ -20,10 +20,6 @@ struct CueStackDetailView: View {
     @Binding var selectedCueIndices: Set<Int>
     @Binding var selectedCueTime: Int?
 
-    @Binding var countdownTime: Int
-    @Binding var countdownRunning: Bool
-    @Binding var countUpRunning: Bool
-
     var settingsManager: SettingsManager
     var appDelegate: AppDelegate
     var updateWebClients: () -> Void
@@ -213,9 +209,6 @@ struct CueStackDetailView: View {
     private func moveCue(from source: IndexSet, to destination: Int) {
         print("🔄 moveCue called: from \(source) to \(destination)")
         
-        // Notify timer server that drag operation is starting
-        NotificationCenter.default.post(name: .dragOperationStarted, object: nil)
-        
         // Perform the move directly on the cueStack WITHOUT saving state first
         cueStack.cues.move(fromOffsets: source, toOffset: destination)
         
@@ -237,9 +230,6 @@ struct CueStackDetailView: View {
         
         // Save state AFTER the move is complete
         saveState()
-        
-        // Notify timer server that drag operation is ending
-        NotificationCenter.default.post(name: .dragOperationEnded, object: nil)
         
         // Debounce web client updates to prevent interference with drag operations
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

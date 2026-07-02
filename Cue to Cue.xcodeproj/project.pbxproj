@@ -48,6 +48,7 @@
 		31F2FAAF2C0425EC0074D2A4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FAAE2C0425EC0074D2A4 /* ContentView.swift */; };
 		31F2FAB12C0425ED0074D2A4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 31F2FAB02C0425ED0074D2A4 /* Assets.xcassets */; };
 		31F2FABF2C0425ED0074D2A4 /* Cue_to_CueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FABE2C0425ED0074D2A4 /* Cue_to_CueTests.swift */; };
+		31CSV003 /* CueCSVCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSV004 /* CueCSVCodecTests.swift */; };
 		31F2FAC92C0425ED0074D2A4 /* Cue_to_CueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FAC82C0425ED0074D2A4 /* Cue_to_CueUITests.swift */; };
 		31F2FACB2C0425ED0074D2A4 /* Cue_to_CueUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FACA2C0425ED0074D2A4 /* Cue_to_CueUITestsLaunchTests.swift */; };
 		31F2FADD2C0441630074D2A4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FADC2C0441630074D2A4 /* SettingsView.swift */; };
@@ -66,6 +67,9 @@
 		31OFFLINE106 /* offline-integration.js in Resources */ = {isa = PBXBuildFile; fileRef = 31OFFLINE006 /* offline-integration.js */; };
 		31OFFLINE107 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 31OFFLINE007 /* manifest.json */; };
 		31RESTORE001 /* RestoreFromBackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31RESTORE002 /* RestoreFromBackupView.swift */; };
+		31WEBSYNC001 /* WebsiteSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSYNC002 /* WebsiteSyncManager.swift */; };
+		31WEBSYNC003 /* WebsiteSyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSYNC004 /* WebsiteSyncSettingsView.swift */; };
+		31CSV001 /* CueCSVCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSV002 /* CueCSVCodec.swift */; };
 		31TIMER001 /* AuthoritativeTimerServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31TIMER002 /* AuthoritativeTimerServer.swift */; };
 		31WEBSERVER001 /* WebServerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER002 /* WebServerModels.swift */; };
 		31WEBSERVER003 /* NetworkUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSERVER004 /* NetworkUtilities.swift */; };
@@ -164,6 +168,7 @@
 		31F2FAB42C0425ED0074D2A4 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		31F2FABA2C0425ED0074D2A4 /* Cue to CueTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Cue to CueTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		31F2FABE2C0425ED0074D2A4 /* Cue_to_CueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cue_to_CueTests.swift; sourceTree = "<group>"; };
+		31CSV004 /* CueCSVCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueCSVCodecTests.swift; sourceTree = "<group>"; };
 		31F2FAC42C0425ED0074D2A4 /* Cue to CueUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Cue to CueUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		31F2FAC82C0425ED0074D2A4 /* Cue_to_CueUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cue_to_CueUITests.swift; sourceTree = "<group>"; };
 		31F2FACA2C0425ED0074D2A4 /* Cue_to_CueUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cue_to_CueUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -183,6 +188,9 @@
 		31OFFLINE006 /* offline-integration.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "offline-integration.js"; sourceTree = "<group>"; };
 		31OFFLINE007 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
 		31RESTORE002 /* RestoreFromBackupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreFromBackupView.swift; sourceTree = "<group>"; };
+		31WEBSYNC002 /* WebsiteSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteSyncManager.swift; sourceTree = "<group>"; };
+		31WEBSYNC004 /* WebsiteSyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteSyncSettingsView.swift; sourceTree = "<group>"; };
+		31CSV002 /* CueCSVCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueCSVCodec.swift; sourceTree = "<group>"; };
 		31TIMER002 /* AuthoritativeTimerServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoritativeTimerServer.swift; sourceTree = "<group>"; };
 		31WEBSERVER002 /* WebServerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebServerModels.swift; sourceTree = "<group>"; };
 		31WEBSERVER004 /* NetworkUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkUtilities.swift; sourceTree = "<group>"; };
@@ -322,6 +330,9 @@
 				31FILEWATCH002 /* FileWatcher.swift */,
 				31BACKUPMGR002 /* BackupManager.swift */,
 				31RESTORE002 /* RestoreFromBackupView.swift */,
+				31WEBSYNC002 /* WebsiteSyncManager.swift */,
+				31WEBSYNC004 /* WebsiteSyncSettingsView.swift */,
+				31CSV002 /* CueCSVCodec.swift */,
 				31CADDE42C856B200072CFCE /* CompleteHTML.swift */,
 				31OFFLINE001 /* offline.html */,
 				31OFFLINE002 /* offline-styles.css */,
@@ -354,6 +365,7 @@
 			isa = PBXGroup;
 			children = (
 				31F2FABE2C0425ED0074D2A4 /* Cue_to_CueTests.swift */,
+				31CSV004 /* CueCSVCodecTests.swift */,
 			);
 			path = "Cue to CueTests";
 			sourceTree = "<group>";
@@ -596,6 +608,9 @@
 				31FILEWATCH001 /* FileWatcher.swift in Sources */,
 				31BACKUPMGR001 /* BackupManager.swift in Sources */,
 				31RESTORE001 /* RestoreFromBackupView.swift in Sources */,
+				31WEBSYNC001 /* WebsiteSyncManager.swift in Sources */,
+				31WEBSYNC003 /* WebsiteSyncSettingsView.swift in Sources */,
+				31CSV001 /* CueCSVCodec.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -604,6 +619,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				31F2FABF2C0425ED0074D2A4 /* Cue_to_CueTests.swift in Sources */,
+				31CSV003 /* CueCSVCodecTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -916,7 +932,7 @@
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.1;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Nebula-Creative.Cue-to-CueTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -939,7 +955,7 @@
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.1;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Nebula-Creative.Cue-to-CueTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";

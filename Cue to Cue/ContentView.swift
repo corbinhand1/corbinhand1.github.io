@@ -15,11 +15,6 @@ struct ContentView: View {
     @StateObject private var dataSyncManager = DataSyncManager()
     @StateObject private var websiteSyncManager = WebsiteSyncManager()
     @StateObject private var timerServer = AuthoritativeTimerServer()
-    @State private var currentTime = Date()
-    @State private var countdownTime = 300
-    @State private var countUpTime = 0
-    @State private var countdownRunning = true
-    @State private var countUpRunning = false
     @State private var showSettings = false
     @State private var showConnectionMonitor = false
     @State private var showUserManagement = false
@@ -153,6 +148,7 @@ struct ContentView: View {
         mainContentView
             .sheet(isPresented: $showSettings) {
                 SettingsView(settingsManager: settingsManager)
+                    .environmentObject(websiteSyncManager)
             }
             .sheet(isPresented: $showConnectionMonitor) {
                 connectionMonitorSheet
@@ -349,9 +345,6 @@ struct ContentView: View {
                                     selectedCueIndex: selectedCueIndexBinding,
                                     selectedCueIndices: $selectedCueIndices,
                                     selectedCueTime: $selectedCueTime,
-                                    countdownTime: $countdownTime,
-                                    countdownRunning: $countdownRunning,
-                                    countUpRunning: $countUpRunning,
                                     settingsManager: settingsManager,
                                     appDelegate: appDelegate,
                                     updateWebClients: updateWebClients,
@@ -1782,39 +1775,80 @@ struct ContentView: View {
             if response == .OK, let url = panel.url {
                 do {
                     let data = try Data(contentsOf: url)
-                    let importedCues = parseCSV(data: data)
-                    let selectedStack = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex]
-                    let maxImportedColumns = importedCues.map { $0.values.count }.max() ?? 0
-                    let currentColumnCount = selectedStack.columns.count
-                    let newMaxColumns = max(maxImportedColumns, currentColumnCount)
-                    while dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count < newMaxColumns {
-                        let newColumnIndex = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count
-                        dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.append(Column(name: "Column \(newColumnIndex + 1)", width: 100))
-                    }
-                    let preparedImportedCues = importedCues.map { cue -> Cue in
-                        var values = cue.values
-                        while values.count < newMaxColumns {
-                            values.append("")
-                        }
-                        return Cue(values: values)
-                    }
-                    dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.insert(contentsOf: preparedImportedCues, at: 0)
-                    saveState()
-                    updateWebClients()
+                    self.applyCSVImport(from: data, sourceName: url.lastPathComponent)
                 } catch {
-                    print("Error reading CSV file: \(error)")
+                    self.showCSVImportError(
+                        messageText: "Could not read CSV file",
+                        informativeText: error.localizedDescription
+                    )
                 }
             }
         }
     }
-    
-    func parseCSV(data: Data) -> [Cue] {
-        let content = String(data: data, encoding: .utf8) ?? ""
-        let lines = content.components(separatedBy: .newlines)
-        return lines.filter { !$0.isEmpty }.map { line in
-            let values = line.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            return Cue(values: values)
+
+    private func applyCSVImport(from data: Data, sourceName: String) {
+        let result: CueCSVImportResult
+        do {
+            result = try CueCSVCodec.decode(data: data)
+        } catch {
+            showCSVImportError(
+                messageText: "Could not import CSV",
+                informativeText: error.localizedDescription
+            )
+            return
         }
+
+        guard !result.stacks.isEmpty else {
+            showCSVImportError(
+                messageText: "Nothing to import",
+                informativeText: "The CSV file does not contain any cue rows."
+            )
+            return
+        }
+
+        let stackCount = result.stacks.count
+        let cueCount = result.stacks.reduce(0) { $0 + $1.cues.count }
+
+        let alert = NSAlert()
+        alert.messageText = "Import CSV"
+        var detail = "Found \(stackCount) cue stack(s) with \(cueCount) cue(s) in \"\(sourceName)\"."
+        if !result.warnings.isEmpty {
+            detail += "\n\n" + result.warnings.joined(separator: "\n")
+        }
+        alert.informativeText = detail
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Add Stacks")
+        alert.addButton(withTitle: "Replace All Stacks")
+        alert.addButton(withTitle: "Cancel")
+
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            dataSyncManager.cueStacks.append(contentsOf: result.stacks)
+            saveState()
+        case .alertSecondButtonReturn:
+            dataSyncManager.cueStacks = result.stacks
+            dataSyncManager.selectedCueStackIndex = 0
+            dataSyncManager.selectedCueIndex = 0
+            selectedCueIndices.removeAll()
+            lastSelectedIndex = nil
+            isMultiSelectMode = false
+            editingCueIndex = nil
+            resetUndoHistory()
+        default:
+            return
+        }
+
+        isDirty = true
+        updateWebClients()
+    }
+
+    private func showCSVImportError(messageText: String, informativeText: String) {
+        let alert = NSAlert()
+        alert.messageText = messageText
+        alert.informativeText = informativeText
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
     }
 
     // MARK: - CSV Export (redundancy export)
@@ -1855,10 +1889,7 @@ struct ContentView: View {
 
         let proceed: (URL) -> Void = { url in
             do {
-                let csv = self.buildCSVForAllStacks()
-                guard let data = csv.data(using: .utf8) else {
-                    throw NSError(domain: "ExportCSV", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode CSV as UTF-8"])
-                }
+                let data = CueCSVCodec.encode(stacks: stacks)
                 var coordError: NSError?
                 var thrown: Error?
                 NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: url, options: .forReplacing, error: &coordError) { coordinatedURL in
@@ -1889,56 +1920,6 @@ struct ContentView: View {
                 proceed(url)
             }
         }
-    }
-
-    /// Build the full unified CSV string for every cue stack in the
-    /// document. Visible for unit testing later.
-    func buildCSVForAllStacks() -> String {
-        let stacks = dataSyncManager.cueStacks
-
-        // Union of column names, preserving first-seen order so the output
-        // is deterministic.
-        var allColumnNames: [String] = []
-        for stack in stacks {
-            for col in stack.columns where !allColumnNames.contains(col.name) {
-                allColumnNames.append(col.name)
-            }
-        }
-
-        let header: [String] = ["Cue Stack"] + allColumnNames + ["Timer", "Strikethrough"]
-        var lines: [String] = [header.map(csvEscape).joined(separator: ",")]
-
-        for stack in stacks {
-            for cue in stack.cues {
-                var row: [String] = [stack.name]
-                for unionColName in allColumnNames {
-                    if let stackIdx = stack.columns.firstIndex(where: { $0.name == unionColName }),
-                       stackIdx < cue.values.count {
-                        row.append(cue.values[stackIdx])
-                    } else {
-                        row.append("")
-                    }
-                }
-                row.append(cue.timerValue)
-                row.append(cue.isStruckThrough ? "TRUE" : "FALSE")
-                lines.append(row.map(csvEscape).joined(separator: ","))
-            }
-        }
-
-        // CRLF line endings + trailing CRLF for maximum compatibility with
-        // Excel on Windows and Numbers on macOS.
-        return lines.joined(separator: "\r\n") + "\r\n"
-    }
-
-    /// Escape one CSV field per RFC 4180. Wraps the value in double quotes
-    /// if it contains a comma, double quote, or newline. Inner double
-    /// quotes are doubled to `""`.
-    private func csvEscape(_ value: String) -> String {
-        if value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r") {
-            let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
-            return "\"\(escaped)\""
-        }
-        return value
     }
 
     func saveState() {

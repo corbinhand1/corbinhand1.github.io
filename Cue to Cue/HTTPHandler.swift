@@ -126,6 +126,14 @@ class HTTPHandler {
     
     // MARK: - Response Generation
     
+    /// Timer and cue state live on the main thread; HTTP connections arrive on a background queue.
+    private func onMainThread<T>(_ work: () -> T) -> T {
+        if Thread.isMainThread {
+            return work()
+        }
+        return DispatchQueue.main.sync(execute: work)
+    }
+    
     private func serveHTML() -> HTTPResponse {
         let htmlData = CompleteHTML.content.data(using: .utf8) ?? Data()
         return HTTPResponse(
@@ -136,7 +144,9 @@ class HTTPHandler {
     }
     
     private func serveJSON() -> HTTPResponse {
-        let jsonData = dataSyncManager.generateJSONResponseForWebClient(timerServer: timerServer)
+        let jsonData = onMainThread {
+            dataSyncManager.generateJSONResponseForWebClient(timerServer: timerServer)
+        }
         
         // Check if JSON generation failed (empty data indicates error)
         if jsonData.isEmpty {
@@ -169,7 +179,9 @@ class HTTPHandler {
     }
     
     private func serveTimerState() -> HTTPResponse {
-        let timerState = timerServer.getTimerState()
+        let timerState = onMainThread {
+            timerServer.getTimerState()
+        }
         
         do {
             let jsonData = try JSONEncoder().encode(timerState)

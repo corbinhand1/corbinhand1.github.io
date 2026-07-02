@@ -6,363 +6,6 @@
 //
 
 import SwiftUI
-import Foundation
-import Combine
-
-// MARK: - Sync Notification Types
-
-enum SyncNotificationType {
-    case success
-    case failure
-    case info
-}
-
-// MARK: - Temporary WebsiteSyncManager (until added to Xcode project)
-
-class WebsiteSyncManager: ObservableObject {
-    @Published var isSyncing = false
-    @Published var lastSyncTime: Date?
-    @Published var syncStatus: SyncStatus = .idle
-    @Published var lastSyncFilename: String?
-    
-    enum SyncStatus {
-        case idle
-        case syncing
-        case success
-        case failed(String)
-    }
-    
-    init() {
-        // TODO: Load configuration from settings
-    }
-    
-    func syncCueData(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String, settingsManager: SettingsManager, completion: @escaping (Bool, String?) -> Void = { _, _ in }) {
-        print("🚀 syncCueData called with filename: \(filename)")
-        print("📊 Cue stacks count: \(cueStacks.count)")
-        print("🎯 Selected cue stack index: \(selectedCueStackIndex)")
-        
-        guard !isSyncing else { 
-            print("⚠️ Sync already in progress, skipping")
-            completion(false, "Sync already in progress")
-            return 
-        }
-        
-        isSyncing = true
-        syncStatus = .syncing
-        print("🔄 Starting sync process...")
-        
-        // Get GitHub configuration from UserDefaults
-        let githubToken = UserDefaults.standard.string(forKey: "githubToken") ?? ""
-        let repoOwner = UserDefaults.standard.string(forKey: "repoOwner") ?? "corbinhand1"
-        let repoName = UserDefaults.standard.string(forKey: "repoName") ?? "corbinhand1.github.io"
-        
-        print("🔑 GitHub token configured: \(!githubToken.isEmpty)")
-        print("📁 Repository: \(repoOwner)/\(repoName)")
-        
-        guard !githubToken.isEmpty else {
-            print("❌ GitHub token not configured")
-            DispatchQueue.main.async {
-                self.isSyncing = false
-                self.syncStatus = .failed("GitHub token not configured")
-                completion(false, "GitHub token not configured")
-            }
-            return
-        }
-        
-        // Prepare cue data for web viewer
-        print("📝 Preparing cue data for web viewer...")
-        let cueData = prepareCueDataForWeb(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex, filename: filename, settingsManager: settingsManager)
-        print("✅ Cue data prepared successfully")
-        
-        // Send to GitHub via repository_dispatch
-        print("🌐 Sending data to GitHub...")
-        sendToGitHub(cueData: cueData, githubToken: githubToken, repoOwner: repoOwner, repoName: repoName) { success, error in
-            DispatchQueue.main.async {
-                self.isSyncing = false
-                if success {
-                    print("✅ Sync successful!")
-                    self.syncStatus = .success
-                    self.lastSyncTime = Date()
-                    self.lastSyncFilename = filename
-                    completion(true, nil)
-                } else {
-                    print("❌ Sync failed: \(error ?? "Unknown error")")
-                    self.syncStatus = .failed(error ?? "Unknown error")
-                    completion(false, error)
-                }
-            }
-        }
-    }
-    
-    func autoSyncIfEnabled(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String, settingsManager: SettingsManager) {
-        // Check if auto-sync is enabled
-        let autoSyncEnabled = UserDefaults.standard.bool(forKey: "autoSyncEnabled")
-        print("🔄 autoSyncIfEnabled called - enabled: \(autoSyncEnabled)")
-        
-        if autoSyncEnabled {
-            print("🚀 Auto-sync enabled, triggering sync...")
-            syncCueData(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex, filename: filename, settingsManager: settingsManager)
-        } else {
-            print("⏸️ Auto-sync disabled, skipping")
-        }
-    }
-    
-    // MARK: - Helper Functions
-    
-    private func prepareCueDataForWeb(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String, settingsManager: SettingsManager) -> [String: Any] {
-        // Get column structure from first stack
-        let columns = cueStacks.first?.columns ?? []
-        
-        // Convert cue stacks to web format
-        var availableCueStacks: [[String: Any]] = []
-        
-        for stack in cueStacks {
-            var cues: [[String: Any]] = []
-            
-            for cue in stack.cues {
-                // Map cue values to column names
-                var cueData: [String: Any] = [:]
-                
-                for (index, column) in columns.enumerated() {
-                    let columnName = column.name
-                    let value = index < cue.values.count ? cue.values[index] : ""
-                    cueData[columnName] = value
-                }
-                
-                // Add additional cue properties
-                cueData["timerValue"] = cue.timerValue
-                cueData["isStruckThrough"] = cue.isStruckThrough
-                
-                cues.append(cueData)
-            }
-            
-            availableCueStacks.append([
-                "id": stack.id.uuidString,
-                "name": stack.name,
-                "cues": cues
-            ])
-        }
-        
-        // Convert columns to web format
-        var webColumns: [[String: Any]] = []
-        for column in columns {
-            webColumns.append([
-                "id": column.id.uuidString,
-                "name": column.name,
-                "width": column.width
-            ])
-        }
-        
-        // Convert highlight colors to web format
-        var webHighlightColors: [[String: Any]] = []
-        for highlight in settingsManager.settings.highlightColors {
-            webHighlightColors.append([
-                "keyword": highlight.keyword,
-                "color": highlight.color.toHex()
-            ])
-        }
-        
-        // Create metadata - always include current timestamp to force update
-        let now = Date()
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        
-        // Always include a unique sync timestamp to ensure GitHub detects a change
-        let syncTimestamp = now.timeIntervalSince1970
-        
-        let metadata: [String: Any] = [
-            "filename": filename,
-            "lastUpdated": formatter.string(from: now),
-            "selectedCueStackIndex": selectedCueStackIndex,
-            "totalCueStacks": cueStacks.count,
-            "syncTimestamp": syncTimestamp // Unique timestamp ensures content is always different
-        ]
-        
-        print("📝 Metadata prepared: filename=\(filename), lastUpdated=\(formatter.string(from: now)), syncTimestamp=\(syncTimestamp)")
-        
-        return [
-            "cueData": [
-                "availableCueStacks": availableCueStacks,
-                "allCues": availableCueStacks, // For backward compatibility
-                "columns": webColumns,
-                "highlightColors": webHighlightColors
-            ],
-            "metadata": metadata
-        ]
-    }
-    
-    private func sendToGitHub(cueData: [String: Any], githubToken: String, repoOwner: String, repoName: String, completion: @escaping (Bool, String?) -> Void) {
-        // Use direct file update instead of repository_dispatch
-        updateGitHubFiles(cueData: cueData, githubToken: githubToken, repoOwner: repoOwner, repoName: repoName, completion: completion)
-    }
-    
-    private func updateGitHubFiles(cueData: [String: Any], githubToken: String, repoOwner: String, repoName: String, completion: @escaping (Bool, String?) -> Void) {
-        let group = DispatchGroup()
-        var success = true
-        var errorMessage: String?
-        
-        // Update cuetocue-data.json
-        group.enter()
-        updateGitHubFile(
-            path: "cuetocue/cuetocue-data.json",
-            content: cueData["cueData"] as Any,
-            githubToken: githubToken,
-            repoOwner: repoOwner,
-            repoName: repoName
-        ) { fileSuccess, fileError in
-            if !fileSuccess {
-                success = false
-                errorMessage = fileError
-            }
-            group.leave()
-        }
-        
-        // Update metadata.json
-        group.enter()
-        updateGitHubFile(
-            path: "cuetocue/metadata.json",
-            content: cueData["metadata"] as Any,
-            githubToken: githubToken,
-            repoOwner: repoOwner,
-            repoName: repoName
-        ) { fileSuccess, fileError in
-            if !fileSuccess {
-                success = false
-                errorMessage = fileError
-            }
-            group.leave()
-        }
-        
-        group.notify(queue: .main) {
-            completion(success, errorMessage)
-        }
-    }
-    
-    private func updateGitHubFile(path: String, content: Any, githubToken: String, repoOwner: String, repoName: String, completion: @escaping (Bool, String?) -> Void) {
-        let url = URL(string: "https://api.github.com/repos/\(repoOwner)/\(repoName)/contents/\(path)")!
-        print("🌐 GitHub API URL: \(url)")
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "PUT"
-        request.setValue("token \(githubToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
-        
-        do {
-            let jsonData = try JSONSerialization.data(withJSONObject: content, options: .prettyPrinted)
-            let jsonString = String(data: jsonData, encoding: .utf8) ?? ""
-            let base64Content = Data(jsonString.utf8).base64EncodedString()
-            
-            let payload: [String: Any] = [
-                "message": "Update \(path) from macOS app",
-                "content": base64Content,
-                "sha": "" // We'll get this from the API first
-            ]
-            
-            // First, get the current file to get the SHA
-            getFileSHA(path: path, githubToken: githubToken, repoOwner: repoOwner, repoName: repoName) { sha in
-                var finalPayload = payload
-                if let sha = sha {
-                    finalPayload["sha"] = sha
-                    print("📋 Using existing SHA for \(path): \(sha.prefix(8))...")
-                } else {
-                    print("⚠️ No SHA found for \(path) - will create/update file without SHA (may fail if file exists)")
-                    // If file exists but we don't have SHA, GitHub API will reject the update
-                    // This is OK for new files, but for existing files we need the SHA
-                }
-                
-                do {
-                    request.httpBody = try JSONSerialization.data(withJSONObject: finalPayload)
-                    print("✅ Request body prepared for \(path) (SHA: \(sha != nil ? "present" : "missing"))")
-                    
-                    URLSession.shared.dataTask(with: request) { data, response, error in
-                        if let error = error {
-                            print("❌ Network error for \(path): \(error)")
-                            completion(false, "Network error: \(error.localizedDescription)")
-                            return
-                        }
-                        
-                        if let httpResponse = response as? HTTPURLResponse {
-                            print("📡 HTTP Response for \(path): \(httpResponse.statusCode)")
-                            
-                            if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
-                                print("✅ File \(path) updated successfully!")
-                                completion(true, nil)
-                            } else if httpResponse.statusCode == 409 {
-                                // 409 means content was identical - but for metadata, we always want to update
-                                // So we'll treat it as a warning but still success
-                                if path.contains("metadata.json") {
-                                    print("⚠️ Metadata file returned 409 - content may be identical, but this is OK")
-                                    print("💡 If filename/timestamp is wrong, try syncing again to force update")
-                                } else {
-                                    print("✅ File \(path) already up-to-date (no changes needed)")
-                                }
-                                completion(true, nil)
-                            } else if httpResponse.statusCode == 401 {
-                                // Enhanced 401 error handling
-                                var errorMessage = "HTTP 401: Authentication failed"
-                                if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                                   let message = json["message"] as? String {
-                                    errorMessage = "HTTP 401: \(message)"
-                                }
-                                print("❌ GitHub API authentication error for \(path): \(errorMessage)")
-                                print("💡 Make sure your GitHub token is valid and has 'repo' scope permissions")
-                                completion(false, errorMessage)
-                            } else {
-                                var errorMessage = "HTTP \(httpResponse.statusCode)"
-                                if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                                   let message = json["message"] as? String {
-                                    errorMessage = "HTTP \(httpResponse.statusCode): \(message)"
-                                }
-                                print("❌ GitHub API error for \(path): \(errorMessage)")
-                                completion(false, errorMessage)
-                            }
-                        } else {
-                            print("❌ Invalid response for \(path)")
-                            completion(false, "Invalid response")
-                        }
-                    }.resume()
-                } catch {
-                    print("❌ Failed to serialize request body for \(path): \(error)")
-                    completion(false, "Failed to serialize request body: \(error.localizedDescription)")
-                }
-            }
-        } catch {
-            print("❌ Failed to prepare content for \(path): \(error)")
-            completion(false, "Failed to prepare content: \(error.localizedDescription)")
-        }
-    }
-    
-    private func getFileSHA(path: String, githubToken: String, repoOwner: String, repoName: String, completion: @escaping (String?) -> Void) {
-        let url = URL(string: "https://api.github.com/repos/\(repoOwner)/\(repoName)/contents/\(path)")!
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("token \(githubToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let httpResponse = response as? HTTPURLResponse {
-                if httpResponse.statusCode == 401 {
-                    print("❌ Authentication failed when getting SHA for \(path)")
-                    print("💡 Check your GitHub token in Settings > Website Sync")
-                    completion(nil)
-                    return
-                }
-            }
-            
-            if let data = data,
-               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let sha = json["sha"] as? String {
-                print("📋 Got SHA for \(path): \(sha)")
-                completion(sha)
-            } else {
-                print("⚠️ Could not get SHA for \(path), will create new file")
-                completion(nil)
-            }
-        }.resume()
-    }
-}
 
 struct TopSectionView: View {
     @Binding var currentTime: Date
@@ -374,7 +17,6 @@ struct TopSectionView: View {
 
     // "Countdown to a specific time" states:
     @State private var targetTimeString: String = "10:00:00"
-    @State private var targetDate: Date? = nil
     @State private var isEditingCountdownToTime = false
     @Binding var showPlaylistEditor: Bool
 
@@ -399,8 +41,10 @@ struct TopSectionView: View {
     /// Shared height for all three clock panels so they stay aligned.
     private var clockPanelHeight: CGFloat {
         let fontSize = settingsManager.settings.clockFontSize
-        let playlistExtra: CGFloat = dataSyncManager.countdownPlaylist.entries.isEmpty ? 0 : 24
-        return fontSize + 88 + playlistExtra
+        // caption + spacing + button row + padding (single button row since layout change)
+        let base: CGFloat = fontSize + 60
+        let playlistExtra: CGFloat = dataSyncManager.countdownPlaylist.entries.isEmpty ? 0 : 18
+        return base + playlistExtra
     }
 
     var body: some View {
@@ -419,26 +63,18 @@ struct TopSectionView: View {
             }
         }
         .fixedSize(horizontal: false, vertical: true)
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(Color.black.opacity(0.8))
         .cornerRadius(20)
         .shadow(color: settingsManager.settings.fontColor.opacity(0.3), radius: 10, x: 0, y: 5)
         .onAppear {
-            if countdownRunning {
-                startCountdownTimer()
-            }
-            // Get target time string from server
             updateTargetTimeString()
         }
         // Listen for the custom reset notification from ContentView.
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ResetCountdown"))) { notification in
             if let newTime = notification.object as? Int {
                 resetCountdown(with: newTime)
-            }
-        }
-        .onChange(of: countdownRunning) { oldValue, newValue in
-            if newValue {
-                startCountdownTimer()
             }
         }
         // Update target time string when playlist changes
@@ -571,7 +207,7 @@ struct TopSectionView: View {
 
     private func countdownView(time: Int, running: Bool) -> some View {
         timeBox {
-            VStack(alignment: .center, spacing: 5) {
+            VStack(alignment: .center, spacing: 4) {
                 Text("Countdown")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.7))
@@ -599,8 +235,6 @@ struct TopSectionView: View {
                     TimerButton(title: "Start", action: startCountdownTimer)
                     TimerButton(title: "Pause", action: pauseCountdownTimer)
                     TimerButton(title: "Reset", action: resetCountdownTimer)
-                }
-                HStack(spacing: 10) {
                     TimerButton(title: "-1 min", action: { adjustCountdownTime(by: -60) })
                     TimerButton(title: "+1 min", action: { adjustCountdownTime(by: 60) })
                 }
@@ -707,7 +341,6 @@ struct TopSectionView: View {
                         }
                     }
                     .frame(height: 18)
-                    .padding(.top, 2)
                 }
             }
         }
@@ -846,7 +479,7 @@ struct TopSectionView: View {
     private func timeBox<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 7)
             .frame(maxWidth: .infinity, minHeight: clockPanelHeight, maxHeight: clockPanelHeight, alignment: .top)
             .background(settingsManager.settings.backgroundColor.opacity(0.2))
             .cornerRadius(15)
@@ -881,31 +514,6 @@ struct TopSectionView: View {
         let parts = timeString.split(separator: ":").compactMap { Int($0) }
         guard parts.count == 3 else { return nil }
         return parts[0] * 3600 + parts[1] * 60 + parts[2]
-    }
-
-    /// Parses an input in "HH:mm:ss" format and returns a Date representing the next occurrence of that time.
-    private func parseAsTodayTime(_ input: String) -> Date? {
-        let parts = input.split(separator: ":").map { String($0) }
-        guard parts.count == 3,
-              let hour = Int(parts[0]),
-              let minute = Int(parts[1]),
-              let second = Int(parts[2]) else {
-            return nil
-        }
-        var calendar = Calendar.current
-        calendar.timeZone = TimeZone.current
-        var components = calendar.dateComponents([.year, .month, .day], from: Date())
-        components.hour = hour
-        components.minute = minute
-        components.second = second
-        if let date = calendar.date(from: components) {
-            // If the time has already passed today, assume the next day.
-            if date < Date() {
-                return calendar.date(byAdding: .day, value: 1, to: date)
-            }
-            return date
-        }
-        return nil
     }
 
     private let dateFormatter: DateFormatter = {

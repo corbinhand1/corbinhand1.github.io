@@ -66,12 +66,6 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
         self.highlightColors = highlightColors
     }
     
-    func updateClockState(currentTime: Date, countdownTime: Int, countUpTime: Int, countdownRunning: Bool, countUpRunning: Bool) {
-        // This method is now deprecated - timer state is managed by AuthoritativeTimerServer
-        // Keeping for backward compatibility but timer state comes from timerServer
-        print("⚠️ updateClockState called - timer state now managed by AuthoritativeTimerServer")
-    }
-    
     // MARK: - Cue Editing Methods
     
     func updateCueValue(cueId: UUID, columnIndex: Int, newValue: String) async -> Bool {
@@ -238,84 +232,6 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
         formatter.dateFormat = "a"
         return formatter
     }()
-    
-    func generateJSONResponse(timerServer: AuthoritativeTimerServer) -> Data {
-        let stacks = cueStacks
-        let selectedIndex = selectedCueStackIndex
-        
-        print("🔍 generateJSONResponse() - stacks.count: \(stacks.count), selectedIndex: \(selectedIndex), selectedCueIndex: \(selectedCueIndex)")
-        
-        let jsonObject: [String: Any]
-        
-        if stacks.isEmpty || selectedIndex >= stacks.count {
-            print("❌ No valid cue stack available")
-            jsonObject = ["error": "No cue stack available"]
-        } else {
-            let selectedStack = stacks[selectedIndex]
-            
-            jsonObject = [
-                "cueStackId": selectedStack.id.uuidString,
-                "cueStackName": selectedStack.name,
-                "columns": selectedStack.columns.map { ["name": $0.name, "width": Double($0.width)] },
-                "cues": selectedStack.cues.enumerated().map { index, cue in
-                    [
-                        "id": cue.id.uuidString,
-                        "index": index,
-                        "values": cue.values,
-                        "timerValue": cue.timerValue,
-                        "isStruckThrough": cue.isStruckThrough,
-                        "struck": Array(repeating: cue.isStruckThrough, count: selectedStack.columns.count)
-                    ]
-                },
-                "activeCueIndex": activeCueIndex,
-                "selectedCueIndex": selectedCueIndex,
-                "lastUpdateTime": Date().timeIntervalSince1970,
-                "currentDate": DataSyncManager.dateFormatter.string(from: timerServer.currentTime),
-                "currentTime": DataSyncManager.timeFormatter.string(from: timerServer.currentTime),
-                "currentAMPM": DataSyncManager.amPmFormatter.string(from: timerServer.currentTime),
-                "countdownTime": timerServer.countdownTime,
-                "countUpTime": timerServer.countUpTime,
-                "countdownRunning": timerServer.countdownRunning,
-                "countUpRunning": timerServer.countUpRunning,
-                "highlightColors": highlightColors.compactMap { colorSetting in
-                    return [
-                        "keyword": colorSetting.keyword,
-                        "color": colorSetting.color.toHex()
-                    ]
-                },
-                // New fields for cue stack dropdown
-                "availableCueStacks": stacks.map { stack in
-                    [
-                        "name": stack.name,
-                        "index": stacks.firstIndex(of: stack) ?? -1
-                    ]
-                },
-                "currentCueStackIndex": selectedIndex,
-                "countdownPlaylist": [
-                    "entries": countdownPlaylist.entries.map { [
-                        "id": $0.id.uuidString,
-                        "timeString": $0.timeString,
-                        "label": $0.label ?? ""
-                    ]},
-                    "currentIndex": countdownPlaylist.currentIndex ?? -1,
-                    "isActive": countdownPlaylist.isActive,
-                    "loopPlaylist": countdownPlaylist.loopPlaylist
-                ]
-            ]
-        }
-        
-        do {
-            let jsonData = try JSONSerialization.data(withJSONObject: jsonObject, options: [])
-            return jsonData
-        } catch {
-            // Return a minimal error response instead of empty data
-            let errorResponse = ["error": "Failed to generate JSON response", "details": error.localizedDescription]
-            if let errorData = try? JSONSerialization.data(withJSONObject: errorResponse, options: []) {
-                return errorData
-            }
-            return Data()
-        }
-    }
     
     // MARK: - Web Client Cue Stack Management
     

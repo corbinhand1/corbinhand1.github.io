@@ -32,6 +32,16 @@ struct HTMLJavaScript {
             // Editing state
             isEditing: false,
             editingCell: null,
+            // LAN clock display — snapshot from server + local interpolation between polls
+            clockSnapshot: {
+                countdownTime: 0,
+                countdownRunning: false,
+                countUpTime: 0,
+                countUpRunning: false,
+                receivedAt: 0
+            },
+            clockDisplayTimer: null,
+            pollTimer: null,
             // Track recently edited cells to prevent overwriting
             recentlyEditedCells: new Map(),
             lastEditTime: 0
@@ -720,14 +730,89 @@ struct HTMLJavaScript {
         }
         
         // Data Fetching
-        // Add request deduplication to prevent multiple simultaneous requests
         let activeRequests = new Set();
+        const POLL_INTERVAL_MS = 1000;
+        const CLOCK_TICK_MS = 250;
+        
+        function schedulePoll(delayMs = POLL_INTERVAL_MS) {
+            if (state.pollTimer) {
+                clearTimeout(state.pollTimer);
+            }
+            state.pollTimer = setTimeout(() => {
+                fetchCues().finally(() => schedulePoll(POLL_INTERVAL_MS));
+            }, delayMs);
+        }
+        
+        function syncClockSnapshot(data) {
+            const clockData = data.data || data;
+            if (clockData.countdownTime !== undefined) {
+                state.clockSnapshot.countdownTime = clockData.countdownTime;
+            }
+            if (clockData.countdownRunning !== undefined) {
+                state.clockSnapshot.countdownRunning = clockData.countdownRunning;
+            }
+            if (clockData.countUpTime !== undefined) {
+                state.clockSnapshot.countUpTime = clockData.countUpTime;
+            }
+            if (clockData.countUpRunning !== undefined) {
+                state.clockSnapshot.countUpRunning = clockData.countUpRunning;
+            }
+            state.clockSnapshot.receivedAt = Date.now();
+            renderClockDisplays();
+        }
+        
+        function interpolatedRemainingSeconds(baseSeconds, running) {
+            if (!running) return baseSeconds;
+            const elapsed = (Date.now() - state.clockSnapshot.receivedAt) / 1000;
+            return Math.max(0, Math.floor(baseSeconds - elapsed));
+        }
+        
+        function renderClockDisplays() {
+            const snapshot = state.clockSnapshot;
+            
+            const countdownElement = document.getElementById('countdown');
+            if (countdownElement) {
+                if (snapshot.countdownRunning) {
+                    countdownElement.textContent = formatTime(
+                        interpolatedRemainingSeconds(snapshot.countdownTime, true)
+                    );
+                } else {
+                    countdownElement.textContent = formatTime(snapshot.countdownTime);
+                }
+            }
+            
+            const countupElement = document.getElementById('countup');
+            if (countupElement) {
+                if (snapshot.countUpRunning) {
+                    countupElement.textContent = formatTime(
+                        interpolatedRemainingSeconds(snapshot.countUpTime, true)
+                    );
+                } else {
+                    countupElement.textContent = '--:--:--';
+                }
+            }
+            
+            const now = new Date();
+            const currentTimeElement = document.getElementById('current-time');
+            if (currentTimeElement) {
+                currentTimeElement.textContent = now.toLocaleTimeString([], {
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+            }
+            const currentDateElement = document.getElementById('current-date');
+            if (currentDateElement) {
+                currentDateElement.textContent = now.toLocaleDateString();
+            }
+        }
+        
+        function startClockDisplayLoop() {
+            if (state.clockDisplayTimer) return;
+            state.clockDisplayTimer = setInterval(renderClockDisplays, CLOCK_TICK_MS);
+        }
         
         async function fetchCues() {
-            // Skip updates if user is currently editing
-            if (state.isEditing) {
-                return;
-            }
+            // While editing a cell, still refresh clocks but skip table rebuilds.
+            const clocksOnly = state.isEditing;
             
             // Clean up old recently edited cells (older than 10 seconds)
             const now = Date.now();
@@ -737,7 +822,7 @@ struct HTMLJavaScript {
                 }
             }
             
-            // Prevent multiple simultaneous requests
+            // Prevent overlapping fetches
             if (activeRequests.has('cues')) {
                 return;
             }
@@ -766,10 +851,17 @@ struct HTMLJavaScript {
                 }
                 
                 const data = JSON.parse(text);
+                syncClockSnapshot(data);
+                state.connectionAttempts = 0;
+                updateConnectionStatus('connected');
+                
+                if (clocksOnly) {
+                    return;
+                }
+                
                 state.data = data;
                 console.log("🔍 Cues data received");
                 updateUI(data);
-                updateConnectionStatus('connected');
                 
                 // If user is authenticated, refresh table editability after data loads
                 if (state.isAuthenticated) {
@@ -804,64 +896,6 @@ struct HTMLJavaScript {
             }
         }
 
-
-        // Handle real-time clock updates from the server
-        function handleClockUpdate(data) {
-            if (data.action === 'updateClocks') {
-                // Handle both old format (direct properties) and new format (nested under 'data' key)
-                const clockData = data.data || data;
-                
-                // Update countdown timer
-                if (clockData.countdownTime !== undefined) {
-                    const countdownElement = document.getElementById('countdown');
-                    if (countdownElement) {
-                        countdownElement.textContent = formatTime(clockData.countdownTime);
-                    }
-                }
-                
-                // Update countdown to time timer
-                if (clockData.countUpTime !== undefined) {
-                    const countupElement = document.getElementById('countup');
-                    if (countupElement) {
-                        countupElement.textContent = formatTime(clockData.countUpTime);
-                    }
-                }
-                
-                // Update current time if provided
-                if (clockData.currentTime !== undefined) {
-                    const currentTimeElement = document.getElementById('current-time');
-                    if (currentTimeElement) {
-                        const date = new Date(clockData.currentTime * 1000);
-                        currentTimeElement.textContent = date.toLocaleTimeString([], {
-                            hour: '2-digit', minute: '2-digit', second: '2-digit'
-                        });
-                    }
-                }
-            }
-        }
-
-        
-        // Update countdown timers from server data
-        function updateCountdownTimers() {
-            if (!state.data) return;
-            
-            // Update countdown timer
-            if (state.data.countdownTime !== undefined) {
-                const countdownElement = document.getElementById('countdown');
-                if (countdownElement) {
-                    countdownElement.textContent = formatTime(state.data.countdownTime);
-                }
-            }
-            
-            // Update countdown to time timer
-            if (state.data.countUpTime !== undefined) {
-                const countupElement = document.getElementById('countup');
-                if (countupElement) {
-                    countupElement.textContent = formatTime(state.data.countUpTime);
-                }
-            }
-        }
-        
 
         // Parse time string (HH:MM:SS or MM:SS) to seconds
         function parseTimeString(timeString) {
@@ -901,7 +935,7 @@ struct HTMLJavaScript {
         }
 
         function updateUI(data) {
-            updateClocks(data);
+            // Clocks are driven by syncClockSnapshot + renderClockDisplayLoop
             
             // Only rebuild table if structure changed
             if (!state.columns || state.columns.length !== data.columns.length + 1) {
@@ -941,32 +975,6 @@ struct HTMLJavaScript {
             
             // Update table permissions after data is loaded
             updateTablePermissions();
-        }
-
-        function updateClocks(data) {
-            // Handle both old format (direct properties) and new format (nested under 'data' key)
-            const clockData = data.data || data;
-            
-            if (clockData.countdownTime !== undefined) {
-                const formattedTime = formatTime(clockData.countdownTime);
-                const countdownElement = document.getElementById('countdown');
-                if (countdownElement) {
-                    countdownElement.textContent = formattedTime;
-                }
-            }
-            
-            if (clockData.countUpTime !== undefined) {
-                const formattedTime = formatTime(clockData.countUpTime);
-                const countupElement = document.getElementById('countup');
-                if (countupElement) {
-                    countupElement.textContent = formattedTime;
-                }
-            }
-            const now = new Date();
-            document.getElementById('current-time').textContent = now.toLocaleTimeString([], {
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
-            });
-            document.getElementById('current-date').textContent = now.toLocaleDateString();
         }
 
         // Table Building
@@ -1849,9 +1857,8 @@ struct HTMLJavaScript {
             loadSettings();
             loadAuthToken(); // Load authentication token
             updateConnectionStatus('disconnected'); // Start with disconnected status
-            fetchCues();
-            // Single timer for all updates to prevent conflicts
-            setInterval(fetchCues, 1000); // Update every 1 second for smooth timer display
+            startClockDisplayLoop();
+            fetchCues().finally(() => schedulePoll(POLL_INTERVAL_MS));
             
             // Authentication event listeners
             document.getElementById('loginButton').addEventListener('click', showLoginModal);

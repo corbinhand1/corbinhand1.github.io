@@ -2,245 +2,374 @@
 //  WebsiteSyncManager.swift
 //  Cue to Cue
 //
-//  Created by Corbin Hand on 1/15/25.
-//
 
 import Foundation
 import Combine
 
-// MARK: - Website Sync Manager
+enum SyncNotificationType {
+    case success
+    case failure
+    case info
+}
 
-class WebsiteSyncManager: ObservableObject {
-    
-    // MARK: - Properties
-    
+enum WebsiteSyncSettingsKeys {
+    static let githubToken = "githubToken"
+    static let repoOwner = "repoOwner"
+    static let repoName = "repoName"
+    static let autoSyncEnabled = "autoSyncEnabled"
+
+    static let defaultRepoOwner = "corbinhand1"
+    static let defaultRepoName = "corbinhand1.github.io"
+}
+
+final class WebsiteSyncManager: ObservableObject {
+
     @Published var isSyncing = false
     @Published var lastSyncTime: Date?
     @Published var syncStatus: SyncStatus = .idle
     @Published var lastSyncFilename: String?
-    
-    // Configuration
-    private let githubToken: String
-    private let repoOwner: String
-    private let repoName: String
-    private let baseURL = "https://api.github.com/repos"
-    
-    // MARK: - Sync Status
-    
+
     enum SyncStatus {
         case idle
         case syncing
         case success
         case failed(String)
     }
-    
-    // MARK: - Initialization
-    
-    init() {
-        // TODO: Load these from Settings or environment variables
-        self.githubToken = "your_github_token_here" // Replace with actual token
-        self.repoOwner = "corbinhand1"
-        self.repoName = "corbinhand1.github.io"
-    }
-    
-    // MARK: - Public Methods
-    
-    /// Sync cue data to website
-    func syncCueData(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String) {
-        guard !isSyncing else { return }
-        
+
+    func syncCueData(
+        cueStacks: [CueStack],
+        selectedCueStackIndex: Int,
+        filename: String,
+        settingsManager: SettingsManager,
+        completion: @escaping (Bool, String?) -> Void = { _, _ in }
+    ) {
+        guard !isSyncing else {
+            completion(false, "Sync already in progress")
+            return
+        }
+
+        let githubToken = UserDefaults.standard.string(forKey: WebsiteSyncSettingsKeys.githubToken) ?? ""
+        let repoOwner = UserDefaults.standard.string(forKey: WebsiteSyncSettingsKeys.repoOwner)
+            ?? WebsiteSyncSettingsKeys.defaultRepoOwner
+        let repoName = UserDefaults.standard.string(forKey: WebsiteSyncSettingsKeys.repoName)
+            ?? WebsiteSyncSettingsKeys.defaultRepoName
+
+        guard !githubToken.isEmpty else {
+            DispatchQueue.main.async {
+                self.syncStatus = .failed("GitHub token not configured")
+                completion(false, "GitHub token not configured")
+            }
+            return
+        }
+
         isSyncing = true
         syncStatus = .syncing
-        
-        Task {
-            do {
-                try await performSync(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex, filename: filename)
-                
-                await MainActor.run {
-                    self.isSyncing = false
+
+        let cueData = prepareCueDataForWeb(
+            cueStacks: cueStacks,
+            selectedCueStackIndex: selectedCueStackIndex,
+            filename: filename,
+            settingsManager: settingsManager
+        )
+
+        sendToGitHub(
+            cueData: cueData,
+            githubToken: githubToken,
+            repoOwner: repoOwner,
+            repoName: repoName
+        ) { success, error in
+            DispatchQueue.main.async {
+                self.isSyncing = false
+                if success {
                     self.syncStatus = .success
                     self.lastSyncTime = Date()
                     self.lastSyncFilename = filename
-                }
-            } catch {
-                await MainActor.run {
-                    self.isSyncing = false
-                    self.syncStatus = .failed(error.localizedDescription)
+                    completion(true, nil)
+                } else {
+                    let message = error ?? "Unknown error"
+                    self.syncStatus = .failed(message)
+                    completion(false, message)
                 }
             }
         }
     }
-    
-    /// Auto-sync when cue data changes
-    func autoSyncIfEnabled(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String) {
-        // Check if auto-sync is enabled (you can add this to Settings)
-        let autoSyncEnabled = UserDefaults.standard.bool(forKey: "autoSyncEnabled")
-        
-        if autoSyncEnabled {
-            syncCueData(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex, filename: filename)
-        }
+
+    func autoSyncIfEnabled(
+        cueStacks: [CueStack],
+        selectedCueStackIndex: Int,
+        filename: String,
+        settingsManager: SettingsManager
+    ) {
+        guard UserDefaults.standard.bool(forKey: WebsiteSyncSettingsKeys.autoSyncEnabled) else { return }
+
+        syncCueData(
+            cueStacks: cueStacks,
+            selectedCueStackIndex: selectedCueStackIndex,
+            filename: filename,
+            settingsManager: settingsManager
+        )
     }
-    
-    // MARK: - Private Methods
-    
-    private func performSync(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String) async throws {
-        // Convert cue data to web format
-        let webData = convertToWebFormat(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex, filename: filename)
-        
-        // Create metadata
-        let metadata = createMetadata(filename: filename)
-        
-        // Send to GitHub
-        try await sendToGitHub(cueData: webData, metadata: metadata)
+
+    // MARK: - Settings
+
+    var isAutoSyncEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: WebsiteSyncSettingsKeys.autoSyncEnabled) }
+        set { UserDefaults.standard.set(newValue, forKey: WebsiteSyncSettingsKeys.autoSyncEnabled) }
     }
-    
-    private func convertToWebFormat(cueStacks: [CueStack], selectedCueStackIndex: Int, filename: String) -> [String: Any] {
-        let cueStack = cueStacks[selectedCueStackIndex]
-        let now = Date()
-        
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "EEE MMM d, yyyy"
-        
-        let timeFormatter = DateFormatter()
-        timeFormatter.dateFormat = "h:mm:ss"
-        
-        let amPmFormatter = DateFormatter()
-        amPmFormatter.dateFormat = "a"
-        
-        let webCues = cueStack.cues.enumerated().map { index, cue in
-            [
-                "id": cue.id.uuidString,
-                "index": index,
-                "values": cue.values,
-                "timerValue": cue.timerValue,
-                "isStruckThrough": cue.isStruckThrough,
-                "struck": Array(repeating: cue.isStruckThrough, count: cueStack.columns.count)
-            ]
-        }
-        
-        let webColumns = cueStack.columns.map { column in
-            [
-                "name": column.name,
-                "width": Double(column.width)
-            ]
-        }
-        
-        let availableCueStacks = cueStacks.enumerated().map { index, stack in
-            [
+
+    func loadConfiguration() -> (githubToken: String, repoOwner: String, repoName: String, autoSyncEnabled: Bool) {
+        (
+            githubToken: UserDefaults.standard.string(forKey: WebsiteSyncSettingsKeys.githubToken) ?? "",
+            repoOwner: UserDefaults.standard.string(forKey: WebsiteSyncSettingsKeys.repoOwner)
+                ?? WebsiteSyncSettingsKeys.defaultRepoOwner,
+            repoName: UserDefaults.standard.string(forKey: WebsiteSyncSettingsKeys.repoName)
+                ?? WebsiteSyncSettingsKeys.defaultRepoName,
+            autoSyncEnabled: isAutoSyncEnabled
+        )
+    }
+
+    func saveConfiguration(githubToken: String, repoOwner: String, repoName: String, autoSyncEnabled: Bool) {
+        UserDefaults.standard.set(githubToken, forKey: WebsiteSyncSettingsKeys.githubToken)
+        UserDefaults.standard.set(repoOwner, forKey: WebsiteSyncSettingsKeys.repoOwner)
+        UserDefaults.standard.set(repoName, forKey: WebsiteSyncSettingsKeys.repoName)
+        isAutoSyncEnabled = autoSyncEnabled
+    }
+
+    // MARK: - Private
+
+    private func prepareCueDataForWeb(
+        cueStacks: [CueStack],
+        selectedCueStackIndex: Int,
+        filename: String,
+        settingsManager: SettingsManager
+    ) -> [String: Any] {
+        let columns = cueStacks.first?.columns ?? []
+        var availableCueStacks: [[String: Any]] = []
+
+        for stack in cueStacks {
+            var cues: [[String: Any]] = []
+
+            for cue in stack.cues {
+                var cueData: [String: Any] = [:]
+
+                for (index, column) in columns.enumerated() {
+                    let value = index < cue.values.count ? cue.values[index] : ""
+                    cueData[column.name] = value
+                }
+
+                cueData["timerValue"] = cue.timerValue
+                cueData["isStruckThrough"] = cue.isStruckThrough
+                cues.append(cueData)
+            }
+
+            availableCueStacks.append([
+                "id": stack.id.uuidString,
                 "name": stack.name,
-                "index": index
-            ]
+                "cues": cues,
+            ])
         }
-        
-        return [
-            "cueStackId": cueStack.id.uuidString,
-            "cueStackName": cueStack.name,
+
+        let webColumns = columns.map { column in
+            [
+                "id": column.id.uuidString,
+                "name": column.name,
+                "width": column.width,
+            ] as [String: Any]
+        }
+
+        let webHighlightColors = settingsManager.settings.highlightColors.map { highlight in
+            [
+                "keyword": highlight.keyword,
+                "color": highlight.color.toHex(),
+            ] as [String: Any]
+        }
+
+        let now = Date()
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        let metadata: [String: Any] = [
             "filename": filename,
-            "columns": webColumns,
-            "cues": webCues,
-            "activeCueIndex": -1,
-            "selectedCueIndex": -1,
-            "lastUpdateTime": now.timeIntervalSince1970,
-            "currentDate": dateFormatter.string(from: now),
-            "currentTime": timeFormatter.string(from: now),
-            "currentAMPM": amPmFormatter.string(from: now),
-            "countdownTime": 0,
-            "countUpTime": 0,
-            "countdownRunning": false,
-            "countUpRunning": false,
-            "availableCueStacks": availableCueStacks,
-            "currentCueStackIndex": selectedCueStackIndex
+            "lastUpdated": formatter.string(from: now),
+            "selectedCueStackIndex": selectedCueStackIndex,
+            "totalCueStacks": cueStacks.count,
+            "syncTimestamp": now.timeIntervalSince1970,
+        ]
+
+        return [
+            "cueData": [
+                "availableCueStacks": availableCueStacks,
+                "allCues": availableCueStacks,
+                "columns": webColumns,
+                "highlightColors": webHighlightColors,
+            ],
+            "metadata": metadata,
         ]
     }
-    
-    private func createMetadata(filename: String) -> [String: Any] {
-        return [
-            "filename": filename,
-            "lastUpdated": ISO8601DateFormatter().string(from: Date()),
-            "source": "macOS Cue to Cue App",
-            "syncMethod": "GitHub Actions"
-        ]
+
+    private func sendToGitHub(
+        cueData: [String: Any],
+        githubToken: String,
+        repoOwner: String,
+        repoName: String,
+        completion: @escaping (Bool, String?) -> Void
+    ) {
+        updateGitHubFiles(
+            cueData: cueData,
+            githubToken: githubToken,
+            repoOwner: repoOwner,
+            repoName: repoName,
+            completion: completion
+        )
     }
-    
-    private func sendToGitHub(cueData: [String: Any], metadata: [String: Any]) async throws {
-        let url = URL(string: "\(baseURL)/\(repoOwner)/\(repoName)/dispatches")!
-        
+
+    private func updateGitHubFiles(
+        cueData: [String: Any],
+        githubToken: String,
+        repoOwner: String,
+        repoName: String,
+        completion: @escaping (Bool, String?) -> Void
+    ) {
+        let group = DispatchGroup()
+        var success = true
+        var errorMessage: String?
+
+        group.enter()
+        updateGitHubFile(
+            path: "cuetocue/cuetocue-data.json",
+            content: cueData["cueData"] as Any,
+            githubToken: githubToken,
+            repoOwner: repoOwner,
+            repoName: repoName
+        ) { fileSuccess, fileError in
+            if !fileSuccess {
+                success = false
+                errorMessage = fileError
+            }
+            group.leave()
+        }
+
+        group.enter()
+        updateGitHubFile(
+            path: "cuetocue/metadata.json",
+            content: cueData["metadata"] as Any,
+            githubToken: githubToken,
+            repoOwner: repoOwner,
+            repoName: repoName
+        ) { fileSuccess, fileError in
+            if !fileSuccess {
+                success = false
+                errorMessage = fileError
+            }
+            group.leave()
+        }
+
+        group.notify(queue: .main) {
+            completion(success, errorMessage)
+        }
+    }
+
+    private func updateGitHubFile(
+        path: String,
+        content: Any,
+        githubToken: String,
+        repoOwner: String,
+        repoName: String,
+        completion: @escaping (Bool, String?) -> Void
+    ) {
+        let url = URL(string: "https://api.github.com/repos/\(repoOwner)/\(repoName)/contents/\(path)")!
+
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        request.httpMethod = "PUT"
+        request.setValue("token \(githubToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: content, options: .prettyPrinted)
+            let jsonString = String(data: jsonData, encoding: .utf8) ?? ""
+            let base64Content = Data(jsonString.utf8).base64EncodedString()
+
+            getFileSHA(path: path, githubToken: githubToken, repoOwner: repoOwner, repoName: repoName) { sha in
+                var payload: [String: Any] = [
+                    "message": "Update \(path) from macOS app",
+                    "content": base64Content,
+                ]
+                if let sha {
+                    payload["sha"] = sha
+                }
+
+                do {
+                    request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+                    URLSession.shared.dataTask(with: request) { data, response, error in
+                        if let error {
+                            completion(false, "Network error: \(error.localizedDescription)")
+                            return
+                        }
+
+                        guard let httpResponse = response as? HTTPURLResponse else {
+                            completion(false, "Invalid response")
+                            return
+                        }
+
+                        switch httpResponse.statusCode {
+                        case 200, 201, 409:
+                            completion(true, nil)
+                        case 401:
+                            var message = "HTTP 401: Authentication failed"
+                            if let data,
+                               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                               let apiMessage = json["message"] as? String {
+                                message = "HTTP 401: \(apiMessage)"
+                            }
+                            completion(false, message)
+                        default:
+                            var message = "HTTP \(httpResponse.statusCode)"
+                            if let data,
+                               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                               let apiMessage = json["message"] as? String {
+                                message = "HTTP \(httpResponse.statusCode): \(apiMessage)"
+                            }
+                            completion(false, message)
+                        }
+                    }.resume()
+                } catch {
+                    completion(false, "Failed to serialize request body: \(error.localizedDescription)")
+                }
+            }
+        } catch {
+            completion(false, "Failed to prepare content: \(error.localizedDescription)")
+        }
+    }
+
+    private func getFileSHA(
+        path: String,
+        githubToken: String,
+        repoOwner: String,
+        repoName: String,
+        completion: @escaping (String?) -> Void
+    ) {
+        let url = URL(string: "https://api.github.com/repos/\(repoOwner)/\(repoName)/contents/\(path)")!
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
         request.setValue("token \(githubToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let payload = [
-            "event_type": "cue-data-update",
-            "client_payload": [
-                "cueData": cueData,
-                "metadata": metadata
-            ]
-        ]
-        
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        
-        let (_, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SyncError.invalidResponse
-        }
-        
-        if httpResponse.statusCode != 204 {
-            throw SyncError.httpError(httpResponse.statusCode)
-        }
+
+        URLSession.shared.dataTask(with: request) { data, response, _ in
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 401 {
+                completion(nil)
+                return
+            }
+
+            if let data,
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let sha = json["sha"] as? String {
+                completion(sha)
+            } else {
+                completion(nil)
+            }
+        }.resume()
     }
 }
-
-// MARK: - Sync Errors
-
-enum SyncError: LocalizedError {
-    case invalidResponse
-    case httpError(Int)
-    case invalidToken
-    
-    var errorDescription: String? {
-        switch self {
-        case .invalidResponse:
-            return "Invalid response from server"
-        case .httpError(let code):
-            return "HTTP error: \(code)"
-        case .invalidToken:
-            return "Invalid GitHub token"
-        }
-    }
-}
-
-// MARK: - Settings Integration
-
-extension WebsiteSyncManager {
-    
-    /// Check if auto-sync is enabled
-    var isAutoSyncEnabled: Bool {
-        get {
-            UserDefaults.standard.bool(forKey: "autoSyncEnabled")
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "autoSyncEnabled")
-        }
-    }
-    
-    /// Get GitHub token from settings
-    var githubTokenFromSettings: String? {
-        get {
-            UserDefaults.standard.string(forKey: "githubToken")
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "githubToken")
-        }
-    }
-    
-    /// Configure sync settings
-    func configure(githubToken: String, autoSyncEnabled: Bool) {
-        self.githubTokenFromSettings = githubToken
-        self.isAutoSyncEnabled = autoSyncEnabled
-    }
-}
-
-

@@ -8,7 +8,6 @@
 import Foundation
 import Network
 import Darwin
-import Combine
 
 // MARK: - WebServer Class
 
@@ -35,13 +34,6 @@ class WebServer: ObservableObject {
     private let networkUtilities: NetworkUtilities
     let authManager: AuthenticationManager
     private let timerServer: AuthoritativeTimerServer
-    
-    // MARK: - Timer Broadcasting
-    
-    private var timerCancellables = Set<AnyCancellable>()
-    private var lastBroadcastTime: TimeInterval = 0
-    private var lastBroadcastState: (countdownTime: Int, countUpTime: Int, countdownRunning: Bool, countUpRunning: Bool)?
-    private let minBroadcastInterval: TimeInterval = 0.1 // 100ms throttle
     
     // MARK: - Initialization
     
@@ -70,9 +62,6 @@ class WebServer: ObservableObject {
         
         // Set up bindings to connection manager
         setupBindings()
-        
-        // Set up timer broadcasting subscription
-        setupTimerBroadcasting()
         
         // Create test user if needed (after all initialization is complete)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -134,9 +123,6 @@ class WebServer: ObservableObject {
         // Stop connection manager
         connectionManager.stop()
         
-        // Cancel timer subscriptions
-        timerCancellables.removeAll()
-        
         // Update published properties
         DispatchQueue.main.async { [weak self] in
             self?.serverStatus = (isRunning: false, port: self?.port ?? 8080)
@@ -172,10 +158,6 @@ class WebServer: ObservableObject {
     
     func updateHighlightColors(_ highlightColors: [HighlightColorSetting]) {
         dataSyncManager.updateHighlightColors(highlightColors)
-    }
-    
-    func updateClockState(currentTime: Date, countdownTime: Int, countUpTime: Int, countdownRunning: Bool, countUpRunning: Bool) {
-        dataSyncManager.updateClockState(currentTime: currentTime, countdownTime: countdownTime, countUpTime: countUpTime, countdownRunning: countdownRunning, countUpRunning: countUpRunning)
     }
     
     // MARK: - Network Utilities
@@ -299,99 +281,5 @@ class WebServer: ObservableObject {
     func refreshPublishedProperties() {
         connectionManager.refreshPublishedProperties()
         updatePublishedProperties()
-    }
-    
-    // MARK: - Timer Broadcasting
-    
-    private func setupTimerBroadcasting() {
-        // Subscribe to timer server state changes
-        timerServer.objectWillChange
-            .sink { [weak self] _ in
-                self?.handleTimerStateChange()
-            }
-            .store(in: &timerCancellables)
-        
-        // Also subscribe to individual @Published properties for more reliable updates
-        timerServer.$countdownTime
-            .dropFirst() // Skip initial value
-            .sink { [weak self] _ in
-                self?.handleTimerStateChange()
-            }
-            .store(in: &timerCancellables)
-        
-        timerServer.$countdownRunning
-            .dropFirst()
-            .sink { [weak self] _ in
-                self?.handleTimerStateChange()
-            }
-            .store(in: &timerCancellables)
-        
-        print("📡 Timer broadcasting subscription set up")
-    }
-    
-    private func handleTimerStateChange() {
-        // Throttle broadcasts to prevent excessive network traffic
-        let now = Date().timeIntervalSince1970
-        guard now - lastBroadcastTime >= minBroadcastInterval else {
-            return // Too soon since last broadcast
-        }
-        
-        // Get current timer state
-        let state = timerServer.getTimerState()
-        
-        // Check if timer state actually changed
-        let currentState = (state.countdownTime, state.countUpTime, state.countdownRunning, state.countUpRunning)
-        if let lastState = lastBroadcastState, lastState == currentState {
-            return // No change detected
-        }
-        
-        // Broadcast the timer update
-        broadcastTimerUpdate(state)
-        
-        // Update tracking
-        lastBroadcastTime = now
-        lastBroadcastState = currentState
-    }
-    
-    private func broadcastTimerUpdate(_ state: TimerState) {
-        // Format message to match JavaScript client expectations
-        // websocket-client.js expects: { type: "timer_update", data: { countdownTime, countUpTime, countdownRunning, countUpRunning, currentTime, timestamp } }
-        // The data object is what gets passed to the handler
-        
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        
-        let message: [String: Any] = [
-            "type": "timer_update",
-            "data": [
-                "countdownTime": state.countdownTime,
-                "countUpTime": state.countUpTime,
-                "countdownRunning": state.countdownRunning,
-                "countUpRunning": state.countUpRunning,
-                "currentTime": formatter.string(from: timerServer.currentTime),
-                "timestamp": state.timestamp / 1000.0, // Convert from milliseconds to seconds for consistency
-                "sequenceNumber": 0 // Not used by AuthoritativeTimerServer, but expected by some clients
-            ]
-        ]
-        
-        do {
-            let _ = try JSONSerialization.data(withJSONObject: message, options: [])
-            
-            // TODO: When WebSocket support is added, send this message via WebSocket here
-            // For now, the timer data is already included in the JSON response via generateJSONResponseForWebClient
-            // Clients polling /cues endpoint will get fresh timer data
-            
-            // Post notification for potential future use or debugging
-            NotificationCenter.default.post(
-                name: Notification.Name("TimerStateChanged"),
-                object: nil,
-                userInfo: ["timerState": state, "message": message]
-            )
-            
-            // Timer updates are broadcast silently - no logging needed
-            
-        } catch {
-            print("❌ Error encoding timer update message: \(error)")
-        }
     }
 }
