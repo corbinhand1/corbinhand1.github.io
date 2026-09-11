@@ -1,7 +1,7 @@
 {
-  "totalCueStacks" : 10,
-  "syncTimestamp" : 1789160176.252883,
+  "lastUpdated" : "2026-09-11T20:57:23.795Z",
   "selectedCueStackIndex" : 0,
-  "lastUpdated" : "2026-09-11T20:56:16.253Z",
-  "filename" : "DF_26.cuestack"
+  "totalCueStacks" : 10,
+  "filename" : "DF_26.cuestack",
+  "syncTimestamp" : 1789160243.7947979
 }
