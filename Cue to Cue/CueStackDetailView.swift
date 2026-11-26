@@ -69,7 +69,10 @@ struct CueStackDetailView: View {
     private var columnHeaders: some View {
         HStack(spacing: 0) {
             // Lines the headers up with the cells, past the state column.
-            Color.clear.frame(width: CueRowStyle.stateColumnWidth + 20, height: 1)
+            // The Reorder Cues button sits in this gap, so nothing shifts.
+            ReorderCuesButton(isReorderingCues: $isReorderingCues)
+                .padding(.top, 10)
+                .frame(width: CueRowStyle.stateColumnWidth + 20, alignment: .leading)
             ForEach(cueStack.columns.indices, id: \.self) { index in
                 ResizableColumnHeader(
                     column: $cueStack.columns[index],
@@ -83,8 +86,7 @@ struct CueStackDetailView: View {
                     deleteColumn: deleteColumn
                 )
             }
-            // This uses the arrow button to toggle isReorderingCues
-            HeaderButtons(addColumn: addColumn, isReorderingCues: $isReorderingCues)
+            HeaderButtons(addColumn: addColumn)
                 .padding(.leading, 6)
                 .padding(.top, 10)
 
@@ -140,18 +142,19 @@ struct CueStackDetailView: View {
 
     // The actual row content, with a small "handle" if reordering is on
     private func rowContent(rowIndex: Int) -> some View {
-        HStack(spacing: 0) {
-            // Show a small handle for reordering if isReorderingCues == true
-            if isReorderingCues {
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 12))
-                    .foregroundColor(.gray)
-                    .padding(.trailing, 4)
+        // While reordering, a drag handle is drawn in the state column
+        // (over the row, not beside it) so the columns stay where they are.
+        cueRow(for: rowIndex)
+            .overlay(alignment: .leading) {
+                if isReorderingCues {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.gray)
+                        .frame(width: CueRowStyle.stateColumnWidth, alignment: .center)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
             }
-
-            // The standard CueRowView inside
-            cueRow(for: rowIndex)
-        }
     }
 
     // The actual CueRowView

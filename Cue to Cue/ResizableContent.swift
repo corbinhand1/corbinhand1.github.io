@@ -145,7 +145,6 @@ struct ResizeHandle: View {
 
 struct HeaderButtons: View {
     let addColumn: () -> Void
-    @Binding var isReorderingCues: Bool
 
     var body: some View {
         HStack(spacing: 8) {
@@ -160,17 +159,26 @@ struct HeaderButtons: View {
                     .cornerRadius(6)
             }
             .buttonStyle(.plain)
-
-            Button(action: { isReorderingCues.toggle() }) {
-                Image(systemName: isReorderingCues ? "arrow.up.arrow.down.circle.fill" : "arrow.up.arrow.down.circle")
-                    .accessibilityLabel(Text(isReorderingCues ? "Finish Reordering Cues" : "Reorder Cues"))
-                    .help(isReorderingCues ? "Finish Reordering Cues" : "Reorder Cues")
-                    .foregroundColor(isReorderingCues ? .blue : .white.opacity(0.85))
-                    .font(.system(size: 16))
-            }
-            .buttonStyle(.plain)
         }
         .padding(.trailing, 8)
+    }
+}
+
+/// Toggles drag-to-reorder for cues. Lives at the top left of the cue table.
+struct ReorderCuesButton: View {
+    @Binding var isReorderingCues: Bool
+
+    var body: some View {
+        Button(action: { isReorderingCues.toggle() }) {
+            Image(systemName: isReorderingCues ? "arrow.up.arrow.down.circle.fill" : "arrow.up.arrow.down.circle")
+                .font(.system(size: 16))
+                .foregroundColor(isReorderingCues ? .blue : .white.opacity(0.85))
+                .frame(width: 28, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(isReorderingCues ? "Finish Reordering Cues" : "Reorder Cues")
+        .accessibilityLabel(Text(isReorderingCues ? "Finish Reordering Cues" : "Reorder Cues"))
     }
 }
 
