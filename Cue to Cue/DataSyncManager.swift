@@ -671,3 +671,157 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
         print("📋 Created default cue stack: \(testCueStack.name) (\(testCueStack.cues.count) cues)")
     }
 }
+
+// MARK: - Structural edits from LAN remotes (insert, move, strike, timer, delete, columns)
+
+enum RemoteOpError: Error {
+    case invalid(String)
+    case notFound(String)
+
+    var message: String {
+        switch self {
+        case .invalid(let m), .notFound(let m): return m
+        }
+    }
+}
+
+extension DataSyncManager {
+    /// Stack a remote op targets, used by the HTTP layer for permission checks.
+    func stackIDForRemoteOp(_ op: [String: Any]) -> UUID? {
+        if let s = op["cueStackId"] as? String, let id = UUID(uuidString: s) { return id }
+        let ids = ((op["cueIds"] as? [String]) ?? (op["cueId"] as? String).map { [$0] } ?? [])
+            .compactMap(UUID.init(uuidString:))
+        for id in ids { if let found = findCue(by: id) { return found.cueStack.id } }
+        return nil
+    }
+
+    /// Column operations change the sheet's shape, so only admins may use them.
+    static func isColumnOp(_ name: String) -> Bool {
+        ["addColumn", "renameColumn", "deleteColumn", "moveColumn"].contains(name)
+    }
+
+    /// Applies one structural edit. Main thread only. Returns the new cue's id for inserts.
+    /// The live/selected cue keeps pointing at the same cue even when others move around it.
+    func applyRemoteOpSync(_ op: [String: Any]) -> Result<UUID?, RemoteOpError> {
+        func uuid(_ k: String) -> UUID? { (op[k] as? String).flatMap(UUID.init(uuidString:)) }
+        func uuids(_ k: String) -> [UUID] { ((op[k] as? [String]) ?? []).compactMap(UUID.init(uuidString:)) }
+        func locate(_ id: UUID) -> (stack: Int, cue: Int)? {
+            for s in cueStacks.indices {
+                if let c = cueStacks[s].cues.firstIndex(where: { $0.id == id }) { return (s, c) }
+            }
+            return nil
+        }
+        func stackIndex() -> Int? { uuid("cueStackId").flatMap { id in cueStacks.firstIndex { $0.id == id } } }
+
+        guard let name = op["op"] as? String else { return .failure(.invalid("Missing op")) }
+
+        // Remember which cues are live/selected so we can re-find them after shifting rows.
+        let liveStack = cueStacks.indices.contains(selectedCueStackIndex) ? selectedCueStackIndex : nil
+        let activeID = liveStack.flatMap { s in
+            cueStacks[s].cues.indices.contains(activeCueIndex) ? cueStacks[s].cues[activeCueIndex].id : nil }
+        let selectedID = liveStack.flatMap { s in
+            cueStacks[s].cues.indices.contains(selectedCueIndex) ? cueStacks[s].cues[selectedCueIndex].id : nil }
+
+        var newID: UUID?
+
+        switch name {
+        case "insert":
+            guard let s = stackIndex() else { return .failure(.notFound("Cue stack not found")) }
+            let columnCount = cueStacks[s].columns.count
+            var values = (op["values"] as? [String]) ?? []
+            if values.count < columnCount { values += Array(repeating: "", count: columnCount - values.count) }
+            else if values.count > columnCount { values = Array(values.prefix(columnCount)) }
+            let cue = Cue(id: uuid("cueId") ?? UUID(), values: values,
+                          timerValue: op["timerValue"] as? String ?? "",
+                          isStruckThrough: op["isStruckThrough"] as? Bool ?? false)
+            if locate(cue.id) != nil { return .failure(.invalid("A cue with that id already exists")) }
+            let count = cueStacks[s].cues.count
+            let index = min(max((op["index"] as? Int) ?? count, 0), count)
+            cueStacks[s].cues.insert(cue, at: index)
+            newID = cue.id
+
+        case "move":
+            guard let id = uuid("cueId"), let to = op["toIndex"] as? Int else { return .failure(.invalid("cueId and toIndex required")) }
+            guard let at = locate(id) else { return .failure(.notFound("Cue not found")) }
+            let cue = cueStacks[at.stack].cues.remove(at: at.cue)
+            let index = min(max(to, 0), cueStacks[at.stack].cues.count)
+            cueStacks[at.stack].cues.insert(cue, at: index)
+
+        case "strike":
+            guard let struck = op["struck"] as? Bool else { return .failure(.invalid("struck required")) }
+            var found = false
+            for id in uuids("cueIds") {
+                if let at = locate(id) { cueStacks[at.stack].cues[at.cue].isStruckThrough = struck; found = true }
+            }
+            if !found { return .failure(.notFound("Cue not found")) }
+
+        case "timer":
+            guard let id = uuid("cueId"), let value = op["timerValue"] as? String else { return .failure(.invalid("cueId and timerValue required")) }
+            guard let at = locate(id) else { return .failure(.notFound("Cue not found")) }
+            cueStacks[at.stack].cues[at.cue].timerValue = value
+
+        case "delete":
+            var found = false
+            for id in uuids("cueIds") {
+                if let at = locate(id) { cueStacks[at.stack].cues.remove(at: at.cue); found = true }
+            }
+            if !found { return .failure(.notFound("Cue not found")) }
+
+        case "addColumn":
+            guard let s = stackIndex() else { return .failure(.notFound("Cue stack not found")) }
+            guard let title = (op["name"] as? String)?.trimmingCharacters(in: .whitespaces), !title.isEmpty else {
+                return .failure(.invalid("Column name required")) }
+            let count = cueStacks[s].columns.count
+            let index = min(max((op["index"] as? Int) ?? count, 0), count)
+            let width = (op["width"] as? Double).map { CGFloat($0) } ?? 100
+            cueStacks[s].columns.insert(Column(name: title, width: width), at: index)
+            for c in cueStacks[s].cues.indices {
+                let at = min(index, cueStacks[s].cues[c].values.count)
+                cueStacks[s].cues[c].values.insert("", at: at)
+            }
+
+        case "renameColumn":
+            guard let s = stackIndex() else { return .failure(.notFound("Cue stack not found")) }
+            guard let i = op["columnIndex"] as? Int, cueStacks[s].columns.indices.contains(i) else { return .failure(.invalid("columnIndex out of range")) }
+            guard let title = (op["name"] as? String)?.trimmingCharacters(in: .whitespaces), !title.isEmpty else {
+                return .failure(.invalid("Column name required")) }
+            cueStacks[s].columns[i].name = title
+
+        case "deleteColumn":
+            guard let s = stackIndex() else { return .failure(.notFound("Cue stack not found")) }
+            guard let i = op["columnIndex"] as? Int, cueStacks[s].columns.indices.contains(i) else { return .failure(.invalid("columnIndex out of range")) }
+            guard cueStacks[s].columns.count > 1 else { return .failure(.invalid("A stack needs at least one column")) }
+            cueStacks[s].columns.remove(at: i)
+            for c in cueStacks[s].cues.indices where cueStacks[s].cues[c].values.indices.contains(i) {
+                cueStacks[s].cues[c].values.remove(at: i)
+            }
+
+        case "moveColumn":
+            guard let s = stackIndex() else { return .failure(.notFound("Cue stack not found")) }
+            guard let from = op["from"] as? Int, let to = op["to"] as? Int,
+                  cueStacks[s].columns.indices.contains(from) else { return .failure(.invalid("from/to out of range")) }
+            let dest = min(max(to, 0), cueStacks[s].columns.count - 1)
+            let col = cueStacks[s].columns.remove(at: from)
+            cueStacks[s].columns.insert(col, at: dest)
+            for c in cueStacks[s].cues.indices where cueStacks[s].cues[c].values.indices.contains(from) {
+                let v = cueStacks[s].cues[c].values.remove(at: from)
+                cueStacks[s].cues[c].values.insert(v, at: min(dest, cueStacks[s].cues[c].values.count))
+            }
+
+        default:
+            return .failure(.invalid("Unknown op '\(name)'"))
+        }
+
+        // Keep the live and selected cue on the same cue after rows shifted.
+        if let s = liveStack, cueStacks.indices.contains(s) {
+            let cues = cueStacks[s].cues
+            if let id = activeID { activeCueIndex = cues.firstIndex { $0.id == id } ?? min(activeCueIndex, cues.count - 1) }
+            if let id = selectedID { selectedCueIndex = cues.firstIndex { $0.id == id } ?? min(selectedCueIndex, cues.count - 1) }
+        }
+
+        recordWebChange()
+        autoSaveToFile()
+        recordLANChange(kind: .snapshot)
+        return .success(newID)
+    }
+}

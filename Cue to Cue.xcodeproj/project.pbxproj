@@ -55,6 +55,7 @@
 		31WST003 /* WebsitePublishingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WST004 /* WebsitePublishingTests.swift */; };
 		31ATH003 /* AuthenticationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31ATH004 /* AuthenticationTests.swift */; };
 		31LSY003 /* LiveSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31LSY004 /* LiveSyncTests.swift */; };
+		31ROP003 /* RemoteOpsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31ROP004 /* RemoteOpsTests.swift */; };
 		31STG003 /* DocumentStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31STG004 /* DocumentStorageTests.swift */; };
 		31TMR003 /* TimerServerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31TMR004 /* TimerServerTests.swift */; };
 		31F2FAC92C0425ED0074D2A4 /* Cue_to_CueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FAC82C0425ED0074D2A4 /* Cue_to_CueUITests.swift */; };
@@ -199,6 +200,7 @@
 		31WST004 /* WebsitePublishingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsitePublishingTests.swift; sourceTree = "<group>"; };
 		31ATH004 /* AuthenticationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationTests.swift; sourceTree = "<group>"; };
 		31LSY004 /* LiveSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSyncTests.swift; sourceTree = "<group>"; };
+		31ROP004 /* RemoteOpsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteOpsTests.swift; sourceTree = "<group>"; };
 		31STG004 /* DocumentStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentStorageTests.swift; sourceTree = "<group>"; };
 		31TMR004 /* TimerServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerServerTests.swift; sourceTree = "<group>"; };
 		31F2FAC42C0425ED0074D2A4 /* Cue to CueUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Cue to CueUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -436,6 +438,7 @@
 				31FRT004 /* FindReplaceTests.swift */,
 				31ATH004 /* AuthenticationTests.swift */,
 				31LSY004 /* LiveSyncTests.swift */,
+				31ROP004 /* RemoteOpsTests.swift */,
 				31STG004 /* DocumentStorageTests.swift */,
 				31TMR004 /* TimerServerTests.swift */,
 			);
@@ -714,6 +717,7 @@
 				31FRT003 /* FindReplaceTests.swift in Sources */,
 				31ATH003 /* AuthenticationTests.swift in Sources */,
 				31LSY003 /* LiveSyncTests.swift in Sources */,
+				31ROP003 /* RemoteOpsTests.swift in Sources */,
 				31STG003 /* DocumentStorageTests.swift in Sources */,
 				31TMR003 /* TimerServerTests.swift in Sources */,
 			);

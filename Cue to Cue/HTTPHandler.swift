@@ -120,6 +120,8 @@ class HTTPHandler {
             return handleAddCue(request)
         case (.delete, let path) where path.hasPrefix("/cues/"):
             return handleDeleteCue(request)
+        case (.post, "/ops"):
+            return handleRemoteOp(request)
         case (.options, _):
             return serveCORS()
         default:
@@ -758,6 +760,48 @@ class HTTPHandler {
                 headers: createCORSHeaders(["Content-Type": "application/json"]),
                 body: createErrorJSON(message: "Failed to delete cue")
             )
+        }
+    }
+
+    // MARK: - Structural edit operations (insert, move, strike, timer, delete, columns)
+
+    /// POST /ops with {"op": "...", ...}. Cue ops need any permission on the stack
+    /// (like add/delete); column ops need an admin.
+    private func handleRemoteOp(_ request: HTTPRequest) -> HTTPResponse {
+        func json(_ status: HTTPStatus, _ object: [String: Any]) -> HTTPResponse {
+            HTTPResponse(status: status, headers: createCORSHeaders(["Content-Type": "application/json"]),
+                         body: (try? JSONSerialization.data(withJSONObject: object)) ?? Data())
+        }
+        guard let user = getCurrentUser(from: request) else {
+            return json(.unauthorized, ["error": "Authentication required"])
+        }
+        guard let body = request.body,
+              let op = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any],
+              let name = op["op"] as? String else {
+            return json(.badRequest, ["error": "Invalid request body"])
+        }
+
+        return onMainThread {
+            guard let stackID = dataSyncManager.stackIDForRemoteOp(op) else {
+                return json(.notFound, ["error": "Cue or cue stack not found"])
+            }
+            if DataSyncManager.isColumnOp(name) {
+                guard user.isAdmin else { return json(.forbidden, ["error": "Only administrators can change columns"]) }
+            } else {
+                let hasAccess = authManager.permissions.contains { $0.userId == user.id && $0.cueStackId == stackID }
+                guard user.isAdmin || hasAccess else {
+                    return json(.forbidden, ["error": "Permission denied for this cue stack"])
+                }
+            }
+            switch dataSyncManager.applyRemoteOpSync(op) {
+            case .success(let newID):
+                var out: [String: Any] = ["success": true]
+                if let newID { out["cueId"] = newID.uuidString }
+                return json(.ok, out)
+            case .failure(let e):
+                if case .notFound = e { return json(.notFound, ["error": e.message]) }
+                return json(.badRequest, ["error": e.message])
+            }
         }
     }
 }
