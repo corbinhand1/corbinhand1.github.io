@@ -202,7 +202,7 @@ enum LANWebSocketFraming {
 
 enum LANMessageEncoder {
     static func encode(type: LANChangeKind, version: UInt64, data: [String: Any]) -> String? {
-        var envelope: [String: Any] = [
+        let envelope: [String: Any] = [
             "type": type.rawValue,
             "version": version,
             "data": data
@@ -215,7 +215,7 @@ enum LANMessageEncoder {
     }
 
     static func snapshotEnvelope(version: UInt64, snapshotObject: [String: Any]) -> String? {
-        var envelope: [String: Any] = [
+        let envelope: [String: Any] = [
             "type": LANChangeKind.snapshot.rawValue,
             "version": version,
             "data": snapshotObject

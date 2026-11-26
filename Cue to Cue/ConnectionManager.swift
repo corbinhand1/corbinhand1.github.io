@@ -188,7 +188,7 @@ class ConnectionManager: ObservableObject {
             guard let self = self else { return }
 
             self.connectionQueue.sync {
-                self.httpReceivePending.remove(connectionID)
+                _ = self.httpReceivePending.remove(connectionID)
             }
 
             if let error = error {
@@ -461,7 +461,7 @@ class ConnectionManager: ObservableObject {
         let now = Date()
         
         // Check if this device was previously inactive and remove it from inactive list
-        if let inactiveSession = _inactiveClientSessions[sessionKey] {
+        if _inactiveClientSessions[sessionKey] != nil {
             _inactiveClientSessions.removeValue(forKey: sessionKey)
         }
         

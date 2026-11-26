@@ -89,6 +89,7 @@ final class LiveSyncStressTests: XCTestCase {
     private var listener: NWListener!
     private var port: UInt16 = 0
     private var session: URLSession!
+    private var authDir: URL!
 
     override func setUp() async throws {
         try await MainActor.run {
@@ -101,7 +102,9 @@ final class LiveSyncStressTests: XCTestCase {
             hub.dataSyncManager = data
             hub.timerServer = timer
             data.broadcastHub = hub
-            let auth = AuthenticationManager(dataSyncManager: data)
+            authDir = FileManager.default.temporaryDirectory.appendingPathComponent("CueToCueLiveSyncAuth-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: authDir, withIntermediateDirectories: true)
+            let auth = AuthenticationManager(dataSyncManager: data, storageDirectory: authDir)
             let handler = HTTPHandler(dataSyncManager: data, offlineFileServer: OfflineFileServer(), networkUtilities: NetworkUtilities(),
                                       connectionManager: nil, authManager: auth, timerServer: timer)
             connections = ConnectionManager(httpHandler: handler, broadcastHub: hub)
@@ -120,6 +123,7 @@ final class LiveSyncStressTests: XCTestCase {
     override func tearDown() async throws {
         listener.cancel()
         session.invalidateAndCancel()
+        try? FileManager.default.removeItem(at: authDir)
     }
 
     // MARK: Helpers

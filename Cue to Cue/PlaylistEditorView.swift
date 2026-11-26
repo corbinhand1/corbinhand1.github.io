@@ -38,6 +38,8 @@ struct PlaylistEditorView: View {
                 Spacer()
                 Button(action: { isPresented = false }) {
                     Image(systemName: "xmark.circle.fill")
+                        .accessibilityLabel(Text("Close"))
+                        .help("Close")
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(PlainButtonStyle())

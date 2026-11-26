@@ -724,7 +724,7 @@ final class DocumentController: ObservableObject {
         window.isDocumentEdited = isDirty
 
         // Title format examples:
-        //   "Show — Edited - Cue to Cue 2.1"
+        //   "Show — Edited - Cue to Cue 2.1" (version from AppInfo)
         //   "Show — Saved 1:34:06 PM · 3 backups - Cue to Cue 2.1"
         //   "Show — Saved 1:34:06 PM · 2 of 3 backups - Cue to Cue 2.1"
         let stem = fileStem
@@ -745,7 +745,7 @@ final class DocumentController: ObservableObject {
         } else {
             suffix = ""
         }
-        window.title = "\(stem)\(suffix) - Cue to Cue 2.1"
+        window.title = "\(stem)\(suffix) - \(AppInfo.nameWithVersion)"
     }
 
     // MARK: - Phase 2 — file watcher + external-change handlers

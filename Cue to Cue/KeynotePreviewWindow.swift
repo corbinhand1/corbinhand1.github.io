@@ -67,6 +67,8 @@ struct KeynotePreviewWindow: View {
                 printDocument()
             }) {
                 Image(systemName: "printer")
+                    .accessibilityLabel(Text("Print"))
+                    .help("Print")
                     .padding()
             }
             Spacer()
@@ -434,11 +436,15 @@ struct ZoomControl: View {
         HStack {
             Button(action: { zoomFactor = max(0.5, zoomFactor - 0.1) }) {
                 Image(systemName: "minus.magnifyingglass")
+                    .accessibilityLabel(Text("Zoom Out"))
+                    .help("Zoom Out")
             }
             Slider(value: $zoomFactor, in: 0.5...2.0, step: 0.1)
                 .frame(width: 100)
             Button(action: { zoomFactor = min(2.0, zoomFactor + 0.1) }) {
                 Image(systemName: "plus.magnifyingglass")
+                    .accessibilityLabel(Text("Zoom In"))
+                    .help("Zoom In")
             }
             Text(String(format: "%.0f%%", zoomFactor * 100))
         }

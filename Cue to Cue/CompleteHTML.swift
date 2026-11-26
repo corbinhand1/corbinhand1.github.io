@@ -16,7 +16,7 @@ struct CompleteHTML {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Cue to Cue 2.1 Viewer</title>
+    <title>\(AppInfo.nameWithVersion) Viewer</title>
     <style>
         \(HTMLStyles.content)
         \(HTMLSettingsStyles.content)
@@ -28,7 +28,7 @@ struct CompleteHTML {
             <div class="status-dot" id="statusDot"></div>
             <span class="status-text" id="statusText">Disconnected</span>
         </div>
-        <h1>Cue to Cue 2.1 Viewer</h1>
+        <h1>\(AppInfo.nameWithVersion) Viewer</h1>
         <div class="auth-container" id="authContainer">
             <div class="auth-status" id="authStatus">
                 <span id="userInfo">Not logged in</span>

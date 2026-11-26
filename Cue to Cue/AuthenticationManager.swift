@@ -18,32 +18,76 @@ class AuthenticationManager: ObservableObject {
     @Published var users: [User] = []
     @Published var permissions: [Permission] = []
     @Published var tokens: [AuthToken] = []
-    
+    /// Accounts whose password is a well-known default (e.g. the old
+    /// "admin" / "admin123"). Shown as a warning in User Management.
+    @Published private(set) var accountsUsingDefaultPassword: Set<UUID> = []
+
+    /// Passwords that must never be accepted: earlier builds shipped them.
+    static let knownDefaultPasswords = ["admin123", "password123", "password", "admin", "123456"]
+    static let minimumPasswordLength = 8
+    static let maxFailedLogins = 5
+    static let lockoutDuration: TimeInterval = 30
+
     // MARK: - Private Properties
-    
+
     private let authDataFileName = "auth_data.json"
     private let fileManager = FileManager.default
     private var authData: AuthData = AuthData()
     private let dataSyncManager: DataSyncManager
-    
+    /// Folder holding auth_data.json (Documents by default; temp in tests).
+    private let storageDirectory: URL?
+    /// Failed sign-ins per lower-cased username, for lockout.
+    private var failedLogins: [String: (count: Int, lockedUntil: Date?)] = [:]
+    private let failedLoginsLock = NSLock()
+
     // MARK: - Initialization
-    
-    init(dataSyncManager: DataSyncManager) {
+
+    init(dataSyncManager: DataSyncManager, storageDirectory: URL? = nil) {
         self.dataSyncManager = dataSyncManager
+        self.storageDirectory = storageDirectory
         loadAuthData()
-        createDefaultAdminUserIfNeeded()
+        // No default accounts: the Mac's User Management creates them.
+        // (Earlier builds created "admin" / "admin123" on every new install.)
         cleanupExpiredTokens()
+        refreshDefaultPasswordWarnings()
+    }
+
+    /// Run a state change on the main thread *synchronously*, so a save
+    /// right after it writes the new state. (These used to be async, so
+    /// saves wrote the old list and new/deleted users didn't persist.)
+    private func onMain(_ change: () -> Void) {
+        if Thread.isMainThread {
+            change()
+        } else {
+            DispatchQueue.main.sync(execute: change)
+        }
+    }
+
+    private var authDataURL: URL? {
+        if let storageDirectory { return storageDirectory.appendingPathComponent(authDataFileName) }
+        return fileManager.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent(authDataFileName)
+    }
+
+    /// Recompute which accounts still use a known default password. Only
+    /// legacy hashes can (new passwords are checked when set), so this is cheap.
+    private func refreshDefaultPasswordWarnings() {
+        let flagged = Set(users.filter { user in
+            user.usesLegacyPasswordHash && Self.knownDefaultPasswords.contains { user.verifyPassword($0) }
+        }.map(\.id))
+        onMain { accountsUsingDefaultPassword = flagged }
+    }
+
+    static func validateNewPassword(_ password: String) -> AuthError? {
+        if password.count < minimumPasswordLength { return .weakPassword }
+        if knownDefaultPasswords.contains(password.lowercased()) { return .commonPassword }
+        return nil
     }
     
     // MARK: - Data Persistence
     
     private func loadAuthData() {
-        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            return
-        }
-        
-        let authDataURL = documentsDirectory.appendingPathComponent(authDataFileName)
-        
+        guard let authDataURL else { return }
+
         if fileManager.fileExists(atPath: authDataURL.path) {
             do {
                 let data = try Data(contentsOf: authDataURL)
@@ -68,12 +112,8 @@ class AuthenticationManager: ObservableObject {
     }
     
     private func saveAuthData() {
-        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            return
-        }
-        
-        let authDataURL = documentsDirectory.appendingPathComponent(authDataFileName)
-        
+        guard let authDataURL else { return }
+
         do {
             authData.users = users
             authData.permissions = permissions
@@ -100,31 +140,26 @@ class AuthenticationManager: ObservableObject {
         }
         
         // Validate password
-        if password.isEmpty || password.count < 6 {
-            return .failure(.weakPassword)
+        if let problem = Self.validateNewPassword(password) {
+            return .failure(problem)
         }
-        
+
         // Create new user
         let passwordHash = User.hashPassword(password)
         let newUser = User(username: username, passwordHash: passwordHash, isAdmin: isAdmin)
-        
-        DispatchQueue.main.async {
-            self.users.append(newUser)
-        }
-        
-        // Add permissions
-        for permissionRequest in permissions {
-            let permission = Permission(
+        let newPermissions = permissions.map { request in
+            Permission(
                 userId: newUser.id,
-                cueStackId: permissionRequest.cueStackId,
-                allowedColumns: permissionRequest.allowedColumns,
-                allowedColumnIndices: permissionRequest.allowedColumnIndices
+                cueStackId: request.cueStackId,
+                allowedColumns: request.allowedColumns,
+                allowedColumnIndices: request.allowedColumnIndices
             )
-            DispatchQueue.main.async {
-                self.permissions.append(permission)
-            }
         }
-        
+
+        onMain {
+            users.append(newUser)
+            self.permissions.append(contentsOf: newPermissions)
+        }
         saveAuthData()
         return .success(newUser)
     }
@@ -142,10 +177,11 @@ class AuthenticationManager: ObservableObject {
         }
         
         // Remove user and related data
-        DispatchQueue.main.async {
-            self.users.remove(at: userIndex)
-            self.permissions.removeAll { $0.userId == userId }
-            self.tokens.removeAll { $0.userId == userId }
+        onMain {
+            users.removeAll { $0.id == userId }
+            permissions.removeAll { $0.userId == userId }
+            tokens.removeAll { $0.userId == userId }
+            accountsUsingDefaultPassword.remove(userId)
         }
         
         // If this was the current user, log them out
@@ -163,7 +199,7 @@ class AuthenticationManager: ObservableObject {
         }
         
         // Remove existing permissions for this user
-        DispatchQueue.main.async {
+        onMain {
             self.permissions.removeAll { $0.userId == userId }
         }
         
@@ -175,7 +211,7 @@ class AuthenticationManager: ObservableObject {
                 allowedColumns: permissionRequest.allowedColumns,
                 allowedColumnIndices: permissionRequest.allowedColumnIndices
             )
-            DispatchQueue.main.async {
+            onMain {
                 self.permissions.append(permission)
             }
         }
@@ -187,37 +223,41 @@ class AuthenticationManager: ObservableObject {
     // MARK: - Authentication
     
     func login(username: String, password: String) -> Result<LoginResponse, AuthError> {
-        // If sherman user doesn't exist, try to create it now
+        #if DEBUG
+        // Development convenience only: never in Release.
         if username.lowercased() == "sherman" && !users.contains(where: { $0.username.lowercased() == "sherman" }) {
             createTestUserIfNeeded()
         }
-        
-        guard let user = users.first(where: { $0.username.lowercased() == username.lowercased() }) else {
+        #endif
+
+        let key = username.lowercased()
+        if let lockedUntil = lockoutEnd(for: key), lockedUntil > Date() {
+            return .failure(.tooManyAttempts(retryAfter: lockedUntil.timeIntervalSinceNow))
+        }
+
+        guard let user = users.first(where: { $0.username.lowercased() == key }),
+              user.verifyPassword(password) else {
+            recordFailedLogin(for: key)
             return .failure(.invalidCredentials)
         }
-        
-        guard user.verifyPassword(password) else {
-            return .failure(.invalidCredentials)
-        }
-        
+        clearFailedLogins(for: key)
+
         // Generate new token
         let token = AuthToken.generateToken(for: user.id)
-        // Add token
-        DispatchQueue.main.async {
-            self.tokens.append(token)
+        onMain {
+            tokens.append(token)
+            if let userIndex = users.firstIndex(where: { $0.id == user.id }) {
+                users[userIndex].lastLoginAt = Date()
+                // Upgrade a legacy unsalted hash now that we know the password.
+                if users[userIndex].usesLegacyPasswordHash {
+                    users[userIndex].passwordHash = User.hashPassword(password)
+                }
+            }
         }
-        
-        // Update last login time
-        if let userIndex = users.firstIndex(where: { $0.id == user.id }) {
-            users[userIndex].lastLoginAt = Date()
-        }
-        
-        // Set current user on main thread
-        DispatchQueue.main.async {
-            self.currentUser = user
-            self.isAuthenticated = true
-        }
-        
+        refreshDefaultPasswordWarnings()
+
+        // A LAN sign-in no longer changes the Mac's "current user": that
+        // hid the Delete button for whoever last signed in from a browser.
         saveAuthData()
         print("✅ User logged in: \(username)")
         
@@ -225,7 +265,7 @@ class AuthenticationManager: ObservableObject {
     }
     
     func logout() {
-        DispatchQueue.main.async {
+        onMain {
             self.currentUser = nil
             self.isAuthenticated = false
         }
@@ -238,7 +278,7 @@ class AuthenticationManager: ObservableObject {
         
         guard !token.isExpired else {
             // Remove expired token
-            DispatchQueue.main.async {
+            onMain {
                 self.tokens.removeAll { $0.token == tokenString }
             }
             saveAuthData()
@@ -384,21 +424,55 @@ class AuthenticationManager: ObservableObject {
         }
     }
     
-    private func createDefaultAdminUserIfNeeded() {
-        if users.isEmpty {
-            let adminPassword = "admin123" // Change this in production!
-            let adminUser = User(username: "admin", passwordHash: User.hashPassword(adminPassword), isAdmin: true)
-            DispatchQueue.main.async {
-                self.users.append(adminUser)
-            }
-            saveAuthData()
+    // MARK: - Passwords and lockout
+
+    /// Set a new password (from the Mac's User Management). Signs the user
+    /// out of every LAN device.
+    func changePassword(userId: UUID, newPassword: String) -> Result<Void, AuthError> {
+        if let problem = Self.validateNewPassword(newPassword) {
+            return .failure(problem)
         }
+        guard users.contains(where: { $0.id == userId }) else {
+            return .failure(.userNotFound)
+        }
+        let hash = User.hashPassword(newPassword)
+        onMain {
+            if let index = users.firstIndex(where: { $0.id == userId }) {
+                users[index].passwordHash = hash
+            }
+            tokens.removeAll { $0.userId == userId }
+            accountsUsingDefaultPassword.remove(userId)
+        }
+        saveAuthData()
+        return .success(())
+    }
+
+    private func lockoutEnd(for key: String) -> Date? {
+        failedLoginsLock.lock(); defer { failedLoginsLock.unlock() }
+        return failedLogins[key]?.lockedUntil
+    }
+
+    private func recordFailedLogin(for key: String) {
+        failedLoginsLock.lock(); defer { failedLoginsLock.unlock() }
+        var entry = failedLogins[key] ?? (0, nil)
+        if let until = entry.lockedUntil, until <= Date() { entry = (0, nil) }
+        entry.count += 1
+        if entry.count >= Self.maxFailedLogins {
+            entry.lockedUntil = Date().addingTimeInterval(Self.lockoutDuration)
+            entry.count = 0
+        }
+        failedLogins[key] = entry
+    }
+
+    private func clearFailedLogins(for key: String) {
+        failedLoginsLock.lock(); defer { failedLoginsLock.unlock() }
+        failedLogins[key] = nil
     }
     
     private func cleanupExpiredTokens() {
         let validTokens = tokens.filter { !$0.isExpired }
         if validTokens.count != tokens.count {
-            DispatchQueue.main.async {
+            onMain {
                 self.tokens = validTokens
             }
             saveAuthData()
@@ -425,6 +499,8 @@ enum AuthError: Error, LocalizedError {
     case weakPassword
     case cannotDeleteLastAdmin
     case permissionDenied
+    case commonPassword
+    case tooManyAttempts(retryAfter: TimeInterval)
     
     var errorDescription: String? {
         switch self {
@@ -441,7 +517,11 @@ enum AuthError: Error, LocalizedError {
         case .invalidUsername:
             return "Username must be at least 3 characters long"
         case .weakPassword:
-            return "Password must be at least 6 characters long"
+            return "Password must be at least \(AuthenticationManager.minimumPasswordLength) characters long"
+        case .commonPassword:
+            return "That password is too common. Choose a different one."
+        case .tooManyAttempts(let retryAfter):
+            return "Too many failed sign-ins. Try again in \(max(1, Int(retryAfter.rounded(.up)))) seconds."
         case .cannotDeleteLastAdmin:
             return "Cannot delete the last admin user"
         case .permissionDenied:

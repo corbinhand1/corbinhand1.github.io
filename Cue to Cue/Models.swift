@@ -10,6 +10,8 @@ import SwiftUI
 import Combine
 import UniformTypeIdentifiers
 import CryptoKit
+import CommonCrypto
+import Security
 
 struct Cue: Identifiable, Equatable, Codable {
     var id = UUID()
@@ -221,17 +223,79 @@ struct User: Identifiable, Equatable, Hashable, Codable {
         self.lastLoginAt = lastLoginAt
     }
     
-    // Helper method to verify password
+    /// Check a password against the stored hash (PBKDF2, or the legacy
+    /// unsalted SHA-256 used by earlier versions).
     func verifyPassword(_ password: String) -> Bool {
-        let hashedPassword = SHA256.hash(data: password.data(using: .utf8) ?? Data())
-        let hashString = hashedPassword.compactMap { String(format: "%02x", $0) }.joined()
-        return hashString == passwordHash
+        PasswordHasher.verify(password, against: passwordHash)
     }
-    
-    // Helper method to hash password
+
+    /// True for hashes written by earlier versions (unsalted SHA-256).
+    /// They are upgraded to PBKDF2 the next time the user signs in.
+    var usesLegacyPasswordHash: Bool {
+        PasswordHasher.isLegacy(passwordHash)
+    }
+
     static func hashPassword(_ password: String) -> String {
-        let hashedPassword = SHA256.hash(data: password.data(using: .utf8) ?? Data())
-        return hashedPassword.compactMap { String(format: "%02x", $0) }.joined()
+        PasswordHasher.hash(password)
+    }
+}
+
+/// Salted, slow password hashing for LAN viewer accounts.
+///
+/// Format: `pbkdf2-sha256$<iterations>$<salt base64>$<hash base64>`.
+/// Earlier versions stored a bare hex SHA-256, which is fast to crack and
+/// identical for everyone using the same password; those still verify and
+/// are re-hashed on the next successful sign-in.
+enum PasswordHasher {
+    static let iterations: UInt32 = 120_000
+    private static let prefix = "pbkdf2-sha256"
+
+    static func hash(_ password: String, iterations: UInt32 = iterations) -> String {
+        var salt = [UInt8](repeating: 0, count: 16)
+        _ = SecRandomCopyBytes(kSecRandomDefault, salt.count, &salt)
+        let derived = derive(password, salt: salt, iterations: iterations)
+        return "\(prefix)$\(iterations)$\(Data(salt).base64EncodedString())$\(Data(derived).base64EncodedString())"
+    }
+
+    static func verify(_ password: String, against stored: String) -> Bool {
+        let parts = stored.split(separator: "$", omittingEmptySubsequences: false)
+        if parts.count == 4, parts[0] == prefix,
+           let iterations = UInt32(parts[1]),
+           let salt = Data(base64Encoded: String(parts[2])),
+           let expected = Data(base64Encoded: String(parts[3])) {
+            let derived = derive(password, salt: [UInt8](salt), iterations: iterations, length: expected.count)
+            return constantTimeEqual(derived, [UInt8](expected))
+        }
+        // Legacy: unsalted hex SHA-256.
+        let legacy = SHA256.hash(data: Data(password.utf8)).map { String(format: "%02x", $0) }.joined()
+        return constantTimeEqual(Array(legacy.utf8), Array(stored.utf8))
+    }
+
+    static func isLegacy(_ stored: String) -> Bool {
+        !stored.hasPrefix(prefix + "$")
+    }
+
+    private static func derive(_ password: String, salt: [UInt8], iterations: UInt32, length: Int = 32) -> [UInt8] {
+        var out = [UInt8](repeating: 0, count: length)
+        let passwordBytes = Array(password.utf8)
+        _ = passwordBytes.withUnsafeBufferPointer { pw in
+            CCKeyDerivationPBKDF(
+                CCPBKDFAlgorithm(kCCPBKDF2),
+                pw.baseAddress.map { UnsafeRawPointer($0).assumingMemoryBound(to: Int8.self) }, pw.count,
+                salt, salt.count,
+                CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA256),
+                iterations,
+                &out, out.count
+            )
+        }
+        return out
+    }
+
+    private static func constantTimeEqual(_ a: [UInt8], _ b: [UInt8]) -> Bool {
+        guard a.count == b.count else { return false }
+        var diff: UInt8 = 0
+        for i in 0..<a.count { diff |= a[i] ^ b[i] }
+        return diff == 0
     }
 }
 

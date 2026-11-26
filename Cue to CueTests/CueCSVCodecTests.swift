@@ -127,7 +127,7 @@ final class CueCSVCodecTests: XCTestCase {
             cues: [Cue(values: ["x"], timerValue: "", isStruckThrough: false)],
             columns: [Column(name: "Description", width: 100)]
         )
-        var data = CueCSVCodec.encode(stacks: [stack], options: CueCSVExportOptions(includeVersionComment: false, includeUTF8BOM: true))
+        let data = CueCSVCodec.encode(stacks: [stack], options: CueCSVExportOptions(includeVersionComment: false, includeUTF8BOM: true))
         XCTAssertTrue(data.starts(with: [0xEF, 0xBB, 0xBF]))
 
         let result = try CueCSVCodec.decode(data: data)

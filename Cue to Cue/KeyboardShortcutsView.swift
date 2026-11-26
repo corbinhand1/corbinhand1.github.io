@@ -267,6 +267,8 @@ struct KeyRecorderView: View {
                 }
             }) {
                 Image(systemName: "checkmark")
+                    .accessibilityLabel(Text("Save Shortcut"))
+                    .help("Save Shortcut")
                     .font(.system(size: 11, weight: .semibold))
             }
             .buttonStyle(.borderedProminent)
@@ -275,6 +277,8 @@ struct KeyRecorderView: View {
             
             Button(action: onCancel) {
                 Image(systemName: "xmark")
+                    .accessibilityLabel(Text("Cancel"))
+                    .help("Cancel")
                     .font(.system(size: 11, weight: .semibold))
             }
             .buttonStyle(.bordered)

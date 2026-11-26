@@ -55,11 +55,15 @@ struct CueStackListView: View {
             Spacer()
             Button(action: addCueStack) {
                 Image(systemName: "plus")
+                    .accessibilityLabel(Text("Add Cue Stack"))
+                    .help("Add Cue Stack")
                     .foregroundColor(settingsManager.settings.fontColor)
             }
             .buttonStyle(PlainButtonStyle())
             Button(action: { isReordering.toggle() }) {
                 Image(systemName: isReordering ? "arrow.up.arrow.down.circle.fill" : "arrow.up.arrow.down.circle")
+                    .accessibilityLabel(Text(isReordering ? "Finish Reordering Cue Stacks" : "Reorder Cue Stacks"))
+                    .help(isReordering ? "Finish Reordering Cue Stacks" : "Reorder Cue Stacks")
                     .foregroundColor(isReordering ? .blue : settingsManager.settings.fontColor)
             }
             .buttonStyle(PlainButtonStyle())

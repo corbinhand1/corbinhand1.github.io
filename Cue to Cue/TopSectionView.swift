@@ -357,6 +357,8 @@ struct TopSectionView: View {
         Button(action: { showSettings.toggle() }) {
             Image(systemName: "gear")
                 .resizable()
+                .accessibilityLabel(Text("Settings"))
+                .help("Settings")
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 24, height: 24)
                 .foregroundColor(settingsManager.settings.fontColor)
@@ -367,6 +369,8 @@ struct TopSectionView: View {
         Button(action: { showConnectionMonitor.toggle() }) {
             Image(systemName: "network")
                 .resizable()
+                .accessibilityLabel(Text("Connected Viewers"))
+                .help("Connected Viewers")
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 24, height: 24)
                 .foregroundColor(settingsManager.settings.fontColor)
@@ -377,6 +381,8 @@ struct TopSectionView: View {
         Button(action: { showUserManagement.toggle() }) {
             Image(systemName: "person.2")
                 .resizable()
+                .accessibilityLabel(Text("User Management"))
+                .help("User Management")
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 24, height: 24)
                 .foregroundColor(settingsManager.settings.fontColor)

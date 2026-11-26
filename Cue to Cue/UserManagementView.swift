@@ -9,7 +9,14 @@ import SwiftUI
 
 struct UserManagementView: View {
     @ObservedObject var authManager: AuthenticationManager
-    @State private var selectedTab: Tab = .login
+    @State private var selectedTab: Tab = .users
+    /// User whose password is being changed (drives the sheet).
+    @State private var passwordChangeUser: User?
+    @State private var changedPassword = ""
+    @State private var changedPasswordConfirm = ""
+    /// Whoever is at the Mac manages LAN accounts; no sign-in needed here.
+    /// (This used to silently sign in as "admin" / "admin123".)
+    private let canManageUsers = true
     @State private var username = ""
     @State private var password = ""
     @State private var newUsername = ""
@@ -33,6 +40,9 @@ struct UserManagementView: View {
         case login = "Login"
         case users = "Users"
         case permissions = "Permissions"
+
+        /// The Login tab is no longer shown: the Mac doesn't need to sign in.
+        static let visibleTabs: [Tab] = [.users, .permissions]
     }
     
     var body: some View {
@@ -48,9 +58,8 @@ struct UserManagementView: View {
         }
         .frame(width: 900, height: 700)
         .background(Color(NSColor.windowBackgroundColor))
-        .onAppear {
-            autoLoginAdmin()
-            authManager.createTestUserIfNeeded()
+        .sheet(item: $passwordChangeUser) { user in
+            changePasswordSheet(for: user)
         }
         .alert(alertTitle, isPresented: $showingAlert) {
             Button("OK") { }
@@ -96,6 +105,8 @@ struct UserManagementView: View {
                 isPresented = false
             }) {
                 Image(systemName: "xmark.circle.fill")
+                    .accessibilityLabel(Text("Close"))
+                    .help("Close")
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -110,7 +121,7 @@ struct UserManagementView: View {
     
     private var navigationTabs: some View {
         HStack(spacing: 0) {
-            ForEach(Tab.allCases, id: \.self) { tab in
+            ForEach(Tab.visibleTabs, id: \.self) { tab in
                 Button(action: {
                     selectedTab = tab
                 }) {
@@ -130,7 +141,7 @@ struct UserManagementView: View {
                 }
                 .buttonStyle(.plain)
                 
-                if tab != Tab.allCases.last {
+                if tab != Tab.visibleTabs.last {
                     Spacer()
                         .frame(width: 8)
                 }
@@ -299,7 +310,7 @@ struct UserManagementView: View {
                 
                 Spacer()
                 
-                if authManager.isAuthenticated && authManager.currentUser?.isAdmin == true {
+                if canManageUsers {
                     Button(action: {
                         showingAddUserForm.toggle()
                     }) {
@@ -321,6 +332,9 @@ struct UserManagementView: View {
             .padding(.horizontal, 32)
             .padding(.top, 24)
             
+            defaultPasswordBanner
+                .padding(.horizontal, 32)
+
             // Add User Form (if showing)
             if showingAddUserForm {
                 addUserCard
@@ -356,6 +370,8 @@ struct UserManagementView: View {
                     clearForm()
                 }) {
                     Image(systemName: "xmark.circle.fill")
+                        .accessibilityLabel(Text("Close"))
+                        .help("Close")
                         .font(.title3)
                         .foregroundColor(.secondary)
                 }
@@ -483,12 +499,26 @@ struct UserManagementView: View {
             Spacer()
             
             // Actions
+            Button(action: { passwordChangeUser = user }) {
+                Image(systemName: "key")
+                    .accessibilityLabel(Text("Change Password"))
+                    .help("Change Password")
+                    .font(.system(size: 14))
+                    .foregroundColor(.accentColor)
+                    .padding(8)
+                    .background(Color.accentColor.opacity(0.1))
+                    .cornerRadius(6)
+            }
+            .buttonStyle(.plain)
+
             if authManager.currentUser?.id != user.id {
                 Button(action: {
                     userToDelete = user
                     showingDeleteAlert = true
                 }) {
                     Image(systemName: "trash")
+                        .accessibilityLabel(Text("Delete User"))
+                        .help("Delete User")
                         .font(.system(size: 14))
                         .foregroundColor(.red)
                         .padding(8)
@@ -525,7 +555,7 @@ struct UserManagementView: View {
             .padding(.horizontal, 32)
             .padding(.top, 24)
             
-            if authManager.isAuthenticated && authManager.currentUser?.isAdmin == true {
+            if canManageUsers {
                 VStack(spacing: 20) {
                     // User Selection Card
                     VStack(spacing: 16) {
@@ -596,18 +626,73 @@ struct UserManagementView: View {
         }
     }
     
-    private func autoLoginAdmin() {
-        // Try to log in with default admin credentials
-        let result = authManager.login(username: "admin", password: "admin123")
-        switch result {
-        case .success(let response):
-            if response.success {
-                // Admin logged in successfully, switch to Users tab
-                selectedTab = .users
+    // MARK: - Change password
+
+    private func changePasswordSheet(for user: User) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Change Password for \u{201C}\(user.username)\u{201D}")
+                .font(.headline)
+            Text("At least \(AuthenticationManager.minimumPasswordLength) characters. Devices signed in as this user are signed out.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            SecureField("New password", text: $changedPassword)
+                .textFieldStyle(.roundedBorder)
+            SecureField("Confirm new password", text: $changedPasswordConfirm)
+                .textFieldStyle(.roundedBorder)
+            HStack {
+                Spacer()
+                Button("Cancel") { closePasswordSheet() }
+                    .keyboardShortcut(.cancelAction)
+                Button("Change Password") { applyPasswordChange(for: user) }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(changedPassword.isEmpty || changedPassword != changedPasswordConfirm)
             }
-        case .failure:
-            // If auto-login fails, stay on login tab
-            break
+        }
+        .padding(24)
+        .frame(width: 380)
+    }
+
+    private func applyPasswordChange(for user: User) {
+        switch authManager.changePassword(userId: user.id, newPassword: changedPassword) {
+        case .success:
+            closePasswordSheet()
+            showAlert(title: "Password Changed", message: "\(user.username)'s password was changed.")
+        case .failure(let error):
+            showAlert(title: "Couldn't Change Password", message: error.localizedDescription)
+        }
+    }
+
+    private func closePasswordSheet() {
+        passwordChangeUser = nil
+        changedPassword = ""
+        changedPasswordConfirm = ""
+    }
+
+    /// Warning for accounts that still use a password earlier builds shipped.
+    @ViewBuilder
+    private var defaultPasswordBanner: some View {
+        let flagged = authManager.users.filter { authManager.accountsUsingDefaultPassword.contains($0.id) }
+        if !flagged.isEmpty {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "exclamationmark.shield.fill")
+                    .font(.title2)
+                    .foregroundColor(.orange)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(flagged.map(\.username).joined(separator: ", ")) still \(flagged.count == 1 ? "uses" : "use") a default password")
+                        .font(.headline)
+                    Text("Anyone on the same network as this Mac could sign in to the LAN viewer with it. Change it now.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                if let first = flagged.first {
+                    Button("Change Password…") { passwordChangeUser = first }
+                }
+            }
+            .padding(16)
+            .background(Color.orange.opacity(0.12))
+            .cornerRadius(12)
         }
     }
     

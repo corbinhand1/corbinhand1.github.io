@@ -141,6 +141,8 @@ struct CSVImportSheet: View {
             Spacer()
             Button(action: onCancel) {
                 Image(systemName: "xmark.circle.fill")
+                    .accessibilityLabel(Text("Close"))
+                    .help("Close")
                     .foregroundColor(.secondary)
             }
             .buttonStyle(.plain)

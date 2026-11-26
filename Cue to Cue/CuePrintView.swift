@@ -391,8 +391,8 @@ class CueStackPaginatedView: NSView {
 
         let slice = pageSliceHeight
         var pageIndex = max(0, Int(floor(y / slice)))
-        var pageContentTop = contentTop(forPageIndex: pageIndex)
-        var pageContentBottom = contentBottom(forPageIndex: pageIndex)
+        let pageContentTop = contentTop(forPageIndex: pageIndex)
+        let pageContentBottom = contentBottom(forPageIndex: pageIndex)
         let usableHeight = slice - Self.topMargin - Self.pageFooterReserve
 
         var adjustedY = y

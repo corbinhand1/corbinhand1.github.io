@@ -87,6 +87,8 @@ struct ResizableColumnHeader: View {
             move(direction: direction)
         }) {
             Image(systemName: direction == .left ? "chevron.left" : "chevron.right")
+                .accessibilityLabel(Text(direction == .left ? "Move Column Left" : "Move Column Right"))
+                .help(direction == .left ? "Move Column Left" : "Move Column Right")
                 .foregroundColor(buttonColor(for: direction))
                 .font(.system(size: 10))
         }
@@ -156,6 +158,8 @@ struct HeaderButtons: View {
 
             Button(action: { isReorderingCues.toggle() }) {
                 Image(systemName: isReorderingCues ? "arrow.up.arrow.down.circle.fill" : "arrow.up.arrow.down.circle")
+                    .accessibilityLabel(Text(isReorderingCues ? "Finish Reordering Cues" : "Reorder Cues"))
+                    .help(isReorderingCues ? "Finish Reordering Cues" : "Reorder Cues")
                     .foregroundColor(isReorderingCues ? .blue : .white)
                     .font(.system(size: 20))
             }

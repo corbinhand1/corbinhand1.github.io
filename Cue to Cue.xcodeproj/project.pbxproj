@@ -52,6 +52,7 @@
 		31EDT003 /* CueEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDT004 /* CueEditingTests.swift */; };
 		31EDC003 /* CueEditorControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDC004 /* CueEditorControllerTests.swift */; };
 		31DOC003 /* DocumentControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DOC004 /* DocumentControllerTests.swift */; };
+		31ATH003 /* AuthenticationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31ATH004 /* AuthenticationTests.swift */; };
 		31LSY003 /* LiveSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31LSY004 /* LiveSyncTests.swift */; };
 		31STG003 /* DocumentStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31STG004 /* DocumentStorageTests.swift */; };
 		31TMR003 /* TimerServerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31TMR004 /* TimerServerTests.swift */; };
@@ -185,6 +186,7 @@
 		31EDT004 /* CueEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditingTests.swift; sourceTree = "<group>"; };
 		31EDC004 /* CueEditorControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditorControllerTests.swift; sourceTree = "<group>"; };
 		31DOC004 /* DocumentControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentControllerTests.swift; sourceTree = "<group>"; };
+		31ATH004 /* AuthenticationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationTests.swift; sourceTree = "<group>"; };
 		31LSY004 /* LiveSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSyncTests.swift; sourceTree = "<group>"; };
 		31STG004 /* DocumentStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentStorageTests.swift; sourceTree = "<group>"; };
 		31TMR004 /* TimerServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerServerTests.swift; sourceTree = "<group>"; };
@@ -402,6 +404,7 @@
 				31EDT004 /* CueEditingTests.swift */,
 				31EDC004 /* CueEditorControllerTests.swift */,
 				31DOC004 /* DocumentControllerTests.swift */,
+				31ATH004 /* AuthenticationTests.swift */,
 				31LSY004 /* LiveSyncTests.swift */,
 				31STG004 /* DocumentStorageTests.swift */,
 				31TMR004 /* TimerServerTests.swift */,
@@ -669,6 +672,7 @@
 				31EDT003 /* CueEditingTests.swift in Sources */,
 				31EDC003 /* CueEditorControllerTests.swift in Sources */,
 				31DOC003 /* DocumentControllerTests.swift in Sources */,
+				31ATH003 /* AuthenticationTests.swift in Sources */,
 				31LSY003 /* LiveSyncTests.swift in Sources */,
 				31STG003 /* DocumentStorageTests.swift in Sources */,
 				31TMR003 /* TimerServerTests.swift in Sources */,
@@ -901,6 +905,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"Cue to Cue/Preview Content\"";
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Cue-to-Cue-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue 2.1.3";
@@ -945,6 +950,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"Cue to Cue/Preview Content\"";
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Cue-to-Cue-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue 2.1.3";
