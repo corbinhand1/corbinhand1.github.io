@@ -47,6 +47,7 @@
 		31F2FAAD2C0425EC0074D2A4 /* Cue_to_CueApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FAAC2C0425EC0074D2A4 /* Cue_to_CueApp.swift */; };
 		31F2FAAF2C0425EC0074D2A4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FAAE2C0425EC0074D2A4 /* ContentView.swift */; };
 		31F2FAB12C0425ED0074D2A4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 31F2FAB02C0425ED0074D2A4 /* Assets.xcassets */; };
+		31IPS001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 31IPS002 /* InfoPlist.strings */; };
 		31F2FABF2C0425ED0074D2A4 /* Cue_to_CueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FABE2C0425ED0074D2A4 /* Cue_to_CueTests.swift */; };
 		31CSV003 /* CueCSVCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSV004 /* CueCSVCodecTests.swift */; };
 		31EDT003 /* CueEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDT004 /* CueEditingTests.swift */; };
@@ -237,6 +238,7 @@
 		31AIV002 /* AIImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIImportView.swift; sourceTree = "<group>"; };
 		31FRV002 /* FindReplaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindReplaceView.swift; sourceTree = "<group>"; };
 		31DJB002 /* DemoJumpBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoJumpBar.swift; sourceTree = "<group>"; };
+		31IPS003 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		31AIT004 /* AICueStackGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICueStackGeneratorTests.swift; sourceTree = "<group>"; };
 		31FRT004 /* FindReplaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindReplaceTests.swift; sourceTree = "<group>"; };
 		31DJT004 /* DemoJumpBarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoJumpBarTests.swift; sourceTree = "<group>"; };
@@ -399,6 +401,7 @@
 				31AIV002 /* AIImportView.swift */,
 				31FRV002 /* FindReplaceView.swift */,
 				31DJB002 /* DemoJumpBar.swift */,
+				31IPS002 /* InfoPlist.strings */,
 				31GHP002 /* GitHubPublisher.swift */,
 				31CSVIMP002 /* CSVImportSheet.swift */,
 				31CSVEXP002 /* CSVExportSheet.swift */,
@@ -602,6 +605,7 @@
 			files = (
 				310557102C1174C60088C139 /* Info.plist in Resources */,
 				31F2FAB12C0425ED0074D2A4 /* Assets.xcassets in Resources */,
+				31IPS001 /* InfoPlist.strings in Resources */,
 				31CUEICON001 /* CueStackDocument.icns in Resources */,
 				31OFFLINE101 /* offline.html in Resources */,
 				31OFFLINE102 /* offline-styles.css in Resources */,
@@ -761,6 +765,14 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
+		31IPS002 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				31IPS003 /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
 		316ABF332C83504C009179B7 /* PreviewViewController.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
