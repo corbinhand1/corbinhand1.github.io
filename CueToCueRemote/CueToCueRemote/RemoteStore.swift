@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import LocalAuthentication
+import Network
 
 @MainActor
 final class RemoteStore: ObservableObject {
@@ -20,6 +21,11 @@ final class RemoteStore: ObservableObject {
     @Published var macHasTailscale: Bool?
     var lastReroute = Date.distantPast
     private var rerouteTask: Task<Void, Never>?
+    /// Recent connection events, shown in Settings so a failed connection explains itself.
+    @Published var connectionLog: [String] = []
+    private var pathMonitor: NWPathMonitor?
+    private var lastPathKey = ""
+    private var pathTask: Task<Void, Never>?
 
     @Published var token: String? = Keychain.get("token")
     /// Starts locked when Face ID protection is on, so the show isn't visible until you unlock.
@@ -122,6 +128,51 @@ final class RemoteStore: ObservableObject {
         }
     }
 
+    // MARK: Connection log and network changes
+
+    func log(_ message: String) {
+        let f = DateFormatter(); f.dateFormat = "HH:mm:ss"
+        connectionLog.append("\(f.string(from: Date()))  \(message)")
+        if connectionLog.count > 60 { connectionLog.removeFirst(connectionLog.count - 60) }
+    }
+
+    /// Notices Wi-Fi/cellular/VPN changes (turning Wi-Fi off, Tailscale on) and re-aims the connection.
+    private func startPathMonitor() {
+        guard pathMonitor == nil else { return }
+        let m = NWPathMonitor()
+        m.pathUpdateHandler = { [weak self] path in
+            let key = "\(path.status) " + path.availableInterfaces.map { "\($0.name)" }.sorted().joined(separator: ",")
+            Task { @MainActor in self?.pathChanged(key: key, satisfied: path.status == .satisfied) }
+        }
+        m.start(queue: .global())
+        pathMonitor = m
+    }
+
+    private func pathChanged(key: String, satisfied: Bool) {
+        guard key != lastPathKey else { return }
+        let first = lastPathKey.isEmpty
+        lastPathKey = key
+        log("Network: \(key)")
+        guard !first else { return }
+        pathTask?.cancel()
+        pathTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)      // let the new network settle
+            guard let self, !Task.isCancelled, satisfied, self.token != nil else { return }
+            await self.recover(reason: "network changed")
+        }
+    }
+
+    /// Re-checks the connection: keep the current address if it proves to be our Mac, else look elsewhere.
+    func recover(reason: String) async {
+        log("Reconnecting (\(reason))")
+        if let url = API.normalize(serverAddress), let token {
+            let r = await Proof.verify(baseURL: url, token: token)
+            log("Current address \(serverAddress): \(r.why)")
+            if r.ok { startLive(); await refresh(); return }
+        }
+        if await reroute() { startLive(); await refresh() } else { log("No reachable address yet") }
+    }
+
     // MARK: Finding the Mac
 
     /// Re-aims at the Mac: first on the local network by its Bonjour name, otherwise the away address.
@@ -131,16 +182,22 @@ final class RemoteStore: ObservableObject {
         lastReroute = Date()
         let before = serverAddress
         var candidates: [String] = []
-        if !bonjourName.isEmpty, let mac = await MacFinder.find(named: bonjourName), let addr = mac.address { candidates.append(addr) }
-        if !remoteAddress.isEmpty { candidates.append(remoteAddress) }
+        if !bonjourName.isEmpty {
+            if let mac = await MacFinder.find(named: bonjourName), let addr = mac.address {
+                log("Found \(bonjourName) on this network at \(addr)"); candidates.append(addr)
+            } else { log("\(bonjourName) not found on this network") }
+        }
+        if !remoteAddress.isEmpty { candidates.append(remoteAddress) } else { log("No away address saved") }
         for addr in candidates where addr != before {
-            guard let url = API.normalize(addr), ConnectionSecurity.classify(url) != .unsafe else { continue }
+            guard let url = API.normalize(addr), ConnectionSecurity.classify(url) != .unsafe else {
+                log("Skipping \(addr) (not a safe address)"); continue
+            }
             // Only follow an address that proves it is the Mac that issued our session. This stops a
             // look-alike on a venue network from collecting the session token or password.
-            if let token, await Proof.verify(baseURL: url, token: token) {
-                serverAddress = addr
-                return true
-            }
+            guard let token else { log("Not signed in"); return false }
+            let r = await Proof.verify(baseURL: url, token: token)
+            log("Trying \(addr): \(r.why)")
+            if r.ok { serverAddress = addr; return true }
         }
         if !candidates.isEmpty, !candidates.contains(before) {
             error = "Found a Mac, but couldn't confirm it's yours. Sign in again from the sign-in screen to reconnect."
@@ -157,7 +214,7 @@ final class RemoteStore: ObservableObject {
             guard let self, !Task.isCancelled else { return }
             self.rerouteTask = nil
             guard !self.live, Date().timeIntervalSince(self.lastReroute) > 15 else { return }
-            if await self.reroute() { self.startLive(); await self.refresh() }
+            await self.recover(reason: "connection stayed down")
         }
     }
 
@@ -169,7 +226,7 @@ final class RemoteStore: ObservableObject {
         macHasTailscale = info.tailscale != nil
         guard let ts = info.tailscale, remoteAddress.isEmpty || remoteAddressAuto else { return }
         let address = "\(ts):\(info.port)"
-        if remoteAddress != address { remoteAddress = address }
+        if remoteAddress != address { remoteAddress = address; log("Saved away address \(address)") }
         remoteAddressAuto = true
     }
 
@@ -211,6 +268,7 @@ final class RemoteStore: ObservableObject {
     }
 
     private func startLive() {
+        startPathMonitor()
         socket?.stop()
         guard let url = api?.webSocketURL else { return }
         let s = LiveSocket(
@@ -219,6 +277,7 @@ final class RemoteStore: ObservableObject {
                 Task { @MainActor in
                     guard let self else { return }
                     let wasDown = !self.live
+                    if up != self.live { self.log(up ? "Live" : "Connection lost") }
                     self.live = up
                     if up && wasDown { self.ensureRetry() }   // back online: send what's waiting
                     if !up { self.scheduleRerouteIfStillDown() }

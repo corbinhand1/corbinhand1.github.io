@@ -52,12 +52,28 @@ final class LiveSocket {
         }
     }
 
+    /// Ping every few seconds; a missing pong means the link is dead (e.g. Wi-Fi turned off),
+    /// which a hung socket would otherwise hide for minutes.
     private func ping(_ t: URLSessionWebSocketTask) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 20) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in
             guard let self, !self.stopped, t === self.task else { return }
-            t.sendPing { _ in }
-            self.ping(t)
+            var answered = false
+            t.sendPing { error in
+                DispatchQueue.main.async {
+                    if error == nil { answered = true } else { self.dropped(t) }
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
+                guard let self, !self.stopped, t === self.task else { return }
+                if !answered { self.dropped(t) } else { self.ping(t) }
+            }
         }
+    }
+
+    private func dropped(_ t: URLSessionWebSocketTask) {
+        guard t === task else { return }
+        t.cancel(with: .goingAway, reason: nil)      // triggers the receive failure -> state(false) + reconnect
+        onState(false)
     }
 
     private static func isChange(_ text: String) -> Bool {

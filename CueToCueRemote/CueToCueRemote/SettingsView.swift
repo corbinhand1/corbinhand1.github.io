@@ -44,6 +44,20 @@ struct SettingsView: View {
                     }
                 }
                 Section {
+                    Button { Task { await store.recover(reason: "you tapped Reconnect") } } label: {
+                        Label("Reconnect now", systemImage: "arrow.triangle.2.circlepath").frame(minHeight: 44)
+                    }
+                    DisclosureGroup("Connection log") {
+                        if store.connectionLog.isEmpty {
+                            Text("Nothing yet.").foregroundStyle(Theme.textMuted)
+                        } else {
+                            Text(store.connectionLog.suffix(25).joined(separator: "\n"))
+                                .font(.system(.caption2, design: .monospaced)).textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                } header: { Text("Troubleshooting") }
+                Section {
                     if store.faceIDEnabled {
                         Toggle("\(Biometrics.name) lock", isOn: Binding(get: { true }, set: { if !$0 { store.disableFaceID() } }))
                     } else {

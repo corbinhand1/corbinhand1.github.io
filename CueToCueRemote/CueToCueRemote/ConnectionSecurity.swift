@@ -47,23 +47,27 @@ enum ConnectionSecurity: Equatable {
 enum Proof {
     /// Asks the server to prove it issued our session token (HMAC over a fresh random nonce),
     /// without ever sending the token. A look-alike server on the network can't answer correctly.
-    static func verify(baseURL: URL, token: String) async -> Bool {
+    static func verify(baseURL: URL, token: String) async -> (ok: Bool, why: String) {
         var bytes = [UInt8](repeating: 0, count: 24)
-        guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else { return false }
+        guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else { return (false, "no random") }
         let nonce = bytes.map { String(format: "%02x", $0) }.joined()
         let kid = SHA256.hash(data: Data(token.utf8)).map { String(format: "%02x", $0) }.joined()
-        guard let url = URL(string: baseURL.absoluteString + "/auth/proof") else { return false }
+        guard let url = URL(string: baseURL.absoluteString + "/auth/proof") else { return (false, "bad url") }
         var req = URLRequest(url: url, timeoutInterval: 6)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["kid": kid, "nonce": nonce])
-        guard let (data, resp) = try? await URLSession.shared.data(for: req),
-              (resp as? HTTPURLResponse)?.statusCode == 200,
-              let got = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["proof"] as? String else { return false }
+        let data: Data, resp: URLResponse
+        do { (data, resp) = try await URLSession.shared.data(for: req) }
+        catch { return (false, "request failed: \((error as? URLError).map { "code \($0.code.rawValue)" } ?? error.localizedDescription)") }
+        let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        guard status == 200 else { return (false, status == 404 ? "Mac doesn't know this session (sign in again)" : "HTTP \(status)") }
+        guard let got = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["proof"] as? String,
+              let gotData = Data(hex: got) else { return (false, "no proof in reply") }
         let key = SymmetricKey(data: Data(token.utf8))
         let want = Data(HMAC<SHA256>.authenticationCode(for: Data(nonce.utf8), using: key))
-        guard let gotData = Data(hex: got) else { return false }
-        return want.count == gotData.count && zip(want, gotData).reduce(0) { $0 | ($1.0 ^ $1.1) } == 0   // constant time
+        let same = want.count == gotData.count && zip(want, gotData).reduce(0) { $0 | ($1.0 ^ $1.1) } == 0   // constant time
+        return (same, same ? "verified" : "proof didn't match")
     }
 }
 
