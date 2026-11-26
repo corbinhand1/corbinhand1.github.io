@@ -19,18 +19,20 @@ struct ResizableColumnHeader: View {
     let deleteColumn: (Int) -> Void
 
     @State private var isEditing: Bool = false
+    /// Move arrows appear only while hovering, so the header reads as labels.
+    @State private var isHovering: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
-            // Column movement buttons
+            // Column movement buttons (hover to reveal)
             HStack {
                 moveButton(direction: .left)
                 Spacer()
                 moveButton(direction: .right)
             }
-            .frame(height: 20)
-            .padding(.bottom, 2)
-            .padding(.horizontal, 8)
+            .frame(height: 14)
+            .padding(.horizontal, 6)
+            .opacity(isHovering ? 1 : 0)
 
             // Column title
             HStack(spacing: 0) {
@@ -44,9 +46,10 @@ struct ResizableColumnHeader: View {
                     .padding(.vertical, 2)
                     .padding(.horizontal, 4)
                 } else {
-                    Text(column.name)
-                        .font(font.weight(.semibold))
-                        .foregroundColor(fontColor)
+                    Text(column.name.uppercased())
+                        .font(.system(size: max(10, fontSize - 3), weight: .semibold))
+                        .tracking(0.8)
+                        .foregroundColor(fontColor.opacity(0.65))
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -54,23 +57,16 @@ struct ResizableColumnHeader: View {
                         .padding(.horizontal, 6)
                         .contentShape(Rectangle())
                         .onTapGesture { isEditing = true }
+                        .help("Click to rename. Hover to move; drag the edge to resize.")
                 }
-                
+
                 // Resizing handle
                 ResizeHandle(width: $column.width)
-            }.padding(.bottom, 10)
+            }.padding(.bottom, 6)
         }
         .frame(width: column.width)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.gray.opacity(0.2))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-        )
-        .offset(x: 30)
         .padding(.horizontal, 4)
+        .onHover { isHovering = $0 }
         .contextMenu {
             Button(action: {
                 if let index = allColumns.firstIndex(where: { $0.id == column.id }) {
@@ -124,10 +120,16 @@ struct ResizeHandle: View {
     @State private var isDragging = false
     
     var body: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Color.gray.opacity(isDragging ? 1 : 0.5))
-            .frame(width: 8, height: 20)
+        // Thin divider line with a wider invisible grab area.
+        Rectangle()
+            .fill(Color.gray.opacity(isDragging ? 0.9 : 0.3))
+            .frame(width: isDragging ? 2 : 1, height: 16)
+            .frame(width: 9, height: 20)
+            .contentShape(Rectangle())
             .offset(x: 4)
+            .onHover { inside in
+                if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+            }
             .gesture(
                 DragGesture(minimumDistance: 1)
                     .onChanged { value in
@@ -148,21 +150,25 @@ struct HeaderButtons: View {
     var body: some View {
         HStack(spacing: 8) {
             Button(action: addColumn) {
-                Label("Add Column", systemImage: "plus")
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                Image(systemName: "plus")
+                    .accessibilityLabel(Text("Add Column"))
+                    .help("Add Column")
+                    .foregroundColor(.white.opacity(0.85))
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 24, height: 22)
+                    .background(Color.white.opacity(0.08))
+                    .cornerRadius(6)
             }
-            .background(Color.blue)
-            .cornerRadius(8)
+            .buttonStyle(.plain)
 
             Button(action: { isReorderingCues.toggle() }) {
                 Image(systemName: isReorderingCues ? "arrow.up.arrow.down.circle.fill" : "arrow.up.arrow.down.circle")
                     .accessibilityLabel(Text(isReorderingCues ? "Finish Reordering Cues" : "Reorder Cues"))
                     .help(isReorderingCues ? "Finish Reordering Cues" : "Reorder Cues")
-                    .foregroundColor(isReorderingCues ? .blue : .white)
-                    .font(.system(size: 20))
+                    .foregroundColor(isReorderingCues ? .blue : .white.opacity(0.85))
+                    .font(.system(size: 16))
             }
+            .buttonStyle(.plain)
         }
         .padding(.trailing, 8)
     }

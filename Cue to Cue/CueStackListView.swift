@@ -49,9 +49,10 @@ struct CueStackListView: View {
 
     private var header: some View {
         HStack {
-            Text("Cue Stacks")
-                .font(.headline)
-                .foregroundColor(settingsManager.settings.fontColor)
+            Text("CUE STACKS")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.0)
+                .foregroundColor(settingsManager.settings.fontColor.opacity(0.72))
             Spacer()
             Button(action: addCueStack) {
                 Image(systemName: "plus")
@@ -102,18 +103,30 @@ struct CueStackListView: View {
             } else {
                 Text(cueStacks[index].name)
                     .foregroundColor(settingsManager.settings.fontColor)
+                    .fontWeight(selectedCueStackIndex == index ? .semibold : .regular)
                     .onTapGesture {
                         if !isReordering {
                             selectedCueStackIndex = index
                         }
                     }
             }
-            Spacer()
+            Spacer(minLength: 4)
+            Text("\(cueStacks[index].cues.count)")
+                .font(.system(size: 11, weight: .medium).monospacedDigit())
+                .foregroundColor(settingsManager.settings.fontColor.opacity(0.5))
+                .accessibilityLabel(Text("\(cueStacks[index].cues.count) cues"))
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
-        .background(selectedCueStackIndex == index ? Color.blue.opacity(0.6) : Color.clear)
-        .cornerRadius(8)
+        .padding(.vertical, 7)
+        .padding(.horizontal, 10)
+        .background(
+            ZStack(alignment: .leading) {
+                if selectedCueStackIndex == index {
+                    settingsManager.settings.backgroundColor.opacity(0.95)
+                    settingsManager.settings.fontColor.opacity(0.85).frame(width: 3)
+                }
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 6))
         .contentShape(Rectangle())
         .contextMenu {
             if !isReordering {

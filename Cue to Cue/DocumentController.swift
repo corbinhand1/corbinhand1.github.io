@@ -486,6 +486,10 @@ final class DocumentController: ObservableObject {
     /// coordinated + rotating backup + post-write verification).
     @discardableResult
     func saveToURL(_ url: URL) -> Bool {
+        #if DEBUG
+        // Snapshot runs open the user's real show; never write it.
+        if WindowSnapshotter.isActive { return true }
+        #endif
         if saveWouldConflict(at: url) {
             documentChangedExternally = true
             pendingConflictURL = url
@@ -568,6 +572,9 @@ final class DocumentController: ObservableObject {
     // MARK: - Autosave (Phase 1 — never silently writes to NSTemporaryDirectory)
 
     func autoSave() {
+        #if DEBUG
+        if WindowSnapshotter.isActive { return }
+        #endif
         // Don't churn disk if nothing has changed.
         guard isDirty else { return }
 

@@ -23,8 +23,12 @@ final class DocumentStorageTests: XCTestCase {
         root = FileManager.default.temporaryDirectory
             .appendingPathComponent("CueToCueStorageTests-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        suiteName = "CueToCueStorageTests-\(UUID().uuidString)"
+        // One fixed suite, cleared before and after each test: macOS
+        // re-creates a plist for every suite name, so per-test names left
+        // dozens of files in ~/Library/Preferences.
+        suiteName = "CueToCueStorageTests"
         defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
         store = makeStore()
     }
 

@@ -30,6 +30,8 @@ struct ContentView: View {
 
     // MARK: - Presentation
     @State private var showSettings = false
+    @State private var showWebsitePanel = false
+    @Environment(\.openSettings) private var openSettingsWindow
     @State private var showConnectionMonitor = false
     @State private var showUserManagement = false
     @State private var showPlaylistEditor = false
@@ -109,8 +111,14 @@ struct ContentView: View {
     var body: some View {
         mainContentView
             .background(MainWindowCloseInterceptor())
-            .sheet(isPresented: $showSettings) {
-                SettingsView(settingsManager: settingsManager)
+            .onChange(of: showSettings) { _, show in
+                // The Settings button opens the real Settings window.
+                guard show else { return }
+                showSettings = false
+                openSettings(.general)
+            }
+            .sheet(isPresented: $showWebsitePanel) {
+                WebsitePanel(isPresented: $showWebsitePanel)
                     .environmentObject(websiteSyncManager)
             }
             .sheet(isPresented: $showConnectionMonitor) {
@@ -141,6 +149,13 @@ struct ContentView: View {
                 csvImportSheet
             }
             .onReceive(menuCommands) { handleMenuCommand($0) }
+            #if DEBUG
+            .onReceive(NotificationCenter.default.publisher(for: .debugSelectCue)) { note in
+                if let index = note.object as? Int {
+                    editor.handleCueSelection(at: index, withShiftKey: false, withCommandKey: false)
+                }
+            }
+            #endif
             .focusedSceneObject(editor)
             .modifier(ContentViewLifecycleModifiers(
                 dataSyncManager: dataSyncManager,
@@ -461,11 +476,18 @@ struct ContentView: View {
         .appDelegateCut, .appDelegateCopy, .appDelegatePaste, .appDelegateDelete,
         .appDelegateSelectAll, .appDelegateToggleStrikeThrough,
         .appDelegateShowPreferences, .appDelegateUpdateWebClients,
+        .appDelegateShowCommand, .appDelegateShowViewers, .appDelegateShowUsers,
+        .appDelegateShowShortcuts, .appDelegateShowWebsite,
     ]
 
     private var menuCommands: AnyPublisher<Notification, Never> {
         Publishers.MergeMany(Self.menuCommandNames.map { NotificationCenter.default.publisher(for: $0) })
             .eraseToAnyPublisher()
+    }
+
+    private func openSettings(_ tab: SettingsView.Tab) {
+        UserDefaults.standard.set(tab.rawValue, forKey: SettingsView.selectedTabKey)
+        openSettingsWindow()
     }
 
     private func handleMenuCommand(_ note: Notification) {
@@ -495,7 +517,13 @@ struct ContentView: View {
         case .appDelegateSelectAll: editor.selectAll()
         case .appDelegateToggleStrikeThrough: editor.toggleStrikeThrough()
         // Other
-        case .appDelegateShowPreferences: showSettings = true
+        case .appDelegateShowPreferences: openSettings(.general)
+        case .appDelegateShowWebsite: showWebsitePanel = true
+        case .appDelegateShowShortcuts: openSettings(.shortcuts)
+        case .appDelegateShowViewers: showConnectionMonitor = true
+        case .appDelegateShowUsers: showUserManagement = true
+        case .appDelegateShowCommand:
+            if let id = note.object as? String { handleShortcutAction(id) }
         case .appDelegateUpdateWebClients: updateWebClients()
         default: break
         }
@@ -519,12 +547,22 @@ struct ContentView: View {
     }
     
     private func handleKeyDown(with event: NSEvent) -> Bool {
+        // Safety net: if a cell editor closed without telling us, don't leave
+        // arrow-key cue navigation disabled.
+        if editingCueIndex != nil, !(NSApp.keyWindow?.firstResponder is NSTextView) {
+            editingCueIndex = nil
+        }
         guard editingCueIndex == nil else { return false }
         
         // Check for customizable keyboard shortcuts first
         if let matchedShortcut = findMatchingShortcut(event: event, in: settingsManager.shortcutsManager) {
             // Menu shortcuts should be handled by the menu system, not intercepted here
-            let menuShortcutIds = ["new", "open", "save", "saveAs", "duplicate", "importCSV", "exportCSV", "print", "undo", "redo", "cut", "copy", "paste", "delete", "selectAll", "toggleStrikeThrough", "toggleFullScreen", "preferences", "quit"]
+            // Everything with a menu item is handled by the menu bar, which
+            // shows the shortcut; only arrow-key navigation stays here.
+            let menuShortcutIds = ["new", "open", "save", "saveAs", "duplicate", "importCSV", "exportCSV", "publishWebsite", "print", "undo", "redo", "cut", "copy", "paste", "delete", "selectAll", "toggleStrikeThrough", "toggleFullScreen", "preferences", "quit",
+                                   "nextCue", "previousCue", "addCue",
+                                   "countdownStart", "countdownPause", "countdownReset", "countdownPlus1Min", "countdownMinus1Min",
+                                   "countdownToTimeStart", "countdownToTimePause", "countdownToTimeNext", "countdownPlaylist"]
             if menuShortcutIds.contains(matchedShortcut.id) {
                 return false  // Let the menu system handle it
             }

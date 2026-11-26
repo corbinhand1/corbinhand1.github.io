@@ -9,825 +9,354 @@ import SwiftUI
 
 struct UserManagementView: View {
     @ObservedObject var authManager: AuthenticationManager
-    @State private var selectedTab: Tab = .users
-    /// User whose password is being changed (drives the sheet).
-    @State private var passwordChangeUser: User?
-    @State private var changedPassword = ""
-    @State private var changedPasswordConfirm = ""
-    /// Whoever is at the Mac manages LAN accounts; no sign-in needed here.
-    /// (This used to silently sign in as "admin" / "admin123".)
-    private let canManageUsers = true
-    @State private var username = ""
-    @State private var password = ""
-    @State private var newUsername = ""
-    @State private var newPassword = ""
-    @State private var confirmPassword = ""
-    @State private var isAdmin = false
-    @State private var selectedUser: User?
-    @State private var showingAddUserForm = false
-    @State private var showingDeleteAlert = false
-    @State private var userToDelete: User?
-    @State private var errorMessage = ""
-    @State private var successMessage = ""
-    @State private var showingAlert = false
-    @State private var alertTitle = ""
-    @State private var alertMessage = ""
-    
     @Binding var isPresented: Bool
     var cueStacks: [CueStack]
-    
-    enum Tab: String, CaseIterable {
-        case login = "Login"
-        case users = "Users"
-        case permissions = "Permissions"
 
-        /// The Login tab is no longer shown: the Mac doesn't need to sign in.
-        static let visibleTabs: [Tab] = [.users, .permissions]
-    }
-    
+    @State private var showingAddUser = false
+    @State private var passwordChangeUser: User?
+    @State private var permissionsUser: User?
+    @State private var userToDelete: User?
+    @State private var alert: PanelAlert?
+
     var body: some View {
         VStack(spacing: 0) {
-            // Clean Header
-            headerView
-            
-            // Navigation Tabs
-            navigationTabs
-            
-            // Main Content Area
-            mainContentView
+            PanelHeader(systemImage: "person.2.fill",
+                        title: "Users & Permissions",
+                        subtitle: "Viewing the show never needs an account. Accounts let specific people edit chosen columns from the web viewer.",
+                        tint: .indigo)
+            Form {
+                defaultPasswordSection
+                accountsSection
+            }
+            .formStyle(.grouped)
+            PanelFooter(leading: {
+                Button {
+                    showingAddUser = true
+                } label: {
+                    Label("Add Account…", systemImage: "plus")
+                }
+            }, done: { isPresented = false })
         }
-        .frame(width: 900, height: 700)
-        .background(Color(NSColor.windowBackgroundColor))
+        .frame(width: 600, height: 560)
+        .sheet(isPresented: $showingAddUser) {
+            AddAccountSheet(authManager: authManager) { result in
+                showingAddUser = false
+                if case .created(let user) = result {
+                    alert = PanelAlert(title: "Account Created",
+                                       message: "\(user.username) can now sign in from the web viewer." +
+                                       (user.isAdmin ? "" : " Use Edit Permissions to choose which columns they can change."))
+                }
+            }
+        }
         .sheet(item: $passwordChangeUser) { user in
-            changePasswordSheet(for: user)
+            ChangePasswordSheet(user: user, authManager: authManager) { changed in
+                passwordChangeUser = nil
+                if changed {
+                    alert = PanelAlert(title: "Password Changed",
+                                       message: "\(user.username) has been signed out on every device and must use the new password.")
+                }
+            }
         }
-        .alert(alertTitle, isPresented: $showingAlert) {
-            Button("OK") { }
+        .sheet(item: $permissionsUser) { user in
+            VStack(spacing: 0) {
+                PermissionEditorView(user: user, cueStacks: cueStacks, authManager: authManager)
+                    .frame(minHeight: 420)
+                PanelFooter { permissionsUser = nil }
+            }
+            .frame(width: 620, height: 560)
+        }
+        .confirmationDialog(
+            "Delete \u{201C}\(userToDelete?.username ?? "")\u{201D}?",
+            isPresented: Binding(get: { userToDelete != nil }, set: { if !$0 { userToDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Account", role: .destructive) {
+                if let user = userToDelete { delete(user) }
+                userToDelete = nil
+            }
+            Button("Cancel", role: .cancel) { userToDelete = nil }
         } message: {
-            Text(alertMessage)
+            Text("They'll be signed out everywhere and lose any edit permissions. This can't be undone.")
         }
-        .alert("Delete User", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                if let user = userToDelete {
-                    deleteUser(user)
-                }
-            }
+        .alert(alert?.title ?? "", isPresented: Binding(get: { alert != nil }, set: { if !$0 { alert = nil } })) {
+            Button("OK") { alert = nil }
         } message: {
-            Text("Are you sure you want to delete this user? This action cannot be undone.")
-        }
-    }
-    
-    // MARK: - Header View
-    
-    private var headerView: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("User Management")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(authManager.isAuthenticated ? Color.green : Color.orange)
-                        .frame(width: 8, height: 8)
-                    
-                    Text(authManager.isAuthenticated ? "Connected" : "Not connected")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Spacer()
-            
-            Button(action: {
-                isPresented = false
-            }) {
-                Image(systemName: "xmark.circle.fill")
-                    .accessibilityLabel(Text("Close"))
-                    .help("Close")
-                    .font(.title2)
-                    .foregroundColor(.secondary)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 20)
-        .background(Color(NSColor.windowBackgroundColor))
-    }
-    
-    // MARK: - Navigation Tabs
-    
-    private var navigationTabs: some View {
-        HStack(spacing: 0) {
-            ForEach(Tab.visibleTabs, id: \.self) { tab in
-                Button(action: {
-                    selectedTab = tab
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: tabIcon(for: tab))
-                            .font(.system(size: 16, weight: .medium))
-                        Text(tab.rawValue)
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(selectedTab == tab ? .white : .primary)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(selectedTab == tab ? Color.accentColor : Color.clear)
-                    )
-                }
-                .buttonStyle(.plain)
-                
-                if tab != Tab.visibleTabs.last {
-                    Spacer()
-                        .frame(width: 8)
-                }
-            }
-            
-            Spacer()
-            
-            if authManager.isAuthenticated {
-                Button(action: {
-                    authManager.logout()
-                    clearForm()
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                            .font(.system(size: 14))
-                        Text("Logout")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(.red)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.red.opacity(0.1))
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 16)
-        .background(Color(NSColor.controlBackgroundColor))
-    }
-    
-    // MARK: - Main Content View
-    
-    private var mainContentView: some View {
-        Group {
-            switch selectedTab {
-            case .login:
-                loginView
-            case .users:
-                usersView
-            case .permissions:
-                permissionsView
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(NSColor.windowBackgroundColor))
-    }
-    
-    // MARK: - Login View
-    
-    private var loginView: some View {
-        VStack(spacing: 32) {
-            if authManager.isAuthenticated {
-                // Success State
-                VStack(spacing: 20) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 64))
-                        .foregroundColor(.green)
-                    
-                    VStack(spacing: 8) {
-                        Text("Admin Connected")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        Text("You're logged in as administrator")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Button("Manage Users") {
-                        selectedTab = .users
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                }
-                .padding(.top, 60)
-            } else {
-                // Login Form
-                VStack(spacing: 24) {
-                    VStack(spacing: 16) {
-                        Text("Administrator Login")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        Text("Sign in to manage users and permissions")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    
-                    VStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Username")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            TextField("Enter username", text: $username)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(maxWidth: 300)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Password")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            SecureField("Enter password", text: $password)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(maxWidth: 300)
-                        }
-                        
-                        Button("Sign In") {
-                            login()
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .disabled(username.isEmpty || password.isEmpty)
-                    }
-                    
-                    // Default credentials info
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Default Credentials")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Username: admin")
-                            Text("Password: admin123")
-                        }
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        
-                        Text("Change these in production!")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
-                    .padding(16)
-                    .background(Color.yellow.opacity(0.1))
-                    .cornerRadius(12)
-                    .frame(maxWidth: 300)
-                }
-                .padding(.top, 40)
-            }
-            
-            Spacer()
-        }
-        .padding(.horizontal, 32)
-    }
-    
-    // MARK: - Users View
-    
-    private var usersView: some View {
-        VStack(spacing: 24) {
-            // Header with Add User Button
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Users")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
-                    Text("\(authManager.users.count) user\(authManager.users.count == 1 ? "" : "s")")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                if canManageUsers {
-                    Button(action: {
-                        showingAddUserForm.toggle()
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .medium))
-                            Text("Add User")
-                                .font(.system(size: 14, weight: .medium))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(Color.accentColor)
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 32)
-            .padding(.top, 24)
-            
-            defaultPasswordBanner
-                .padding(.horizontal, 32)
-
-            // Add User Form (if showing)
-            if showingAddUserForm {
-                addUserCard
-                    .padding(.horizontal, 32)
-            }
-            
-            // Users List
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(authManager.users) { user in
-                        userCard(for: user)
-                    }
-                }
-                .padding(.horizontal, 32)
-                .padding(.bottom, 24)
-            }
-        }
-    }
-    
-    // MARK: - Add User Card
-    
-    private var addUserCard: some View {
-        VStack(spacing: 20) {
-            HStack {
-                Text("Add New User")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                
-                Spacer()
-                
-                Button(action: {
-                    showingAddUserForm = false
-                    clearForm()
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .accessibilityLabel(Text("Close"))
-                        .help("Close")
-                        .font(.title3)
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-            
-            VStack(spacing: 16) {
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Username")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        TextField("Enter username", text: $newUsername)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Password")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        SecureField("Enter password", text: $newPassword)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                }
-                
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Confirm Password")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        SecureField("Confirm password", text: $confirmPassword)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Admin")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        Toggle("", isOn: $isAdmin)
-                            .toggleStyle(SwitchToggleStyle())
-                    }
-                }
-            }
-            
-            HStack {
-                Spacer()
-                
-                Button("Cancel") {
-                    showingAddUserForm = false
-                    clearForm()
-                }
-                .buttonStyle(.bordered)
-                
-                Button("Create User") {
-                    createUser()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(newUsername.isEmpty || newPassword.isEmpty || newPassword != confirmPassword)
-            }
-        }
-        .padding(20)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-    }
-    
-    // MARK: - User Card
-    
-    private func userCard(for user: User) -> some View {
-        HStack(spacing: 16) {
-            // Avatar
-            Circle()
-                .fill(Color.accentColor.opacity(0.2))
-                .frame(width: 48, height: 48)
-                .overlay(
-                    Text(String(user.username.prefix(1)).uppercased())
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.accentColor)
-                )
-            
-            // User Info
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Text(user.username)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                    
-                    if user.isAdmin {
-                        Text("Admin")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(Color.blue.opacity(0.2))
-                            .foregroundColor(.blue)
-                            .cornerRadius(4)
-                    }
-                    
-                    if authManager.currentUser?.id == user.id {
-                        Text("Current")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(Color.green.opacity(0.2))
-                            .foregroundColor(.green)
-                            .cornerRadius(4)
-                    }
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Created: \(user.createdAt.formatted(date: .abbreviated, time: .shortened))")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    if let lastLogin = user.lastLoginAt {
-                        Text("Last login: \(lastLogin.formatted(date: .abbreviated, time: .shortened))")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            
-            Spacer()
-            
-            // Actions
-            Button(action: { passwordChangeUser = user }) {
-                Image(systemName: "key")
-                    .accessibilityLabel(Text("Change Password"))
-                    .help("Change Password")
-                    .font(.system(size: 14))
-                    .foregroundColor(.accentColor)
-                    .padding(8)
-                    .background(Color.accentColor.opacity(0.1))
-                    .cornerRadius(6)
-            }
-            .buttonStyle(.plain)
-
-            if authManager.currentUser?.id != user.id {
-                Button(action: {
-                    userToDelete = user
-                    showingDeleteAlert = true
-                }) {
-                    Image(systemName: "trash")
-                        .accessibilityLabel(Text("Delete User"))
-                        .help("Delete User")
-                        .font(.system(size: 14))
-                        .foregroundColor(.red)
-                        .padding(8)
-                        .background(Color.red.opacity(0.1))
-                        .cornerRadius(6)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(16)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
-    }
-    
-    // MARK: - Permissions View
-    
-    private var permissionsView: some View {
-        VStack(spacing: 24) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Permissions")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
-                    Text("Manage column editing permissions")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-            }
-            .padding(.horizontal, 32)
-            .padding(.top, 24)
-            
-            if canManageUsers {
-                VStack(spacing: 20) {
-                    // User Selection Card
-                    VStack(spacing: 16) {
-                        HStack {
-                            Text("Select User")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                            Spacer()
-                        }
-                        
-                        Picker("Select User", selection: $selectedUser) {
-                            Text("Choose a user...").tag(nil as User?)
-                            ForEach(authManager.users.filter { !$0.isAdmin }) { user in
-                                Text(user.username).tag(user as User?)
-                            }
-                        }
-                        .pickerStyle(MenuPickerStyle())
-                        .frame(maxWidth: 300)
-                    }
-                    .padding(20)
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(12)
-                    .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
-                    .padding(.horizontal, 32)
-                    
-                    // Permission Editor
-                    if let user = selectedUser {
-                        PermissionEditorView(
-                            user: user,
-                            cueStacks: cueStacks,
-                            authManager: authManager
-                        )
-                        .padding(.horizontal, 32)
-                    }
-                }
-            } else {
-                VStack(spacing: 16) {
-                    Image(systemName: "lock.circle")
-                        .font(.system(size: 48))
-                        .foregroundColor(.orange)
-                    
-                    Text("Admin Access Required")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                    
-                    Text("You need administrator privileges to manage permissions")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.top, 60)
-            }
-            
-            Spacer()
-        }
-    }
-    
-    // MARK: - Helper Methods
-    
-    private func tabIcon(for tab: Tab) -> String {
-        switch tab {
-        case .login:
-            return "person.circle"
-        case .users:
-            return "person.2"
-        case .permissions:
-            return "key"
-        }
-    }
-    
-    // MARK: - Change password
-
-    private func changePasswordSheet(for user: User) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Change Password for \u{201C}\(user.username)\u{201D}")
-                .font(.headline)
-            Text("At least \(AuthenticationManager.minimumPasswordLength) characters. Devices signed in as this user are signed out.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            SecureField("New password", text: $changedPassword)
-                .textFieldStyle(.roundedBorder)
-            SecureField("Confirm new password", text: $changedPasswordConfirm)
-                .textFieldStyle(.roundedBorder)
-            HStack {
-                Spacer()
-                Button("Cancel") { closePasswordSheet() }
-                    .keyboardShortcut(.cancelAction)
-                Button("Change Password") { applyPasswordChange(for: user) }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(changedPassword.isEmpty || changedPassword != changedPasswordConfirm)
-            }
-        }
-        .padding(24)
-        .frame(width: 380)
-    }
-
-    private func applyPasswordChange(for user: User) {
-        switch authManager.changePassword(userId: user.id, newPassword: changedPassword) {
-        case .success:
-            closePasswordSheet()
-            showAlert(title: "Password Changed", message: "\(user.username)'s password was changed.")
-        case .failure(let error):
-            showAlert(title: "Couldn't Change Password", message: error.localizedDescription)
+            Text(alert?.message ?? "")
         }
     }
 
-    private func closePasswordSheet() {
-        passwordChangeUser = nil
-        changedPassword = ""
-        changedPasswordConfirm = ""
-    }
+    // MARK: Sections
 
-    /// Warning for accounts that still use a password earlier builds shipped.
     @ViewBuilder
-    private var defaultPasswordBanner: some View {
+    private var defaultPasswordSection: some View {
         let flagged = authManager.users.filter { authManager.accountsUsingDefaultPassword.contains($0.id) }
-        if !flagged.isEmpty {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "exclamationmark.shield.fill")
-                    .font(.title2)
-                    .foregroundColor(.orange)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(flagged.map(\.username).joined(separator: ", ")) still \(flagged.count == 1 ? "uses" : "use") a default password")
-                        .font(.headline)
-                    Text("Anyone on the same network as this Mac could sign in to the LAN viewer with it. Change it now.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-                if let first = flagged.first {
+        if let first = flagged.first {
+            Section {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "exclamationmark.shield.fill")
+                        .font(.title2)
+                        .foregroundStyle(.orange)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(flagged.map(\.username).joined(separator: ", ")) \(flagged.count == 1 ? "uses" : "use") a default password")
+                            .fontWeight(.semibold)
+                        Text("Anyone on this network could sign in with it and edit your show. Choose a new password.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer()
                     Button("Change Password…") { passwordChangeUser = first }
                 }
+                .padding(.vertical, 4)
             }
-            .padding(16)
-            .background(Color.orange.opacity(0.12))
-            .cornerRadius(12)
         }
     }
-    
-    private func login() {
-        let result = authManager.login(username: username, password: password)
-        switch result {
-        case .success(let response):
-            if response.success {
-                showAlert(title: "Success", message: "Logged in successfully!")
-                clearForm()
-                selectedTab = .users
+
+    private var accountsSection: some View {
+        Section {
+            if authManager.users.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("No accounts yet")
+                        .fontWeight(.medium)
+                    Text("Add one when someone needs to edit cues from a browser, for example a video operator updating the Video column.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, 6)
             } else {
-                showAlert(title: "Login Failed", message: response.message ?? "Unknown error")
+                ForEach(authManager.users.sorted(by: Self.accountOrder)) { user in
+                    AccountRow(user: user,
+                               access: accessSummary(for: user),
+                               usesDefaultPassword: authManager.accountsUsingDefaultPassword.contains(user.id),
+                               onChangePassword: { passwordChangeUser = user },
+                               onEditPermissions: user.isAdmin ? nil : { permissionsUser = user },
+                               onDelete: { userToDelete = user })
+                }
             }
-        case .failure(let error):
-            showAlert(title: "Login Failed", message: error.localizedDescription)
+        } header: {
+            Text("Accounts")
+        } footer: {
+            Text("Administrators can edit everything. Everyone else can edit only the columns you allow.")
         }
     }
-    
-    private func createUser() {
-        guard newPassword == confirmPassword else {
-            showAlert(title: "Error", message: "Passwords do not match")
-            return
+
+    // MARK: Helpers
+
+    private static func accountOrder(_ a: User, _ b: User) -> Bool {
+        if a.isAdmin != b.isAdmin { return a.isAdmin }
+        return a.username.localizedCaseInsensitiveCompare(b.username) == .orderedAscending
+    }
+
+    /// "Administrator", "Can edit Video and LX in 2 stacks", or "View only".
+    private func accessSummary(for user: User) -> String {
+        if user.isAdmin { return "Administrator · can edit everything" }
+        let granted = authManager.permissions.filter { $0.userId == user.id && !$0.allowedColumns.isEmpty }
+        guard !granted.isEmpty else { return "View only · no editable columns yet" }
+        let columns = Array(Set(granted.flatMap(\.allowedColumns))).sorted()
+        let columnText = columns.count <= 3
+            ? ListFormatter.localizedString(byJoining: columns)
+            : "\(columns.count) columns"
+        let stackText = granted.count == 1 ? "1 stack" : "\(granted.count) stacks"
+        return "Can edit \(columnText) in \(stackText)"
+    }
+
+    private func delete(_ user: User) {
+        if case .failure(let error) = authManager.deleteUser(user.id) {
+            alert = PanelAlert(title: "Couldn't Delete Account", message: error.localizedDescription)
         }
-        
-        let result = authManager.createUser(
-            username: newUsername,
-            password: newPassword,
-            isAdmin: isAdmin
-        )
-        
-        switch result {
-        case .success:
-            showAlert(title: "Success", message: "User created successfully!")
-            clearNewUserForm()
-        case .failure(let error):
-            showAlert(title: "Error", message: error.localizedDescription)
-        }
-    }
-    
-    private func deleteUser(_ user: User) {
-        let result = authManager.deleteUser(user.id)
-        switch result {
-        case .success:
-            showAlert(title: "Success", message: "User deleted successfully!")
-        case .failure(let error):
-            showAlert(title: "Error", message: error.localizedDescription)
-        }
-    }
-    
-    private func clearForm() {
-        username = ""
-        password = ""
-    }
-    
-    private func clearNewUserForm() {
-        newUsername = ""
-        newPassword = ""
-        confirmPassword = ""
-        isAdmin = false
-    }
-    
-    private func showAlert(title: String, message: String) {
-        alertTitle = title
-        alertMessage = message
-        showingAlert = true
     }
 }
 
-// MARK: - User Row View
+struct PanelAlert {
+    let title: String
+    let message: String
+}
 
-struct UserRowView: View {
+// MARK: - Account row
+
+private struct AccountRow: View {
     let user: User
-    let isCurrentUser: Bool
+    let access: String
+    let usesDefaultPassword: Bool
+    let onChangePassword: () -> Void
+    let onEditPermissions: (() -> Void)?
     let onDelete: () -> Void
-    
+
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
+            Text(String(user.username.prefix(1)).uppercased())
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 34)
+                .background((user.isAdmin ? Color.indigo : Color.gray).gradient, in: Circle())
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text(user.username)
-                    .font(.headline)
-                
-                HStack {
-                    if user.isAdmin {
-                        Text("Admin")
-                            .font(.caption)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.blue.opacity(0.2))
-                            .cornerRadius(4)
-                    }
-                    
-                    if isCurrentUser {
-                        Text("Current User")
-                            .font(.caption)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.green.opacity(0.2))
-                            .cornerRadius(4)
+                HStack(spacing: 6) {
+                    Text(user.username).fontWeight(.medium)
+                    if usesDefaultPassword {
+                        Image(systemName: "exclamationmark.shield.fill")
+                            .foregroundStyle(.orange)
+                            .help("Uses a default password")
                     }
                 }
-                
-                Text("Created: \(user.createdAt, formatter: dateFormatter)")
+                Text(access)
                     .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                if let lastLogin = user.lastLoginAt {
-                    Text("Last login: \(lastLogin, formatter: dateFormatter)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
+                Group {
+                    if let last = user.lastLoginAt {
+                        Text("Last signed in ") + Text(last, format: .relative(presentation: .numeric))
+                    } else {
+                        Text("Never signed in")
+                    }
                 }
+                .font(.caption)
+                .foregroundStyle(.tertiary)
             }
-            
             Spacer()
-            
-            if !isCurrentUser {
-                Button("Delete") {
-                    onDelete()
-                }
-                .buttonStyle(.bordered)
-                .foregroundColor(.red)
+            if let onEditPermissions {
+                Button("Permissions…", action: onEditPermissions)
+                    .controlSize(.small)
             }
+            Menu {
+                Button("Change Password…", action: onChangePassword)
+                if let onEditPermissions {
+                    Button("Edit Permissions…", action: onEditPermissions)
+                }
+                Divider()
+                Button("Delete Account…", role: .destructive, action: onDelete)
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("Actions for \(user.username)")
+            .accessibilityLabel(Text("Actions for \(user.username)"))
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 3)
     }
-    
-    private let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter
-    }()
 }
 
-// MARK: - Permission Editor View
+// MARK: - Add account
+
+private struct AddAccountSheet: View {
+    enum Result { case created(User), cancelled }
+
+    let authManager: AuthenticationManager
+    let onFinish: (Result) -> Void
+
+    @State private var username = ""
+    @State private var password = ""
+    @State private var confirm = ""
+    @State private var isAdmin = false
+    @State private var errorMessage: String?
+
+    private var canCreate: Bool {
+        username.trimmingCharacters(in: .whitespaces).count >= 3 && !password.isEmpty && password == confirm
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            PanelHeader(systemImage: "person.badge.plus", title: "New Account",
+                        subtitle: "For someone who needs to edit cues from a browser.", tint: .indigo)
+            Form {
+                Section {
+                    TextField("Name", text: $username, prompt: Text("e.g. video-op"))
+                    SecureField("Password", text: $password, prompt: Text("At least \(AuthenticationManager.minimumPasswordLength) characters"))
+                    SecureField("Confirm password", text: $confirm)
+                } footer: {
+                    if let errorMessage {
+                        Text(errorMessage).foregroundStyle(.red)
+                    } else if !confirm.isEmpty && password != confirm {
+                        Text("Passwords don't match.").foregroundStyle(.red)
+                    }
+                }
+                Section {
+                    Toggle("Administrator", isOn: $isAdmin)
+                } footer: {
+                    Text(isAdmin
+                         ? "Can edit every column and manage accounts from the web viewer."
+                         : "Can edit only the columns you choose with Edit Permissions.")
+                }
+            }
+            .formStyle(.grouped)
+            Divider()
+            HStack {
+                Spacer()
+                Button("Cancel") { onFinish(.cancelled) }
+                    .keyboardShortcut(.cancelAction)
+                Button("Create Account", action: create)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!canCreate)
+            }
+            .controlSize(.large)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+        }
+        .frame(width: 440)
+    }
+
+    private func create() {
+        switch authManager.createUser(username: username.trimmingCharacters(in: .whitespaces), password: password, isAdmin: isAdmin) {
+        case .success(let user): onFinish(.created(user))
+        case .failure(let error): errorMessage = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - Change password
+
+private struct ChangePasswordSheet: View {
+    let user: User
+    let authManager: AuthenticationManager
+    let onFinish: (Bool) -> Void
+
+    @State private var password = ""
+    @State private var confirm = ""
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            PanelHeader(systemImage: "key.fill", title: "Change Password",
+                        subtitle: "For \u{201C}\(user.username)\u{201D}. They'll be signed out on every device.", tint: .indigo)
+            Form {
+                Section {
+                    SecureField("New password", text: $password, prompt: Text("At least \(AuthenticationManager.minimumPasswordLength) characters"))
+                    SecureField("Confirm new password", text: $confirm)
+                } footer: {
+                    if let errorMessage {
+                        Text(errorMessage).foregroundStyle(.red)
+                    } else if !confirm.isEmpty && password != confirm {
+                        Text("Passwords don't match.").foregroundStyle(.red)
+                    }
+                }
+            }
+            .formStyle(.grouped)
+            Divider()
+            HStack {
+                Spacer()
+                Button("Cancel") { onFinish(false) }
+                    .keyboardShortcut(.cancelAction)
+                Button("Change Password", action: change)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(password.isEmpty || password != confirm)
+            }
+            .controlSize(.large)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+        }
+        .frame(width: 440)
+    }
+
+    private func change() {
+        switch authManager.changePassword(userId: user.id, newPassword: password) {
+        case .success: onFinish(true)
+        case .failure(let error): errorMessage = error.localizedDescription
+        }
+    }
+}
 
 struct PermissionEditorView: View {
     let user: User

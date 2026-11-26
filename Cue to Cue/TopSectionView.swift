@@ -44,7 +44,9 @@ struct TopSectionView: View {
     private var clockPanelHeight: CGFloat {
         let fontSize = settingsManager.settings.clockFontSize
         let playlistExtra: CGFloat = dataSyncManager.countdownPlaylist.entries.isEmpty ? 0 : 26
-        return fontSize + 96 + playlistExtra
+        // Label row + digits + button row; about 15% shorter than before so
+        // the cue list gets the space.
+        return fontSize + 70 + playlistExtra
     }
 
     var body: some View {
@@ -54,12 +56,31 @@ struct TopSectionView: View {
             countdownView(time: countdownTime, running: countdownRunning)
             countdownToTimeView()
             
-            // Buttons in vertical stack
-            VStack(spacing: 15) {
-                networkButton
-                userManagementButton
-                syncButton
-                settingsButton
+            // Labeled tool buttons; each also has a menu item.
+            VStack(spacing: 6) {
+                ToolButton(title: "Viewers", systemImage: "network",
+                           help: "Connected Viewers (Window menu)") {
+                    showConnectionMonitor.toggle()
+                }
+                ToolButton(title: "Users", systemImage: "person.2",
+                           help: "Users & Permissions (Window menu)") {
+                    showUserManagement.toggle()
+                }
+                ToolButton(title: websiteSyncManager.isSyncing ? "Publishing" : "Publish",
+                           systemImage: websiteSyncManager.isSyncing ? "arrow.triangle.2.circlepath" : "icloud.and.arrow.up",
+                           help: "Publish to Website (\u{21E7}\u{2318}U)",
+                           tint: websiteSyncManager.isSyncing ? .orange : nil,
+                           action: publishToWebsite)
+                    .disabled(websiteSyncManager.isSyncing)
+                    .overlay(syncNotificationOverlay, alignment: .topTrailing)
+                ToolButton(title: "Settings", systemImage: "gearshape",
+                           help: "Settings (\u{2318},)") {
+                    showSettings.toggle()
+                }
+            }
+            .frame(width: 104)
+            .onReceive(NotificationCenter.default.publisher(for: .appDelegatePublishWebsite)) { _ in
+                publishToWebsite()
             }
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -184,17 +205,9 @@ struct TopSectionView: View {
 
     private var currentTimeView: some View {
         timeBox {
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
+                panelLabel("Time of Day", detail: dateFormatter.string(from: currentTime))
                 Spacer(minLength: 0)
-
-                Text(dateFormatter.string(from: currentTime).uppercased())
-                    .font(.custom("Digital-7Mono", size: settingsManager.settings.clockFontSize * 0.4))
-                    .foregroundColor(settingsManager.settings.dateTimeColor)
-
-                Text("Current Time")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
-
                 HStack(alignment: .lastTextBaseline, spacing: 2) {
                     Text(currentTime, formatter: timeFormatter)
                         .font(.custom("Digital-7Mono", size: settingsManager.settings.clockFontSize))
@@ -210,11 +223,8 @@ struct TopSectionView: View {
 
     private func countdownView(time: Int, running: Bool) -> some View {
         timeBox {
-            VStack(spacing: 8) {
-                Text("Countdown")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
-
+            VStack(spacing: 6) {
+                panelLabel("Countdown", detail: nil)
                 Spacer(minLength: 0)
 
                 if isEditingCountdown {
@@ -240,12 +250,12 @@ struct TopSectionView: View {
 
                 Spacer(minLength: 0)
 
-                HStack(spacing: 10) {
-                    TimerButton(title: "Start", action: startCountdownTimer)
-                    TimerButton(title: "Pause", action: pauseCountdownTimer)
-                    TimerButton(title: "Reset", action: resetCountdownTimer)
-                    TimerButton(title: "-1 min", action: { adjustCountdownTime(by: -60) })
-                    TimerButton(title: "+1 min", action: { adjustCountdownTime(by: 60) })
+                HStack(spacing: 6) {
+                    TimerButton(title: "Start", shortcutID: "countdownStart", isPrimary: !running, action: startCountdownTimer)
+                    TimerButton(title: "Pause", shortcutID: "countdownPause", action: pauseCountdownTimer)
+                    TimerButton(title: "Reset", shortcutID: "countdownReset", action: resetCountdownTimer)
+                    TimerButton(title: "−1m", shortcutID: "countdownMinus1Min", action: { adjustCountdownTime(by: -60) })
+                    TimerButton(title: "+1m", shortcutID: "countdownPlus1Min", action: { adjustCountdownTime(by: 60) })
                 }
             }
         }
@@ -253,22 +263,8 @@ struct TopSectionView: View {
 
     private func countdownToTimeView() -> some View {
         timeBox {
-            VStack(spacing: 8) {
-                HStack(spacing: 4) {
-                    Text("Countdown to \(targetTimeString.isEmpty ? "00:00:00" : targetTimeString)")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-
-                    if let currentIdx = dataSyncManager.countdownPlaylist.currentIndex,
-                       currentIdx < dataSyncManager.countdownPlaylist.entries.count,
-                       let label = dataSyncManager.countdownPlaylist.entries[currentIdx].label,
-                       !label.isEmpty {
-                        Text("— \(label)")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.6))
-                    }
-                }
-                .lineLimit(1)
+            VStack(spacing: 6) {
+                panelLabel("To \(targetTimeString.isEmpty ? "00:00:00" : targetTimeString)", detail: currentPlaylistLabel)
 
                 Spacer(minLength: 0)
 
@@ -320,11 +316,11 @@ struct TopSectionView: View {
 
                 Spacer(minLength: 0)
 
-                HStack(spacing: 10) {
-                    TimerButton(title: "Start", action: startCountdownToTime)
-                    TimerButton(title: "Pause", action: pauseCountdownToTime, isEnabled: countUpRunning)
-                    TimerButton(title: "Next", action: nextPlaylistEntry, isEnabled: hasNextPlaylistEntry)
-                    TimerButton(title: "Playlist", action: { showPlaylistEditor = true })
+                HStack(spacing: 6) {
+                    TimerButton(title: "Start", shortcutID: "countdownToTimeStart", action: startCountdownToTime)
+                    TimerButton(title: "Pause", shortcutID: "countdownToTimePause", action: pauseCountdownToTime, isEnabled: countUpRunning)
+                    TimerButton(title: "Next", shortcutID: "countdownToTimeNext", action: nextPlaylistEntry, isEnabled: hasNextPlaylistEntry)
+                    TimerButton(title: "Playlist", shortcutID: "countdownPlaylist", action: { showPlaylistEditor = true })
                 }
 
                 if !dataSyncManager.countdownPlaylist.entries.isEmpty {
@@ -353,76 +349,28 @@ struct TopSectionView: View {
         }
     }
 
-    private var settingsButton: some View {
-        Button(action: { showSettings.toggle() }) {
-            Image(systemName: "gear")
-                .resizable()
-                .accessibilityLabel(Text("Settings"))
-                .help("Settings")
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 24, height: 24)
-                .foregroundColor(settingsManager.settings.fontColor)
-        }
-    }
-    
-    private var networkButton: some View {
-        Button(action: { showConnectionMonitor.toggle() }) {
-            Image(systemName: "network")
-                .resizable()
-                .accessibilityLabel(Text("Connected Viewers"))
-                .help("Connected Viewers")
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 24, height: 24)
-                .foregroundColor(settingsManager.settings.fontColor)
-        }
-    }
-    
-    private var userManagementButton: some View {
-        Button(action: { showUserManagement.toggle() }) {
-            Image(systemName: "person.2")
-                .resizable()
-                .accessibilityLabel(Text("User Management"))
-                .help("User Management")
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 24, height: 24)
-                .foregroundColor(settingsManager.settings.fontColor)
-        }
-    }
-    
-    private var syncButton: some View {
-        Button(action: {
-            // Commit any in-progress cell edit before publishing.
-            NSApp.keyWindow?.makeFirstResponder(nil)
+    /// Publish the current show to the website (button and File menu ⇧⌘U).
+    private func publishToWebsite() {
+        guard !websiteSyncManager.isSyncing else { return }
+        // Commit any in-progress cell edit before publishing.
+        NSApp.keyWindow?.makeFirstResponder(nil)
 
-            websiteSyncManager.syncCueData(
-                cueStacks: dataSyncManager.cueStacks,
-                selectedCueStackIndex: dataSyncManager.selectedCueStackIndex,
-                filename: currentFileName,
-                settingsManager: settingsManager
-            ) { success, error in
-                if success {
-                    showSyncSuccess()
-                } else {
-                    let errorMessage = error ?? "Unknown error"
-                    showSyncFailure(errorMessage)
-                    print("❌ Sync failed: \(errorMessage)")
-                }
+        websiteSyncManager.syncCueData(
+            cueStacks: dataSyncManager.cueStacks,
+            selectedCueStackIndex: dataSyncManager.selectedCueStackIndex,
+            filename: currentFileName,
+            settingsManager: settingsManager
+        ) { success, error in
+            if success {
+                showSyncSuccess()
+            } else {
+                let errorMessage = error ?? "Unknown error"
+                showSyncFailure(errorMessage)
+                print("❌ Sync failed: \(errorMessage)")
             }
-        }) {
-            Image(systemName: websiteSyncManager.isSyncing ? "arrow.clockwise" : "cloud")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 24, height: 24)
-                .foregroundColor(websiteSyncManager.isSyncing ? .orange : settingsManager.settings.fontColor)
         }
-        .disabled(websiteSyncManager.isSyncing)
-        .overlay(
-            // Sync notification popup
-            syncNotificationOverlay,
-            alignment: .topTrailing
-        )
     }
-    
+
     // MARK: - Sync Notification Views and Methods
     
     private var syncNotificationOverlay: some View {
@@ -491,10 +439,34 @@ struct TopSectionView: View {
 
     // MARK: - Utility Methods
 
+    private var currentPlaylistLabel: String? {
+        let playlist = dataSyncManager.countdownPlaylist
+        guard let idx = playlist.currentIndex, idx < playlist.entries.count,
+              let label = playlist.entries[idx].label, !label.isEmpty else { return nil }
+        return label
+    }
+
+    /// Small uppercase panel label with optional right-aligned detail.
+    private func panelLabel(_ title: String, detail: String?) -> some View {
+        HStack(spacing: 8) {
+            Text(title.uppercased())
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.0)
+                .foregroundColor(.white.opacity(0.72))
+            Spacer(minLength: 4)
+            if let detail {
+                Text(detail)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white.opacity(0.55))
+            }
+        }
+        .lineLimit(1)
+    }
+
     private func timeBox<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
             .frame(maxWidth: .infinity, minHeight: clockPanelHeight, maxHeight: clockPanelHeight)
             .background(settingsManager.settings.backgroundColor.opacity(0.2))
             .cornerRadius(15)
@@ -552,22 +524,51 @@ struct TopSectionView: View {
 
 struct TimerButton: View {
     let title: String
+    /// Keyboard shortcut id to print on the button (from Shortcuts settings).
+    var shortcutID: String? = nil
+    /// Primary action gets the countdown color as its fill.
+    var isPrimary: Bool = false
     let action: () -> Void
     var isEnabled: Bool = true
     @EnvironmentObject var settingsManager: SettingsManager
 
+    private var shortcut: String? {
+        shortcutID.flatMap { settingsManager.shortcutsManager.displayString(for: $0) }
+    }
+
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundColor(isEnabled ? settingsManager.settings.fontColor : settingsManager.settings.fontColor.opacity(0.4))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
+            HStack(spacing: 5) {
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+                if let shortcut {
+                    Text(shortcut)
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .opacity(0.6)
+                }
+            }
+            .lineLimit(1)
+            .fixedSize()
+            .foregroundColor(foreground)
+            .padding(.horizontal, 9)
+            .frame(minHeight: 26)
+            .background(background)
+            .clipShape(RoundedRectangle(cornerRadius: 7))
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .disabled(!isEnabled)
-        .background(settingsManager.settings.backgroundColor.opacity(isEnabled ? 0.3 : 0.15))
-        .cornerRadius(8)
+        .help(shortcut.map { "\(title) (\($0))" } ?? title)
+    }
+
+    private var foreground: Color {
+        if isPrimary && isEnabled { return Color.black.opacity(0.85) }
+        return isEnabled ? settingsManager.settings.fontColor : settingsManager.settings.fontColor.opacity(0.4)
+    }
+
+    private var background: Color {
+        if isPrimary && isEnabled { return settingsManager.settings.countdownColor }
+        return settingsManager.settings.backgroundColor.opacity(isEnabled ? 0.45 : 0.18)
     }
 }
 
@@ -614,3 +615,41 @@ struct PlaylistMiniCard: View {
     }
 }
 
+
+
+// MARK: - Tool button
+
+/// Icon + label button for the column beside the clocks.
+struct ToolButton: View {
+    let title: String
+    let systemImage: String
+    let help: String
+    var tint: Color? = nil
+    let action: () -> Void
+    @EnvironmentObject var settingsManager: SettingsManager
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 16)
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .foregroundColor(tint ?? settingsManager.settings.fontColor)
+            .opacity(isEnabled ? 1 : 0.7)
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, minHeight: 30)
+            .background(settingsManager.settings.backgroundColor.opacity(0.35))
+            .clipShape(RoundedRectangle(cornerRadius: 7))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(Text(title))
+    }
+}

@@ -206,6 +206,16 @@ class KeyboardShortcutsManager: ObservableObject {
         }
     }
     
+    /// Display form of a command's current shortcut, e.g. "⌘1" or "⇧⌘N",
+    /// or nil when it has none. Reflects the user's customizations.
+    func displayString(for id: String) -> String? {
+        guard let shortcut = shortcuts.first(where: { $0.id == id }), !shortcut.key.isEmpty else { return nil }
+        let symbols: [(String, String)] = [("control", "⌃"), ("option", "⌥"), ("shift", "⇧"), ("command", "⌘")]
+        let mods = symbols.filter { shortcut.modifiers.contains($0.0) }.map(\.1).joined()
+        let key = shortcut.key.count == 1 ? shortcut.key.uppercased() : shortcut.key
+        return mods + (key == "-" ? "−" : key)
+    }
+
     var shortcutsByCategory: [String: [KeyboardShortcut]] {
         Dictionary(grouping: shortcuts, by: { $0.category })
     }

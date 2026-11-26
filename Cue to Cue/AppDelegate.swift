@@ -19,6 +19,8 @@ extension Notification.Name {
     static let appDelegateDuplicateFile = Notification.Name("appDelegateDuplicateFile")
     static let appDelegateImportCSV = Notification.Name("appDelegateImportCSV")
     static let appDelegateExportCSV = Notification.Name("appDelegateExportCSV")
+    static let appDelegatePublishWebsite = Notification.Name("appDelegatePublishWebsite")
+    static let appDelegateShowWebsite = Notification.Name("appDelegateShowWebsite")
     static let appDelegateUndo = Notification.Name("appDelegateUndo")
     static let appDelegateRedo = Notification.Name("appDelegateRedo")
     static let appDelegateCut = Notification.Name("appDelegateCut")
@@ -29,6 +31,11 @@ extension Notification.Name {
     static let appDelegateToggleStrikeThrough = Notification.Name("appDelegateToggleStrikeThrough")
     static let appDelegateToggleFullScreen = Notification.Name("appDelegateToggleFullScreen")
     static let appDelegateUpdateWebClients = Notification.Name("appDelegateUpdateWebClients")
+    /// Menu: show-running command (object: KeyboardShortcut id, e.g. "countdownStart").
+    static let appDelegateShowCommand = Notification.Name("appDelegateShowCommand")
+    static let appDelegateShowViewers = Notification.Name("appDelegateShowViewers")
+    static let appDelegateShowUsers = Notification.Name("appDelegateShowUsers")
+    static let appDelegateShowShortcuts = Notification.Name("appDelegateShowShortcuts")
     /// Posted when the app becomes the frontmost app. ContentView observes
     /// this to re-check whether the current document was changed by another
     /// program while we were in the background. Phase 2 of the file-safety
@@ -53,6 +60,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         // Note: Window creation is handled by SwiftUI's WindowGroup
         // WebServer is managed by ContentView to share the same DataSyncManager instance
         
+        // Single-window app: no "Show Tab Bar" / "Show All Tabs" in View.
+        NSWindow.allowsAutomaticWindowTabbing = false
+        // View ▸ Toggle Full Screen is our own item; don't let AppKit add a second.
+        UserDefaults.standard.set(false, forKey: "NSFullScreenMenuItemEverywhere")
+
         // Start intercepting print statements to capture console output
         PrintInterceptor.shared.startIntercepting()
         
@@ -61,6 +73,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         
         // File opens from Finder are drained in ContentView.onAppear once
         // notification observers are registered (avoids a launch-time race).
+
+        #if DEBUG
+        WindowSnapshotter.scheduleIfRequested()
+        #endif
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
@@ -132,6 +148,31 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func exportCSV() {
         // Post notification for ContentView to handle
         NotificationCenter.default.post(name: .appDelegateExportCSV, object: nil)
+    }
+
+    func publishToWebsite() {
+        NotificationCenter.default.post(name: .appDelegatePublishWebsite, object: nil)
+    }
+
+    func showWebsitePanel() {
+        NotificationCenter.default.post(name: .appDelegateShowWebsite, object: nil)
+    }
+
+    /// Cue and Timer menu items (ids match Settings ▸ Keyboard Shortcuts).
+    func runShowCommand(_ id: String) {
+        NotificationCenter.default.post(name: .appDelegateShowCommand, object: id)
+    }
+
+    func showConnectedViewers() {
+        NotificationCenter.default.post(name: .appDelegateShowViewers, object: nil)
+    }
+
+    func showUserManagement() {
+        NotificationCenter.default.post(name: .appDelegateShowUsers, object: nil)
+    }
+
+    func showKeyboardShortcuts() {
+        NotificationCenter.default.post(name: .appDelegateShowShortcuts, object: nil)
     }
 
     func restoreFromBackup() {
@@ -357,3 +398,161 @@ struct MainWindowCloseInterceptor: NSViewRepresentable {
         }
     }
 }
+
+
+#if DEBUG
+extension Notification.Name {
+    /// Debug snapshots: select the cue at this index (object: Int).
+    static let debugSelectCue = Notification.Name("debugSelectCue")
+}
+
+/// Development aid: renders the app's own main window to a PNG, so UI
+/// changes can be checked without screen-recording permission.
+///
+///   CUE_SNAPSHOT_PATH=/tmp/shot.png   where to write (required)
+///   CUE_SNAPSHOT_DELAY=4              seconds after launch
+///   CUE_SNAPSHOT_SIZE=1440x900        window content size
+///   CUE_SNAPSHOT_QUIT=1               quit after writing
+///   CUE_SNAPSHOT_SELECT_CUE=3         select this cue first (shows LIVE/NEXT)
+enum WindowSnapshotter {
+    /// True for a snapshot run: documents are opened read-only.
+    static var isActive: Bool {
+        !(ProcessInfo.processInfo.environment["CUE_SNAPSHOT_PATH"] ?? "").isEmpty
+    }
+
+    static func scheduleIfRequested() {
+        let env = ProcessInfo.processInfo.environment
+        guard let path = env["CUE_SNAPSHOT_PATH"], !path.isEmpty else { return }
+        let delay = Double(env["CUE_SNAPSHOT_DELAY"] ?? "") ?? 4
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if let size = env["CUE_SNAPSHOT_SIZE"]?.split(separator: "x").compactMap({ Double($0) }), size.count == 2,
+               let window = NSApp.windows.first(where: { $0.isVisible && $0.contentView != nil }) {
+                window.setContentSize(NSSize(width: size[0], height: size[1]))
+                window.center()
+            }
+        }
+        if let perfPath = env["CUE_PERF_SCROLL"], !perfPath.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + max(1, delay - 2.5)) {
+                runScrollBenchmark(outputPath: perfPath)
+            }
+        }
+        if let panel = env["CUE_SNAPSHOT_OPEN"], !panel.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + max(1, delay - 2)) {
+                let names: [String: Notification.Name] = [
+                    "viewers": .appDelegateShowViewers, "users": .appDelegateShowUsers,
+                    "settings": .appDelegateShowPreferences, "website": .appDelegateShowWebsite,
+                    "shortcuts": .appDelegateShowShortcuts,
+                ]
+                if let name = names[panel] { NotificationCenter.default.post(name: name, object: nil) }
+            }
+        }
+        if let cue = env["CUE_SNAPSHOT_SELECT_CUE"].flatMap(Int.init) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + max(1, delay - 1.5)) {
+                NotificationCenter.default.post(name: .debugSelectCue, object: cue)
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            if let menuPath = env["CUE_DUMP_MENUS"], !menuPath.isEmpty {
+                try? dumpMenus().write(toFile: menuPath, atomically: true, encoding: .utf8)
+            }
+            write(to: URL(fileURLWithPath: path))
+            if env["CUE_SNAPSHOT_QUIT"] == "1" {
+                // Exit directly: a snapshot run is read-only and must never
+                // stop at a save or conflict prompt (which left copies open).
+                exit(0)
+            }
+        }
+    }
+
+    /// CUE_PERF_SCROLL=/tmp/out.txt: scroll the cue list top to bottom and
+    /// back in 30-point steps, timing layout + draw for each step.
+    static func runScrollBenchmark(outputPath: String) {
+        guard let window = NSApp.windows.first(where: { $0.isVisible && $0.contentView != nil }),
+              let root = window.contentView else { return }
+        func scrollViews(in view: NSView) -> [NSScrollView] {
+            ((view as? NSScrollView).map { [$0] } ?? []) + view.subviews.flatMap(scrollViews)
+        }
+        let all = scrollViews(in: root)
+        let inventory = all.map { sv in
+            String(format: "%@ frame=%.0fx%.0f doc=%@ %.0fx%.0f", String(describing: type(of: sv)),
+                   sv.frame.width, sv.frame.height,
+                   String(describing: type(of: sv.documentView as Any)),
+                   sv.documentView?.frame.width ?? 0, sv.documentView?.frame.height ?? 0)
+        }.joined(separator: "\n")
+        try? inventory.write(toFile: outputPath + ".inventory", atomically: true, encoding: .utf8)
+        // The cue list is the tallest vertical scroller.
+        guard let scroll = all
+            .filter({ ($0.documentView?.frame.height ?? 0) > $0.contentView.bounds.height })
+            .max(by: { ($0.documentView?.frame.height ?? 0) < ($1.documentView?.frame.height ?? 0) }) else {
+            try? "no scrollable list found".write(toFile: outputPath, atomically: true, encoding: .utf8)
+            return
+        }
+        let clip = scroll.contentView
+        let maxY = (scroll.documentView?.frame.height ?? 0) - clip.bounds.height
+        var samples: [Double] = []
+        var y: CGFloat = 0
+        var direction: CGFloat = 1
+        for _ in 0..<240 {
+            y = min(max(0, y + 30 * direction), maxY)
+            if y >= maxY || y <= 0 { direction *= -1 }
+            let start = CACurrentMediaTime()
+            clip.scroll(to: NSPoint(x: clip.bounds.origin.x, y: y))
+            scroll.reflectScrolledClipView(clip)
+            root.layoutSubtreeIfNeeded()
+            window.displayIfNeeded()
+            RunLoop.main.run(until: Date())   // let SwiftUI apply pending updates
+            root.layoutSubtreeIfNeeded()
+            window.displayIfNeeded()
+            samples.append((CACurrentMediaTime() - start) * 1000)
+        }
+        let sorted = samples.sorted()
+        let avg = samples.reduce(0, +) / Double(samples.count)
+        let p95 = sorted[Int(Double(sorted.count) * 0.95)]
+        let over16 = samples.filter { $0 > 16.7 }.count
+        let report = String(format: "steps=%d avg=%.2fms p95=%.2fms max=%.2fms frames>16.7ms=%d docHeight=%.0f",
+                            samples.count, avg, p95, sorted.last ?? 0, over16, scroll.documentView?.frame.height ?? 0)
+        try? report.write(toFile: outputPath, atomically: true, encoding: .utf8)
+        NSLog("ScrollBenchmark: \(report)")
+    }
+
+    /// Text outline of the menu bar as macOS assembled it (CUE_DUMP_MENUS).
+    static func dumpMenus() -> String {
+        func describe(_ menu: NSMenu, depth: Int) -> [String] {
+            menu.items.flatMap { item -> [String] in
+                if item.isHidden { return [] }
+                if item.isSeparatorItem { return [String(repeating: "  ", count: depth) + "----"] }
+                var key = ""
+                if !item.keyEquivalent.isEmpty {
+                    let m = item.keyEquivalentModifierMask
+                    key = (m.contains(.control) ? "⌃" : "") + (m.contains(.option) ? "⌥" : "")
+                        + (m.contains(.shift) ? "⇧" : "") + (m.contains(.command) ? "⌘" : "")
+                        + (item.keyEquivalent == "\u{8}" || item.keyEquivalent == "\u{7f}" ? "⌫" : item.keyEquivalent.uppercased())
+                }
+                let line = String(repeating: "  ", count: depth) + item.title
+                    + (key.isEmpty ? "" : "   [\(key)]") + (item.isEnabled ? "" : "   (disabled)")
+                return [line] + (item.submenu.map { describe($0, depth: depth + 1) } ?? [])
+            }
+        }
+        guard let main = NSApp.mainMenu else { return "no main menu" }
+        return describe(main, depth: 0).joined(separator: "\n")
+    }
+
+    static func write(to url: URL) {
+        // Prefer an open sheet or settings window over the main window.
+        let main = NSApp.windows.first(where: { $0.isVisible && $0.contentView != nil && $0.sheetParent == nil })
+        let target = main?.attachedSheet
+            ?? NSApp.windows.first(where: { $0.isVisible && $0.identifier?.rawValue.contains("Settings") == true })
+            ?? main
+        guard let window = target,
+              let view = window.contentView,
+              let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
+            NSLog("WindowSnapshotter: no window to capture")
+            return
+        }
+        view.cacheDisplay(in: view.bounds, to: rep)
+        guard let png = rep.representation(using: .png, properties: [:]) else { return }
+        try? png.write(to: url)
+        NSLog("WindowSnapshotter: wrote \(url.path)")
+    }
+}
+#endif

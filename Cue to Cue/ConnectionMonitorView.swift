@@ -2,7 +2,8 @@
 //  ConnectionMonitorView.swift
 //  Cue to Cue
 //
-//  Created by Corbin Hand on 8/31/24.
+//  Window ▸ Connected Viewers…: how to join (link + QR code) first, then
+//  who is watching right now, then who left recently.
 //
 
 import SwiftUI
@@ -11,471 +12,201 @@ struct ConnectionMonitorView: View {
     @Binding var isPresented: Bool
     @ObservedObject var webServer: WebServer
     @State private var refreshTimer: Timer?
-    
+    @State private var copied = false
+    @State private var showRecent = false
+
+    private var isRunning: Bool { webServer.serverStatus.isRunning }
+    private var hasAddress: Bool {
+        !webServer.localIPAddress.isEmpty && webServer.localIPAddress != "Unknown"
+    }
+    private var viewerURL: String { "http://\(webServer.getConnectionString())" }
+    private var active: [ClientSession] { webServer.getClientSessionsStable() }
+    private var recent: [ClientSession] { webServer.getInactiveClientSessions() }
+
     var body: some View {
-        ScrollView(showsIndicators: true) {
-            VStack(spacing: 0) {
-                headerSection
-                connectionStatsSection
-                serverInfoSection
-                activeConnectionsSection
-                previouslyActiveClientsSection
-                Spacer(minLength: 20)
+        VStack(spacing: 0) {
+            PanelHeader(systemImage: "network",
+                        title: "Connected Viewers",
+                        subtitle: "Anyone on this network can follow the show live in a browser. No account needed.",
+                        tint: .teal)
+            Form {
+                joinSection
+                watchingSection
+                if !recent.isEmpty { recentSection }
             }
+            .formStyle(.grouped)
+            PanelFooter(leading: { serverStatusLabel }, done: { isPresented = false })
         }
-        .frame(minWidth: 600, idealWidth: 700, minHeight: 700, idealHeight: 800)
-        .background(.ultraThinMaterial)
+        .frame(width: 560, height: 640)
         .onAppear {
-            // Start refresh timer
+            webServer.refreshPublishedProperties()
             refreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
                 webServer.refreshPublishedProperties()
             }
         }
         .onDisappear {
-            // Stop refresh timer
             refreshTimer?.invalidate()
             refreshTimer = nil
         }
     }
-    
 
-    
-    // MARK: - View Sections
-    
-    private var headerSection: some View {
-        HStack {
-            HStack(spacing: 8) {
-                Image(systemName: "network")
-                    .font(.title2)
-                    .foregroundColor(.accentColor)
-                
-                Text("Connection Monitor")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-            }
-            
-            Spacer()
-            
-            Button(action: {
-                isPresented = false
-            }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .medium))
-            }
-            .buttonStyle(ConnectionMonitorButtonStyle(color: .red))
-            .help("Close Window")
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(
-            Rectangle()
-                .fill(.regularMaterial)
-                .overlay(
-                    Rectangle()
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-                )
-        )
-    }
-    
-    private var connectionStatsSection: some View {
-        HStack(spacing: 16) {
-            StatCard(title: "Active Clients", value: "\(webServer.getClientSessionCount())", color: .green, icon: "person.2")
-            StatCard(title: "Inactive Clients", value: "\(webServer.getInactiveClientSessionCount())", color: .orange, icon: "clock.arrow.circlepath")
-            StatCard(title: "Server Status", value: webServer.serverStatus.isRunning ? "Running" : "Stopped", color: webServer.serverStatus.isRunning ? .green : .red, icon: "server.rack")
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-    }
-    
-    private var serverInfoSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "server.rack")
-                    .font(.title3)
-                    .foregroundColor(.accentColor)
-                
-                Text("Server Information")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-            }
-            
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                InfoCard(label: "IP Address", value: webServer.localIPAddress, icon: "network")
-                InfoCard(label: "Status", value: webServer.serverStatus.isRunning ? "Running" : "Stopped", icon: "circle.fill", statusColor: webServer.serverStatus.isRunning ? .green : .red)
-            }
-            
-            // Copy connection string section
-            VStack(spacing: 8) {
-                HStack {
-                    Text("Connection String")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        let connectionString = webServer.getConnectionString()
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(connectionString, forType: .string)
-                    }) {
-                        Image(systemName: "doc.on.doc")
-                            .font(.caption)
-                            .foregroundColor(.blue)
+    // MARK: Join
+
+    private var joinSection: some View {
+        Section {
+            if isRunning && hasAddress {
+                HStack(alignment: .center, spacing: 18) {
+                    if let qr = QRCode.image(for: viewerURL, size: 116) {
+                        Image(nsImage: qr)
+                            .interpolation(.none)
+                            .resizable()
+                            .frame(width: 116, height: 116)
+                            .padding(8)
+                            .background(.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .accessibilityLabel(Text("QR code for \(viewerURL)"))
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .help("Copy \(webServer.getConnectionString()) to clipboard")
-                }
-                
-                HStack {
-                    Text(webServer.getConnectionString())
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundColor(.primary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(.ultraThinMaterial)
-                        )
-                    
-                    Spacer()
-                }
-            }
-            .padding(.top, 8)
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.regularMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-                )
-        )
-        .padding(.horizontal, 20)
-    }
-    
-    private var activeConnectionsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "person.2")
-                    .font(.title3)
-                    .foregroundColor(.accentColor)
-                
-                Text("Active Clients")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-            }
-            
-            if !webServer.getClientSessionsStable().isEmpty {
-                let clientSessions = webServer.getClientSessionsStable()
-                LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                ], spacing: 16, content: {
-                    ForEach(clientSessions) { session in
-                        ClientSessionCard(session: session, webServer: webServer)
-                    }
-                })
-                .padding(.horizontal, 4)
-                .padding(.vertical, 8)
-            } else {
-                VStack(spacing: 16) {
-                    Image(systemName: "person.2.slash")
-                        .font(.system(size: 48))
-                        .foregroundColor(.gray)
-                    
-                    Text("No Active Clients")
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                    
-                    Text("When devices connect to your web viewer, they will appear here")
-                        .font(.caption)
-                        .foregroundColor(.gray.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding()
-            }
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.regularMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-                )
-        )
-        .padding(.horizontal, 20)
-    }
-    
-    private var previouslyActiveClientsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.title3)
-                    .foregroundColor(.accentColor)
-                
-                Text("Previously Active Clients")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-            }
-            
-            let inactiveSessions = webServer.getInactiveClientSessions()
-            
-            if !inactiveSessions.isEmpty {
-                VStack(spacing: 12) {
-                    ForEach(inactiveSessions) { session in
-                        HStack {
-                            // Device name
-                            Text(session.deviceName)
-                                .font(.body)
-                                .fontWeight(.medium)
-                                .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
-                            // Timestamps
-                            VStack(alignment: .trailing, spacing: 4) {
-                                Text("Active: \(session.firstSeen, style: .time)")
-                                    .font(.caption)
-                                    .foregroundColor(.green)
-                                
-                                Text("Inactive: \(session.lastSeen, style: .time)")
-                                    .font(.caption)
-                                    .foregroundColor(.red)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Scan with a phone or tablet camera, or type this address into any browser:")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(viewerURL)
+                            .font(.system(.title3, design: .monospaced).weight(.semibold))
+                            .textSelection(.enabled)
+                        HStack(spacing: 8) {
+                            Button {
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(viewerURL, forType: .string)
+                                copied = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { copied = false }
+                            } label: {
+                                Label(copied ? "Copied" : "Copy Link", systemImage: copied ? "checkmark" : "doc.on.doc")
+                            }
+                            Button {
+                                if let url = URL(string: viewerURL) { NSWorkspace.shared.open(url) }
+                            } label: {
+                                Label("Open in Browser", systemImage: "safari")
                             }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(.ultraThinMaterial)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-                                )
-                        )
                     }
                 }
+                .padding(.vertical, 4)
+            } else if !isRunning {
+                Label("The viewer server isn't running, so devices can't connect.", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
             } else {
-                VStack(spacing: 16) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 32))
-                        .foregroundColor(.gray)
-                    
-                    Text("No Previously Active Clients")
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                    
-                    Text("Clients that disconnect will appear here")
-                        .font(.caption)
-                        .foregroundColor(.gray.opacity(0.7))
-                        .multilineTextAlignment(.center)
+                Label("This Mac isn't connected to a network. Join the same Wi-Fi or wired network as the viewing devices.",
+                      systemImage: "wifi.exclamationmark")
+                    .foregroundStyle(.orange)
+            }
+        } header: {
+            Text("Join from Another Device")
+        } footer: {
+            Text("Devices must be on the same network as this Mac. Viewers see the cue sheet and clocks update live; they can't change anything unless they sign in.")
+        }
+    }
+
+    // MARK: Watching
+
+    private var watchingSection: some View {
+        Section {
+            if active.isEmpty {
+                HStack(spacing: 10) {
+                    Image(systemName: "person.crop.circle.badge.questionmark")
+                        .font(.title2)
+                        .foregroundStyle(.tertiary)
+                    Text("No one is watching yet.")
+                        .foregroundStyle(.secondary)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding()
+                .padding(.vertical, 6)
+            } else {
+                ForEach(active) { session in
+                    ViewerRow(session: session, isActive: true)
+                }
             }
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.regularMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-                )
-        )
-        .padding(.horizontal, 20)
-    }
-}
-
-
-
-// MARK: - Custom Button Style
-struct ConnectionMonitorButtonStyle: ButtonStyle {
-    let color: Color
-    
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundColor(.white)
-            .frame(width: 32, height: 32)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(color)
-                    .opacity(configuration.isPressed ? 0.7 : 1.0)
-            )
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
-// MARK: - Modern Stat Card
-struct StatCard: View {
-    let title: String
-    let value: String
-    let color: Color
-    let icon: String
-    
-    var body: some View {
-        VStack(spacing: 12) {
+        } header: {
             HStack {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(color)
+                Text("Watching Now")
                 Spacer()
+                if !active.isEmpty {
+                    Text("\(active.count)")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
             }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(value)
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-                
-                Text(title)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.regularMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-                )
-        )
+    }
+
+    // MARK: Recent
+
+    private var recentSection: some View {
+        Section {
+            DisclosureGroup(isExpanded: $showRecent) {
+                ForEach(recent) { session in
+                    ViewerRow(session: session, isActive: false)
+                }
+            } label: {
+                Text("\(recent.count) device\(recent.count == 1 ? "" : "s") disconnected recently")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    // MARK: Status
+
+    private var serverStatusLabel: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(isRunning ? Color.green : Color.red)
+                .frame(width: 8, height: 8)
+                .accessibilityHidden(true)
+            Text(isRunning ? "Viewer server running on port \(String(webServer.serverStatus.port))" : "Viewer server stopped")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 
-// MARK: - Modern Info Card
-struct InfoCard: View {
-    let label: String
-    let value: String
-    let icon: String
-    var statusColor: Color?
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.caption)
-                    .foregroundColor(statusColor ?? .accentColor)
-                Spacer()
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(label)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                Text(value)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
-            }
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-                )
-        )
-    }
-}
-
-// MARK: - Client Session Card
-struct ClientSessionCard: View {
+/// One device: icon, name, browser and address, and how long ago.
+private struct ViewerRow: View {
     let session: ClientSession
-    let webServer: WebServer
-    
+    let isActive: Bool
+
     var body: some View {
-        VStack(spacing: 12) {
-            // Join time indicator at top
-            HStack {
-                Spacer()
-                
-                // Show join time
-                Text(session.firstSeen, style: .time)
-                    .font(.caption2)
-                    .foregroundColor(.gray)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(Color.gray.opacity(0.2))
-                    )
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                .frame(width: 26)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(session.deviceName.isEmpty ? session.deviceType : session.deviceName)
+                    .fontWeight(.medium)
+                Text("\(session.browserType) · \(session.ipAddress)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            
             Spacer()
-            
-            // Device name in center
-            Text(session.deviceName)
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.green)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .multilineTextAlignment(.center)
-            
-            // IP address below device name
-            Text(session.ipAddress)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            
-            Spacer()
-            
-            // Browser and device type at bottom
-            VStack(spacing: 6) {
-                Text(session.browserType)
-                    .font(.caption2)
-                    .foregroundColor(.blue)
-                    .lineLimit(1)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule()
-                            .fill(Color.blue.opacity(0.2))
-                    )
-                
-                Text(session.deviceType)
-                    .font(.caption2)
-                    .foregroundColor(.orange)
-                    .lineLimit(1)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule()
-                            .fill(Color.orange.opacity(0.2))
-                    )
+            Group {
+                if isActive {
+                    Text("joined ") + Text(session.firstSeen, style: .relative) + Text(" ago")
+                } else {
+                    Text("left ") + Text(session.lastSeen, style: .relative) + Text(" ago")
+                }
             }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .monospacedDigit()
         }
-        .frame(maxWidth: .infinity, minHeight: 120)
-        .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.green.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(.green.opacity(0.3), lineWidth: 1)
-                )
-        )
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
     }
-}
 
-
-
-
-#Preview {
-    ConnectionMonitorView(isPresented: .constant(true), webServer: WebServer(dataSyncManager: DataSyncManager(), timerServer: AuthoritativeTimerServer()))
+    private var icon: String {
+        let type = session.deviceType.lowercased()
+        if type.contains("ipad") || type.contains("tablet") { return "ipad" }
+        if type.contains("iphone") || type.contains("ipod") || type.contains("mobile") || type.contains("android") { return "iphone" }
+        if type.contains("mac") { return "laptopcomputer" }
+        return "desktopcomputer"
+    }
 }

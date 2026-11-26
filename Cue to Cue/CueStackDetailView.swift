@@ -38,20 +38,38 @@ struct CueStackDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Top row with column headers
-            columnHeaders
-
-            // Main List of cues
-            cueList
+            // Headers and rows scroll sideways together inside this panel when
+            // the sheet is wider than the window. Before, a wide sheet forced
+            // the whole window's content wider than the window, pushing the
+            // timer buttons, toolbar and Next button off screen.
+            GeometryReader { proxy in
+                ScrollView(.horizontal, showsIndicators: true) {
+                    VStack(spacing: 0) {
+                        columnHeaders
+                        cueList
+                    }
+                    .frame(width: max(proxy.size.width, tableContentWidth))
+                    .frame(maxHeight: .infinity)
+                }
+            }
 
             // Bottom row with Add Cue, Next/Prev, etc. (no extra reorder button)
             bottomButtons
         }
     }
 
+    /// Width the cue rows need: state column, every column, the timer, and
+    /// room for the header buttons.
+    private var tableContentWidth: CGFloat {
+        let columnsWidth = cueStack.columns.reduce(0) { $0 + $1.width + 8 }
+        return CueRowStyle.stateColumnWidth + 20 + columnsWidth + 80 + CueRowStyle.timerColumnWidth + 60
+    }
+
     // MARK: - Column Headers
     private var columnHeaders: some View {
         HStack(spacing: 0) {
+            // Lines the headers up with the cells, past the state column.
+            Color.clear.frame(width: CueRowStyle.stateColumnWidth + 20, height: 1)
             ForEach(cueStack.columns.indices, id: \.self) { index in
                 ResizableColumnHeader(
                     column: $cueStack.columns[index],
@@ -65,12 +83,25 @@ struct CueStackDetailView: View {
                     deleteColumn: deleteColumn
                 )
             }
-            Spacer(minLength: 35)
-
             // This uses the arrow button to toggle isReorderingCues
             HeaderButtons(addColumn: addColumn, isReorderingCues: $isReorderingCues)
+                .padding(.leading, 6)
+                .padding(.top, 10)
+
+            Spacer(minLength: 12)
+
+            Text("TIMER")
+                .font(.system(size: max(10, settingsManager.settings.fontSize - 3), weight: .semibold))
+                .tracking(0.8)
+                .foregroundColor(settingsManager.settings.fontColor.opacity(0.65))
+                .frame(width: CueRowStyle.timerColumnWidth, alignment: .leading)
+                .padding(.top, 10)
+                .padding(.trailing, 22)
         }
         .padding(.top, 4)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.white.opacity(0.08)).frame(height: 1)
+        }
         .background(Color.gray.opacity(0.0))
     }
 
@@ -159,56 +190,22 @@ struct CueStackDetailView: View {
 
     // MARK: - Bottom Buttons
     private var bottomButtons: some View {
-        HStack {
-            Button(action: addCue) {
-                Label("Add Cue", systemImage: "plus")
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-            }
-            .background(Color.blue)
-            .cornerRadius(8)
+        let shortcuts = settingsManager.shortcutsManager
+        return HStack(spacing: 10) {
+            ShowControlButton(title: "Add Cue", systemImage: "plus", shortcut: shortcuts.displayString(for: "addCue"), action: addCue)
 
             // "Delete Selected" if multiple are selected
             if selectedCueIndices.count > 1 {
-                Button(action: {
-                    deleteSelectedCues()
-                }) {
-                    Label("Delete Selected", systemImage: "trash")
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                }
-                .background(Color.red)
-                .cornerRadius(8)
+                ShowControlButton(title: "Delete Selected", systemImage: "trash", style: .destructive, action: deleteSelectedCues)
             }
 
             Spacer()
 
-            // Prev/Next
-            HStack(spacing: 16) {
-                Button(action: previousCue) {
-                    Label("Previous", systemImage: "chevron.left")
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                }
-                .background(Color.gray)
-                .cornerRadius(8)
-
-                Button(action: advanceCue) {
-                    Label("Next", systemImage: "chevron.right")
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                }
-                .background(Color.gray)
-                .cornerRadius(8)
-            }
+            ShowControlButton(title: "Previous", systemImage: "chevron.left", shortcut: shortcuts.displayString(for: "previousCue"), action: previousCue)
+            ShowControlButton(title: "Next Cue", systemImage: "chevron.right", shortcut: shortcuts.displayString(for: "nextCue"), style: .go, action: advanceCue)
         }
-        .padding()
-        .background(Color.gray.opacity(0.0))
-        .cornerRadius(8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 
     // MARK: - Reordering Logic
@@ -301,5 +298,56 @@ struct CueStackDetailView: View {
         selectedCueIndex = index + 1
         saveState()
         updateWebClients()
+    }
+}
+
+
+// MARK: - Show control button (option A)
+
+/// Footer button with its keyboard shortcut printed on it.
+struct ShowControlButton: View {
+    enum Style { case normal, go, destructive }
+
+    let title: String
+    let systemImage: String
+    var shortcut: String? = nil
+    var style: Style = .normal
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: systemImage).font(.system(size: 12, weight: .semibold))
+                Text(title).font(.system(size: 13, weight: .semibold))
+                if let shortcut {
+                    Text(shortcut)
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .opacity(0.65)
+                }
+            }
+            .foregroundColor(foreground)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 32)
+            .background(background)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(shortcut.map { "\(title) (\($0))" } ?? title)
+    }
+
+    private var foreground: Color {
+        switch style {
+        case .go: return Color(red: 0.02, green: 0.13, blue: 0.06)
+        case .destructive, .normal: return .white
+        }
+    }
+
+    private var background: Color {
+        switch style {
+        case .go: return CueRowStyle.live
+        case .destructive: return Color.red.opacity(0.8)
+        case .normal: return Color.white.opacity(0.1)
+        }
     }
 }

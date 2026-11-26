@@ -80,6 +80,8 @@
 		31EDT001 /* CueEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDT002 /* CueEditing.swift */; };
 		31EDC001 /* CueEditorController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDC002 /* CueEditorController.swift */; };
 		31DOC001 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DOC002 /* DocumentController.swift */; };
+		31WBP001 /* WebsitePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WBP002 /* WebsitePanel.swift */; };
+		31PNK001 /* PanelKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31PNK002 /* PanelKit.swift */; };
 		31CSVIMP001 /* CSVImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSVIMP002 /* CSVImportSheet.swift */; };
 		31CSVEXP001 /* CSVExportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSVEXP002 /* CSVExportSheet.swift */; };
 		31TIMER001 /* AuthoritativeTimerServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31TIMER002 /* AuthoritativeTimerServer.swift */; };
@@ -215,6 +217,8 @@
 		31EDT002 /* CueEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditing.swift; sourceTree = "<group>"; };
 		31EDC002 /* CueEditorController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditorController.swift; sourceTree = "<group>"; };
 		31DOC002 /* DocumentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
+		31WBP002 /* WebsitePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsitePanel.swift; sourceTree = "<group>"; };
+		31PNK002 /* PanelKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelKit.swift; sourceTree = "<group>"; };
 		31CSVIMP002 /* CSVImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportSheet.swift; sourceTree = "<group>"; };
 		31CSVEXP002 /* CSVExportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVExportSheet.swift; sourceTree = "<group>"; };
 		31TIMER002 /* AuthoritativeTimerServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoritativeTimerServer.swift; sourceTree = "<group>"; };
@@ -366,6 +370,8 @@
 				31EDT002 /* CueEditing.swift */,
 				31EDC002 /* CueEditorController.swift */,
 				31DOC002 /* DocumentController.swift */,
+				31WBP002 /* WebsitePanel.swift */,
+				31PNK002 /* PanelKit.swift */,
 				31CSVIMP002 /* CSVImportSheet.swift */,
 				31CSVEXP002 /* CSVExportSheet.swift */,
 				31CADDE42C856B200072CFCE /* CompleteHTML.swift */,
@@ -658,6 +664,8 @@
 				31EDT001 /* CueEditing.swift in Sources */,
 				31EDC001 /* CueEditorController.swift in Sources */,
 				31DOC001 /* DocumentController.swift in Sources */,
+				31WBP001 /* WebsitePanel.swift in Sources */,
+				31PNK001 /* PanelKit.swift in Sources */,
 				31CSVIMP001 /* CSVImportSheet.swift in Sources */,
 				31CSVEXP001 /* CSVExportSheet.swift in Sources */,
 			);
@@ -908,7 +916,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Cue-to-Cue-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue 2.1.3";
+				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -953,7 +961,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Cue-to-Cue-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue 2.1.3";
+				INFOPLIST_KEY_CFBundleDisplayName = "Cue to Cue";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
