@@ -87,6 +87,14 @@ struct CueToCueApp: App {
                 }
                 .keyboardShortcut("e")
                 Divider()
+                Button("Publish to Website") {
+                    appDelegate.publishToWebsite()
+                }
+                .keyboardShortcut("u", modifiers: [.command, .shift])
+                Button("Website…") {
+                    appDelegate.showWebsitePanel()
+                }
+                Divider()
                 Button("Restore from Backup…") {
                     appDelegate.restoreFromBackup()
                 }

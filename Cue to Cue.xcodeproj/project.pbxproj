@@ -52,6 +52,7 @@
 		31EDT003 /* CueEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDT004 /* CueEditingTests.swift */; };
 		31EDC003 /* CueEditorControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDC004 /* CueEditorControllerTests.swift */; };
 		31DOC003 /* DocumentControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DOC004 /* DocumentControllerTests.swift */; };
+		31WST003 /* WebsitePublishingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WST004 /* WebsitePublishingTests.swift */; };
 		31ATH003 /* AuthenticationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31ATH004 /* AuthenticationTests.swift */; };
 		31LSY003 /* LiveSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31LSY004 /* LiveSyncTests.swift */; };
 		31STG003 /* DocumentStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31STG004 /* DocumentStorageTests.swift */; };
@@ -80,6 +81,8 @@
 		31EDT001 /* CueEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDT002 /* CueEditing.swift */; };
 		31EDC001 /* CueEditorController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDC002 /* CueEditorController.swift */; };
 		31DOC001 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DOC002 /* DocumentController.swift */; };
+		31WLB001 /* WebsiteLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WLB002 /* WebsiteLibrary.swift */; };
+		31GHP001 /* GitHubPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31GHP002 /* GitHubPublisher.swift */; };
 		31CSVIMP001 /* CSVImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSVIMP002 /* CSVImportSheet.swift */; };
 		31CSVEXP001 /* CSVExportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSVEXP002 /* CSVExportSheet.swift */; };
 		31TIMER001 /* AuthoritativeTimerServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31TIMER002 /* AuthoritativeTimerServer.swift */; };
@@ -186,6 +189,7 @@
 		31EDT004 /* CueEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditingTests.swift; sourceTree = "<group>"; };
 		31EDC004 /* CueEditorControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditorControllerTests.swift; sourceTree = "<group>"; };
 		31DOC004 /* DocumentControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentControllerTests.swift; sourceTree = "<group>"; };
+		31WST004 /* WebsitePublishingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsitePublishingTests.swift; sourceTree = "<group>"; };
 		31ATH004 /* AuthenticationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationTests.swift; sourceTree = "<group>"; };
 		31LSY004 /* LiveSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSyncTests.swift; sourceTree = "<group>"; };
 		31STG004 /* DocumentStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentStorageTests.swift; sourceTree = "<group>"; };
@@ -215,6 +219,8 @@
 		31EDT002 /* CueEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditing.swift; sourceTree = "<group>"; };
 		31EDC002 /* CueEditorController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditorController.swift; sourceTree = "<group>"; };
 		31DOC002 /* DocumentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
+		31WLB002 /* WebsiteLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteLibrary.swift; sourceTree = "<group>"; };
+		31GHP002 /* GitHubPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubPublisher.swift; sourceTree = "<group>"; };
 		31CSVIMP002 /* CSVImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportSheet.swift; sourceTree = "<group>"; };
 		31CSVEXP002 /* CSVExportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVExportSheet.swift; sourceTree = "<group>"; };
 		31TIMER002 /* AuthoritativeTimerServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoritativeTimerServer.swift; sourceTree = "<group>"; };
@@ -366,6 +372,8 @@
 				31EDT002 /* CueEditing.swift */,
 				31EDC002 /* CueEditorController.swift */,
 				31DOC002 /* DocumentController.swift */,
+				31WLB002 /* WebsiteLibrary.swift */,
+				31GHP002 /* GitHubPublisher.swift */,
 				31CSVIMP002 /* CSVImportSheet.swift */,
 				31CSVEXP002 /* CSVExportSheet.swift */,
 				31CADDE42C856B200072CFCE /* CompleteHTML.swift */,
@@ -404,6 +412,7 @@
 				31EDT004 /* CueEditingTests.swift */,
 				31EDC004 /* CueEditorControllerTests.swift */,
 				31DOC004 /* DocumentControllerTests.swift */,
+				31WST004 /* WebsitePublishingTests.swift */,
 				31ATH004 /* AuthenticationTests.swift */,
 				31LSY004 /* LiveSyncTests.swift */,
 				31STG004 /* DocumentStorageTests.swift */,
@@ -658,6 +667,8 @@
 				31EDT001 /* CueEditing.swift in Sources */,
 				31EDC001 /* CueEditorController.swift in Sources */,
 				31DOC001 /* DocumentController.swift in Sources */,
+				31WLB001 /* WebsiteLibrary.swift in Sources */,
+				31GHP001 /* GitHubPublisher.swift in Sources */,
 				31CSVIMP001 /* CSVImportSheet.swift in Sources */,
 				31CSVEXP001 /* CSVExportSheet.swift in Sources */,
 			);
@@ -672,6 +683,7 @@
 				31EDT003 /* CueEditingTests.swift in Sources */,
 				31EDC003 /* CueEditorControllerTests.swift in Sources */,
 				31DOC003 /* DocumentControllerTests.swift in Sources */,
+				31WST003 /* WebsitePublishingTests.swift in Sources */,
 				31ATH003 /* AuthenticationTests.swift in Sources */,
 				31LSY003 /* LiveSyncTests.swift in Sources */,
 				31STG003 /* DocumentStorageTests.swift in Sources */,

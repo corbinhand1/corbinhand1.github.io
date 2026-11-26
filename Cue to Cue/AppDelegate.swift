@@ -19,6 +19,8 @@ extension Notification.Name {
     static let appDelegateDuplicateFile = Notification.Name("appDelegateDuplicateFile")
     static let appDelegateImportCSV = Notification.Name("appDelegateImportCSV")
     static let appDelegateExportCSV = Notification.Name("appDelegateExportCSV")
+    static let appDelegatePublishWebsite = Notification.Name("appDelegatePublishWebsite")
+    static let appDelegateShowWebsite = Notification.Name("appDelegateShowWebsite")
     static let appDelegateUndo = Notification.Name("appDelegateUndo")
     static let appDelegateRedo = Notification.Name("appDelegateRedo")
     static let appDelegateCut = Notification.Name("appDelegateCut")
@@ -132,6 +134,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func exportCSV() {
         // Post notification for ContentView to handle
         NotificationCenter.default.post(name: .appDelegateExportCSV, object: nil)
+    }
+
+    func publishToWebsite() {
+        NotificationCenter.default.post(name: .appDelegatePublishWebsite, object: nil)
+    }
+
+    func showWebsitePanel() {
+        NotificationCenter.default.post(name: .appDelegateShowWebsite, object: nil)
     }
 
     func restoreFromBackup() {

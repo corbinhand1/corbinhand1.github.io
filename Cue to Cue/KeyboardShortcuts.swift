@@ -118,6 +118,7 @@ class KeyboardShortcutsManager: ObservableObject {
             KeyboardShortcut(id: "duplicate", key: "d", modifiers: ["command", "shift"], command: "Duplicate...", category: "File"),
             KeyboardShortcut(id: "importCSV", key: "i", modifiers: ["command"], command: "Import CSV...", category: "File"),
             KeyboardShortcut(id: "exportCSV", key: "e", modifiers: ["command"], command: "Export CSV...", category: "File"),
+            KeyboardShortcut(id: "publishWebsite", key: "u", modifiers: ["command", "shift"], command: "Publish to Website", category: "File"),
             KeyboardShortcut(id: "print", key: "p", modifiers: ["command"], command: "Print", category: "File"),
             
             // Edit Menu
