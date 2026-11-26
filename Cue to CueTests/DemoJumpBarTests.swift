@@ -33,13 +33,31 @@ final class DemoJumpBarTests: XCTestCase {
         XCTAssertEqual(groups[0].cueNumber, "2")
         XCTAssertEqual(groups[1].name, "Robots")
         XCTAssertEqual(groups[1].firstIndex, 4)
-        XCTAssertEqual(groups.map(\.shortName), ["Cars", "Robots"])
+        XCTAssertEqual(groups.map(\.title), ["Cars", "Robots"])
     }
 
     func testShortNameIsFirstWordAfterDemo() {
         let s = stack([("1", "DEMO: Adecco 1 & Mac 1 Audio Hot [Now]", false), ("2", "Talk", false),
                        ("3", "Demo: Cars, part 2", false)])
-        XCTAssertEqual(CueJumpGroups.groups(stack: s, rules: rules, ruleIndex: 1).map(\.shortName), ["Adecco", "Cars"])
+        XCTAssertEqual(CueJumpGroups.groups(stack: s, rules: rules, ruleIndex: 1).map(\.title), ["Adecco", "Cars"])
+    }
+
+    func testVideoButtonsUseTheVideoColumnTitle() {
+        let s = CueStack(name: "Main", cues: [
+            Cue(values: ["105", "Preset 25 & VT Opening", "Open Video"]),
+            Cue(values: ["106", "Talk", ""]),
+            Cue(values: ["", "Preset 25 + VT Cognition Testimonial & Lx Show Video", ""]),
+        ], columns: [Column(name: "#", width: 50), Column(name: "Description", width: 300), Column(name: "Video", width: 100)])
+        let groups = CueJumpGroups.groups(stack: s, rules: rules, ruleIndex: 0)
+        XCTAssertEqual(groups.map(\.title), ["Open Video", "Cognition Testimonial"])
+    }
+
+    func testTimersAreLeftOutAndTimesRemoved() {
+        let withTimer = rules + [HighlightColorSetting(keyword: "timer", color: .yellow)]
+        let s = stack([("1", "6 Minute Timer", false), ("2", "10:50:19a - Demo: Robots", false)])
+        XCTAssertTrue(CueJumpGroups.groups(stack: s, rules: withTimer, ruleIndex: 2).isEmpty)
+        XCTAssertEqual(CueJumpGroups.groups(stack: s, rules: withTimer, ruleIndex: 1).map(\.title), ["Robots"])
+        XCTAssertEqual(CueJumpGroups.removingTimes("9:25 Doors, Walk in"), "Doors, Walk in")
     }
 
     func testVideoCueTakesPrecedenceLikeTheRowColors() {

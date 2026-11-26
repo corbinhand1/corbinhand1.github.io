@@ -15,14 +15,10 @@ struct CueJumpGroup: Identifiable, Equatable {
     let number: Int              // 1-based position among groups of this rule
     let cueIndices: [Int]
     let name: String             // "Cars 1"
+    let title: String            // button text: "Cars" for a demo, "Open Video" for a video
     let cueNumber: String        // the show's cue number where the group starts
     var id: Int { number }
     var firstIndex: Int { cueIndices[0] }
-    /// First word of the name, for the button: "Adecco 1 & Mac 1" -> "Adecco".
-    var shortName: String {
-        let word = name.split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? ""
-        return word.trimmingCharacters(in: .punctuationCharacters.subtracting(CharacterSet(charactersIn: "&")))
-    }
 }
 
 enum CueJumpGroups {
@@ -44,7 +40,10 @@ enum CueJumpGroups {
     static func groups(stack: CueStack, rules: [HighlightColorSetting], ruleIndex: Int) -> [CueJumpGroup] {
         guard rules.indices.contains(ruleIndex) else { return [] }
         let keyword = rules[ruleIndex].keyword
+        guard !isExcluded(keyword) else { return [] }
+        let isVideo = keyword.lowercased().contains("video")
         let descCol = descriptionColumn(stack.columns)
+        let videoCol = stack.columns.firstIndex { $0.name.lowercased().contains("video") }
         var groups: [CueJumpGroup] = []
         var run: [Int] = []
         var startNumber = ""
@@ -55,8 +54,11 @@ enum CueJumpGroups {
             defer { run = [] }
             guard run.contains(where: { !stack.cues[$0].isStruckThrough }) else { return }
             let own = run.lazy.map { stack.cues[$0].values.first ?? "" }.first { !$0.isEmpty } ?? ""
+            let name = name(for: stack.cues[first], descCol: descCol, keyword: keyword)
+            let title = isVideo ? videoTitle(run.map { stack.cues[$0] }, videoCol: videoCol, descCol: descCol)
+                                : firstWord(name)
             groups.append(CueJumpGroup(number: groups.count + 1, cueIndices: run,
-                                       name: name(for: stack.cues[first], descCol: descCol, keyword: keyword),
+                                       name: name, title: title,
                                        cueNumber: own.isEmpty ? startNumber : own))
         }
 
@@ -73,11 +75,49 @@ enum CueJumpGroups {
         return groups
     }
 
+    /// Timer cues aren't places you jump to, so they get no buttons.
+    static func isExcluded(_ keyword: String) -> Bool {
+        keyword.lowercased().contains("timer")
+    }
+
+    /// Removes clock times and durations: "9:25", "10:50:19a", "17:00".
+    static func removingTimes(_ text: String) -> String {
+        let pattern = #"\b\d{1,2}:\d{2}(:\d{2})?\s*([ap]m?\b)?\s*[-–—]?"#
+        let cleaned = text.replacingOccurrences(of: pattern, with: " ", options: [.regularExpression, .caseInsensitive])
+        return cleaned.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: ":-–—&+,").union(.whitespaces))
+    }
+
+    /// "Adecco 1 & Mac 1" -> "Adecco".
+    static func firstWord(_ name: String) -> String {
+        let word = name.split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? ""
+        return word.trimmingCharacters(in: .punctuationCharacters)
+    }
+
+    /// The video's title: the first entry in the Video column, else the text
+    /// after "VT" in the description ("Preset 25 & VT Opening & LX" -> "Opening").
+    static func videoTitle(_ cues: [Cue], videoCol: Int?, descCol: Int) -> String {
+        if let col = videoCol {
+            for cue in cues where col < cue.values.count {
+                let t = removingTimes(cue.values[col].trimmingCharacters(in: .whitespacesAndNewlines))
+                if !t.isEmpty, t != "0" { return t }
+            }
+        }
+        for cue in cues where descCol < cue.values.count {
+            let d = cue.values[descCol]
+            if let r = d.range(of: #"\bVT\s+[^&+\[]+"#, options: [.regularExpression, .caseInsensitive]) {
+                let t = removingTimes(String(d[r].dropFirst(2)))
+                if !t.isEmpty { return t }
+            }
+        }
+        return ""
+    }
+
     /// "DEMO: Cars 1 [when]" -> "Cars 1".
     static func name(for cue: Cue, descCol: Int, keyword: String) -> String {
         var text = descCol < cue.values.count ? cue.values[descCol] : ""
         if let r = text.range(of: #"\[[^\]]*\]\s*$"#, options: .regularExpression) { text.removeSubrange(r) }
-        text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        text = removingTimes(text.trimmingCharacters(in: .whitespacesAndNewlines))
         if let r = text.range(of: keyword, options: [.caseInsensitive, .anchored]) {
             text.removeSubrange(r)
             text = text.trimmingCharacters(in: CharacterSet(charactersIn: ":-–—#").union(.whitespaces))
@@ -178,17 +218,16 @@ struct DemoJumpBar: View {
 
     private func chip(_ g: CueJumpGroup) -> some View {
         let isCurrent = g.number == currentGroup
-        let title = g.name.isEmpty ? "\(label) \(g.number)" : g.name
-        return Button { onJump(g.firstIndex) } label: {
+                return Button { onJump(g.firstIndex) } label: {
             HStack(spacing: 5) {
                 Text("\(g.number)")
                     .font(.system(size: 13, weight: .bold).monospacedDigit())
-                if !g.shortName.isEmpty {
-                    Text(g.shortName)
+                if !g.title.isEmpty {
+                    Text(g.title)
                         .font(.system(size: 12, weight: .medium))
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .frame(maxWidth: 120, alignment: .leading)
+                        .frame(maxWidth: 170, alignment: .leading)
                         .fixedSize(horizontal: true, vertical: false)
                 }
             }
@@ -207,13 +246,15 @@ struct DemoJumpBar: View {
         }
         .buttonStyle(.plain)
         .modifier(DigitShortcut(number: g.number))
-        .help(helpText(g, title: title))
-        .accessibilityLabel("Go to \(label) \(g.number)" + (g.name.isEmpty ? "" : ", \(g.name)"))
+        .help(helpText(g))
+        .accessibilityLabel("Go to \(label) \(g.number)" + (g.title.isEmpty ? "" : ", \(g.title)"))
     }
 
-    private func helpText(_ g: CueJumpGroup, title: String) -> String {
+    private func helpText(_ g: CueJumpGroup) -> String {
         var s = "Go to \(label) \(g.number)"
-        if !g.name.isEmpty { s += ": \(g.name)" }
+        // Full name for demos ("Adecco 1 & Mac 1"); the title for videos.
+        let detail = g.name.lowercased().hasPrefix(g.title.lowercased()) ? g.name : g.title
+        if !detail.isEmpty { s += ": \(detail)" }
         if !g.cueNumber.isEmpty { s += " (cue \(g.cueNumber))" }
         if g.number <= 9 { s += "  ⌃\(g.number)" }
         return s
