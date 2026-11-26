@@ -138,6 +138,7 @@ struct ContentView: View {
                 csvImportSheet
             }
             .onReceive(menuCommands) { handleMenuCommand($0) }
+            .focusedSceneObject(editor)
             .modifier(ContentViewLifecycleModifiers(
                 dataSyncManager: dataSyncManager,
                 timerServer: timerServer,
@@ -525,7 +526,7 @@ struct ContentView: View {
         // Check for customizable keyboard shortcuts first
         if let matchedShortcut = findMatchingShortcut(event: event, in: settingsManager.shortcutsManager) {
             // Menu shortcuts should be handled by the menu system, not intercepted here
-            let menuShortcutIds = ["new", "open", "save", "saveAs", "importCSV", "exportCSV", "print", "undo", "redo", "cut", "copy", "paste", "delete", "selectAll", "toggleStrikeThrough", "toggleFullScreen", "preferences", "quit"]
+            let menuShortcutIds = ["new", "open", "save", "saveAs", "duplicate", "importCSV", "exportCSV", "print", "undo", "redo", "cut", "copy", "paste", "delete", "selectAll", "toggleStrikeThrough", "toggleFullScreen", "preferences", "quit"]
             if menuShortcutIds.contains(matchedShortcut.id) {
                 return false  // Let the menu system handle it
             }

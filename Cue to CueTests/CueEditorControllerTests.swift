@@ -8,6 +8,7 @@
 
 import XCTest
 import AppKit
+import Combine
 @testable import Cue_to_Cue
 
 @MainActor
@@ -228,6 +229,41 @@ final class CueEditorControllerTests: XCTestCase {
         click(0)
         XCTAssertEqual(beeps, 1, "only addCue reports failure audibly")
         XCTAssertEqual(data.cueStacks[0].cues.count, 4)
+    }
+
+    // MARK: Menu enablement
+
+    func testHasCueSelection() {
+        XCTAssertFalse(editor.hasCueSelection)
+        click(1)
+        XCTAssertTrue(editor.hasCueSelection)
+        data.selectedCueStackIndex = 1
+        data.selectedCueIndex = 5
+        XCTAssertFalse(editor.hasCueSelection, "out-of-range selection doesn't count")
+    }
+
+    func testEditorRepublishesModelChanges() {
+        var changes = 0
+        let token = editor.objectWillChange.sink { changes += 1 }
+        data.selectedCueIndex = 2
+        XCTAssertGreaterThan(changes, 0, "menus observing the editor must see selection changes")
+        token.cancel()
+    }
+
+    func testMenuShortcutsAlwaysUseCurrentDefaults() {
+        let defaults = [
+            KeyboardShortcut(id: "toggleFullScreen", key: "f", modifiers: ["command", "control"], command: "Toggle Full Screen", category: "View"),
+            KeyboardShortcut(id: "countdownStart", key: "1", modifiers: ["command"], command: "Countdown Start", category: "Timer"),
+            KeyboardShortcut(id: "duplicate", key: "d", modifiers: ["command", "shift"], command: "Duplicate...", category: "File"),
+        ]
+        let saved = [
+            KeyboardShortcut(id: "toggleFullScreen", key: "f", modifiers: ["command"], command: "Toggle Full Screen", category: "View"),
+            KeyboardShortcut(id: "countdownStart", key: "9", modifiers: ["option"], command: "Countdown Start", category: "Timer"),
+        ]
+        let merged = KeyboardShortcutsManager.mergingDefaults(defaults, into: saved)
+        XCTAssertEqual(merged.map(\.id), ["toggleFullScreen", "countdownStart", "duplicate"])
+        XCTAssertEqual(merged[0].modifiers, ["command", "control"], "fixed menu shortcut shows the real binding")
+        XCTAssertEqual(merged[1].key, "9", "user's custom timer shortcut is kept")
     }
 
     // MARK: Time parsing

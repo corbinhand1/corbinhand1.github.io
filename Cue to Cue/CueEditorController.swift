@@ -35,6 +35,7 @@ final class CueEditorController: ObservableObject {
 
     private(set) var history = CueUndoHistory()
     private var isPerformingUndoRedo = false
+    private var dataObserver: AnyCancellable?
 
     // MARK: - Hooks
 
@@ -51,6 +52,11 @@ final class CueEditorController: ObservableObject {
 
     init(data: DataSyncManager) {
         self.data = data
+        // Selection lives partly in DataSyncManager (selectedCueIndex), so
+        // republish its changes for observers of this object (menus).
+        dataObserver = data.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
     }
 
     // MARK: - Convenience
@@ -63,6 +69,12 @@ final class CueEditorController: ObservableObject {
 
     var selectedStack: CueStack? {
         hasValidSelectedStack ? data.cueStacks[data.selectedCueStackIndex] : nil
+    }
+
+    /// True when an edit command has cues to act on.
+    var hasCueSelection: Bool {
+        guard let stack = selectedStack, let indices = selectedIndicesForCommand() else { return false }
+        return indices.contains { stack.cues.indices.contains($0) }
     }
 
     var canUndo: Bool { history.canUndo || (history.index >= 0 && history.snapshots[history.index] != data.cueStacks) }

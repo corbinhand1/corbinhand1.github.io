@@ -115,6 +115,7 @@ class KeyboardShortcutsManager: ObservableObject {
             KeyboardShortcut(id: "open", key: "o", modifiers: ["command"], command: "Open...", category: "File"),
             KeyboardShortcut(id: "save", key: "s", modifiers: ["command"], command: "Save", category: "File"),
             KeyboardShortcut(id: "saveAs", key: "s", modifiers: ["command", "shift"], command: "Save As...", category: "File"),
+            KeyboardShortcut(id: "duplicate", key: "d", modifiers: ["command", "shift"], command: "Duplicate...", category: "File"),
             KeyboardShortcut(id: "importCSV", key: "i", modifiers: ["command"], command: "Import CSV...", category: "File"),
             KeyboardShortcut(id: "exportCSV", key: "e", modifiers: ["command"], command: "Export CSV...", category: "File"),
             KeyboardShortcut(id: "print", key: "p", modifiers: ["command"], command: "Print", category: "File"),
@@ -130,7 +131,7 @@ class KeyboardShortcutsManager: ObservableObject {
             KeyboardShortcut(id: "toggleStrikeThrough", key: "t", modifiers: ["command", "shift"], command: "Toggle Strike-Through", category: "Edit"),
             
             // View Menu
-            KeyboardShortcut(id: "toggleFullScreen", key: "f", modifiers: ["command"], command: "Toggle Full Screen", category: "View"),
+            KeyboardShortcut(id: "toggleFullScreen", key: "f", modifiers: ["command", "control"], command: "Toggle Full Screen", category: "View"),
             
             // App Menu
             KeyboardShortcut(id: "preferences", key: ",", modifiers: ["command"], command: "Preferences...", category: "App"),
@@ -183,10 +184,22 @@ class KeyboardShortcutsManager: ObservableObject {
     private func loadShortcuts() {
         if let data = UserDefaults.standard.data(forKey: userDefaultsKey),
            let decoded = try? JSONDecoder().decode([KeyboardShortcut].self, from: data) {
-            shortcuts = decoded
+            shortcuts = Self.mergingDefaults(getAllDefaultShortcuts(), into: decoded)
         }
     }
     
+    /// Menu shortcuts (File/Edit/View/App) are fixed by the menu bar, so
+    /// always show their current defaults; keep the user's custom timer and
+    /// navigation shortcuts; add any shortcuts introduced since last save.
+    static func mergingDefaults(_ defaults: [KeyboardShortcut], into saved: [KeyboardShortcut]) -> [KeyboardShortcut] {
+        let menuCategories: Set<String> = ["File", "Edit", "View", "App"]
+        let savedByID = Dictionary(saved.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return defaults.map { def in
+            if menuCategories.contains(def.category) { return def }
+            return savedByID[def.id] ?? def
+        }
+    }
+
     private func saveShortcuts() {
         if let encoded = try? JSONEncoder().encode(shortcuts) {
             UserDefaults.standard.set(encoded, forKey: userDefaultsKey)

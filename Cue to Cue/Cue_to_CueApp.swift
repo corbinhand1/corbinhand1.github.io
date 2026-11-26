@@ -12,6 +12,8 @@ struct CueToCueApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var settingsManager = SettingsManager()
     @State private var currentFileName: String = "Untitled"
+    /// The main window's editor, for enabling cue-only menu commands.
+    @FocusedObject private var editor: CueEditorController?
 
     var body: some Scene {
         // Single main window: every menu command and the LAN server are wired
@@ -139,6 +141,10 @@ struct CueToCueApp: App {
                     appDelegate.toggleStrikeThrough()
                 }
                 .keyboardShortcut("t", modifiers: [.command, .shift])
+                // Cue-only command: grey it out when no cue is selected.
+                // (Cut/Copy/Paste/Delete/Undo stay enabled: text fields
+                // being edited rely on those same menu items.)
+                .disabled(!(editor?.hasCueSelection ?? false))
             }
             
             // View and Window Menus
@@ -147,7 +153,8 @@ struct CueToCueApp: App {
                     Button("Toggle Full Screen") {
                         appDelegate.toggleFullScreen()
                     }
-                    .keyboardShortcut("f")
+                    // Standard macOS shortcut (Cmd-F is reserved for Find).
+                    .keyboardShortcut("f", modifiers: [.command, .control])
                 }
                 
                 CommandGroup(after: .windowArrangement) {
@@ -155,11 +162,11 @@ struct CueToCueApp: App {
                     Button("Debug Console") {
                         appDelegate.showDebugWindow()
                     }
-                    .keyboardShortcut("d", modifiers: [.command, .shift])
+                    // Cmd-Shift-D belongs to File > Duplicate.
+                    .keyboardShortcut("d", modifiers: [.command, .option])
                 }
             }
         }
     }
 
-    // Function to update the window title.
 }

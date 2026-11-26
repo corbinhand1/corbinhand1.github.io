@@ -90,3 +90,11 @@ jspm_packages/
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 website-repo/
+
+# Xcode per-user state and build/test artifacts
+xcuserdata/
+DerivedData/
+*.profraw
+*.profdata
+*.xccoverage
+*.xcresult
