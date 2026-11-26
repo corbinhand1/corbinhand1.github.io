@@ -11,9 +11,11 @@ struct CueStackListView: View {
     @Binding var cueStacks: [CueStack]
     @Binding var selectedCueStackIndex: Int
     @Binding var cueStackListWidth: CGFloat
+    var hide: () -> Void = {}
     @State private var isReordering = false
     @State private var editCueStackIndex: Int?
     @State private var pendingDeleteIndex: Int?
+    @FocusState private var renameFocused: Bool
     @EnvironmentObject var settingsManager: SettingsManager
 
     var body: some View {
@@ -51,9 +53,19 @@ struct CueStackListView: View {
         HStack {
             Text("CUE STACKS")
                 .font(.system(size: 10, weight: .semibold))
-                .tracking(1.0)
+                .tracking(0.6)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .layoutPriority(1)
                 .foregroundColor(settingsManager.settings.fontColor.opacity(0.72))
             Spacer()
+            Button(action: hide) {
+                Image(systemName: "sidebar.left")
+                    .accessibilityLabel(Text("Hide Cue Stacks"))
+                    .help("Hide Cue Stacks (⌃⌘S)")
+                    .foregroundColor(settingsManager.settings.fontColor)
+            }
+            .buttonStyle(PlainButtonStyle())
             Button(action: addCueStack) {
                 Image(systemName: "plus")
                     .accessibilityLabel(Text("Add Cue Stack"))
@@ -94,21 +106,28 @@ struct CueStackListView: View {
                 Image(systemName: "line.3.horizontal")
                     .foregroundColor(.gray)
             }
-            if editCueStackIndex == index {
-                TextField("Cue Stack Name", text: $cueStacks[index].name, onCommit: {
-                    editCueStackIndex = nil
-                })
-                .textFieldStyle(PlainTextFieldStyle())
-                .foregroundColor(settingsManager.settings.fontColor)
+            if editCueStackIndex == index, cueStacks.indices.contains(index) {
+                // A real, focused field with its text selected, so it's
+                // obvious you're renaming. Return or clicking away finishes.
+                TextField("Cue Stack Name", text: $cueStacks[index].name)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($renameFocused)
+                    .onSubmit { finishRename() }
+                    .onExitCommand { finishRename() }
+                    .onAppear {
+                        DispatchQueue.main.async {
+                            renameFocused = true
+                            NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
+                        }
+                    }
+                    .onChange(of: renameFocused) { _, focused in
+                        if !focused { finishRename() }
+                    }
             } else {
                 Text(cueStacks[index].name)
                     .foregroundColor(settingsManager.settings.fontColor)
                     .fontWeight(selectedCueStackIndex == index ? .semibold : .regular)
-                    .onTapGesture {
-                        if !isReordering {
-                            selectedCueStackIndex = index
-                        }
-                    }
+                    .lineLimit(2)
             }
             Spacer(minLength: 4)
             Text("\(cueStacks[index].cues.count)")
@@ -128,6 +147,17 @@ struct CueStackListView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .contentShape(Rectangle())
+        // Double-click renames; single click selects (whole row, not just the text).
+        .onTapGesture(count: 2) {
+            guard !isReordering else { return }
+            selectedCueStackIndex = index
+            renameCueStack(at: index)
+        }
+        .onTapGesture {
+            guard !isReordering, editCueStackIndex != index else { return }
+            selectedCueStackIndex = index
+        }
+        .help("Double-click to rename")
         .contextMenu {
             if !isReordering {
                 Group {
@@ -168,9 +198,23 @@ struct CueStackListView: View {
         }
     }
 
+    /// New stacks go to the top, get selected, and start in rename.
     private func addCueStack() {
         let newCueStack = CueStack(name: "Cue Stack \(cueStacks.count + 1)", cues: [], columns: [Column(name: "Column 1", width: 100)])
-        cueStacks.append(newCueStack)
+        editCueStackIndex = nil
+        cueStacks.insert(newCueStack, at: 0)
+        selectedCueStackIndex = 0
+        DispatchQueue.main.async { editCueStackIndex = 0 }
+    }
+
+    private func finishRename() {
+        guard let index = editCueStackIndex else { return }
+        if cueStacks.indices.contains(index),
+           cueStacks[index].name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            cueStacks[index].name = "Cue Stack \(index + 1)"
+        }
+        editCueStackIndex = nil
+        renameFocused = false
     }
 
     /// Empty stacks are deleted straight away; stacks with cues ask first.

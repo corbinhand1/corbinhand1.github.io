@@ -427,21 +427,32 @@ final class CueStackGenerator {
     }
 
     func urlRequest(for request: CueStackGenerationRequest, apiKey: String) throws -> URLRequest {
+        try urlRequest(body: request.body(), apiKey: apiKey)
+    }
+
+    func urlRequest(body: [String: Any], apiKey: String) throws -> URLRequest {
         var urlRequest = URLRequest(url: Self.endpoint)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         urlRequest.setValue("2026-10-21", forHTTPHeaderField: "anthropic-version")
         urlRequest.setValue("server-side-fallback-2026-07-01", forHTTPHeaderField: "anthropic-beta")
         urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
-        urlRequest.httpBody = try JSONSerialization.data(withJSONObject: request.body())
+        urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
         return urlRequest
     }
 
     /// Runs the request. `progress` gets the number of cues written so far.
     func generate(_ request: CueStackGenerationRequest,
                   progress: @escaping @Sendable (Int) -> Void = { _ in }) async throws -> GeneratedCueStack {
+        let stream = try await send(body: request.body(), progress: progress)
+        return try Self.result(from: stream, request: request)
+    }
+
+    /// Sends a streaming Messages request and collects the answer.
+    func send(body: [String: Any],
+              progress: @escaping @Sendable (Int) -> Void = { _ in }) async throws -> MessageStreamAccumulator {
         guard let apiKey = keyStore.readKey() else { throw CueStackGenerationError.missingKey }
-        let urlRequest = try urlRequest(for: request, apiKey: apiKey)
+        let urlRequest = try urlRequest(body: body, apiKey: apiKey)
 
         let (bytes, response) = try await session.bytes(for: urlRequest)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
@@ -456,7 +467,7 @@ final class CueStackGenerator {
             try stream.consume(line: line)
             progress(stream.cuesSoFar)
         }
-        return try Self.result(from: stream, request: request)
+        return stream
     }
 
     static func error(forStatus status: Int, body: Data) -> CueStackGenerationError {

@@ -36,6 +36,9 @@ struct ContentView: View {
     @State private var showPlaylistEditor = false
     @State private var showWebsitePanel = false
     @State private var showAIImport = false
+    @State private var showFindReplace = false
+    /// View ▸ Hide Cue Stacks (⌃⌘S) gives the cue sheet the whole width.
+    @AppStorage("layout.showCueStacks") private var showCueStacks = true
     @State private var showRestoreSheet = false
     @State private var showPrintSheet = false
     @State private var showCSVImportSheet = false
@@ -140,6 +143,12 @@ struct ContentView: View {
                 )
                 .environmentObject(websiteSyncManager)
                 .frame(width: 640, height: 640)
+            }
+            .sheet(isPresented: $showFindReplace) {
+                FindReplaceView(stacks: dataSyncManager.cueStacks,
+                                selectedStackIndex: dataSyncManager.selectedCueStackIndex,
+                                onApply: applyFindReplace,
+                                onClose: { showFindReplace = false })
             }
             .sheet(isPresented: $showAIImport) {
                 AIImportView(currentStacks: dataSyncManager.cueStacks,
@@ -274,17 +283,23 @@ struct ContentView: View {
                             .environmentObject(websiteSyncManager)
                             
                             HStack(alignment: .top, spacing: 0) {
-                                VStack(alignment: .leading, spacing: 0) {
-                                    CueStackListView(
-                                        cueStacks: $dataSyncManager.cueStacks,
-                                        selectedCueStackIndex: $dataSyncManager.selectedCueStackIndex,
-                                        cueStackListWidth: $cueStackListWidth
-                                    )
-                                    Spacer(minLength: 20)
+                                if showCueStacks {
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        CueStackListView(
+                                            cueStacks: $dataSyncManager.cueStacks,
+                                            selectedCueStackIndex: $dataSyncManager.selectedCueStackIndex,
+                                            cueStackListWidth: $cueStackListWidth,
+                                            hide: { withAnimation(.easeInOut(duration: 0.2)) { showCueStacks = false } }
+                                        )
+                                        Spacer(minLength: 20)
+                                    }
+                                    .frame(width: cueStackListWidth)
+                                    .transition(.move(edge: .leading).combined(with: .opacity))
+
+                                    ResizableDivider(width: $cueStackListWidth, minWidth: 100, maxWidth: geometry.size.width / 2)
+                                } else {
+                                    collapsedCueStackRail
                                 }
-                                .frame(width: cueStackListWidth)
-                                
-                                ResizableDivider(width: $cueStackListWidth, minWidth: 100, maxWidth: geometry.size.width / 2)
                                 
                                 CueStackDetailView(
                                     cueStack: selectedCueStackBinding,
@@ -511,7 +526,7 @@ struct ContentView: View {
         .appDelegateNewFile, .appDelegateOpenFile, .appDelegateSaveFile,
         .appDelegateSaveFileAs, .appDelegateDuplicateFile,
         .appDelegateImportCSV, .appDelegateExportCSV,
-        .appDelegatePublishWebsite, .appDelegateShowWebsite, .appDelegateShowAIImport,
+        .appDelegatePublishWebsite, .appDelegateShowWebsite, .appDelegateShowAIImport, .appDelegateToggleCueStacks, .appDelegateShowFindReplace,
         .appDelegateUndo, .appDelegateRedo,
         .appDelegateCut, .appDelegateCopy, .appDelegatePaste, .appDelegateDelete,
         .appDelegateSelectAll, .appDelegateToggleStrikeThrough,
@@ -550,6 +565,9 @@ struct ContentView: View {
         case .appDelegatePublishWebsite: publishToWebsite()
         case .appDelegateShowWebsite: showWebsitePanel = true
         case .appDelegateShowAIImport: showAIImport = true
+        case .appDelegateShowFindReplace: showFindReplace = true
+        case .appDelegateToggleCueStacks:
+            withAnimation(.easeInOut(duration: 0.2)) { showCueStacks.toggle() }
         // Edit
         case .appDelegateUndo: editor.undo()
         case .appDelegateRedo: editor.redo()
@@ -801,13 +819,57 @@ struct ContentView: View {
         showCSVImportSheet = true
     }
 
+    /// Slim strip shown while the cue stack list is hidden: one button
+    /// brings it back, and the current stack's name stays visible.
+    private var collapsedCueStackRail: some View {
+        VStack(spacing: 10) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { showCueStacks = true }
+            } label: {
+                Image(systemName: "sidebar.left")
+                    .font(.system(size: 14))
+                    .foregroundColor(settingsManager.settings.fontColor)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Show Cue Stacks (⌃⌘S)")
+            .accessibilityLabel(Text("Show Cue Stacks"))
+            if dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex) {
+                Text(dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].name)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(settingsManager.settings.fontColor.opacity(0.6))
+                    .lineLimit(1)
+                    .fixedSize()
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: 28, height: 200, alignment: .center)
+                    .accessibilityHidden(true)
+            }
+            Spacer()
+        }
+        .padding(.top, 20)
+        .frame(width: 36)
+    }
+
+    /// Find and Replace: one undoable step for all chosen edits.
+    private func applyFindReplace(_ edits: [CueEdit]) -> Int {
+        editingCueIndex = nil
+        var stacks = dataSyncManager.cueStacks
+        let applied = CueFindReplace.apply(edits, to: &stacks)
+        guard applied > 0 else { return 0 }
+        dataSyncManager.cueStacks = stacks
+        editor.recordEdit()
+        updateWebClients()
+        return applied
+    }
+
     /// Adds a stack Claude wrote (after the user reviewed it), selects it,
     /// and records it so Undo removes it again.
     private func addGeneratedStack(_ stack: CueStack) {
         let toAdd = CueCSVCodec.stacksForAdd(imported: [stack], existingNames: dataSyncManager.cueStacks.map(\.name))
         guard !toAdd.isEmpty else { return }
-        dataSyncManager.cueStacks.append(contentsOf: toAdd)
-        dataSyncManager.selectedCueStackIndex = dataSyncManager.cueStacks.count - 1
+        dataSyncManager.cueStacks.insert(contentsOf: toAdd, at: 0)
+        dataSyncManager.selectedCueStackIndex = 0
         dataSyncManager.selectedCueIndex = -1
         editor.clearSelection()
         editingCueIndex = nil
@@ -829,7 +891,9 @@ struct ContentView: View {
                 imported: [stack],
                 existingNames: dataSyncManager.cueStacks.map(\.name)
             )
-            dataSyncManager.cueStacks.append(contentsOf: stacksToAdd)
+            // New stacks go to the top; keep the same stack selected.
+            dataSyncManager.cueStacks.insert(contentsOf: stacksToAdd, at: 0)
+            dataSyncManager.selectedCueStackIndex += stacksToAdd.count
             editor.recordEdit()
 
         case .addStacks:
@@ -837,7 +901,9 @@ struct ContentView: View {
                 imported: result.stacks,
                 existingNames: dataSyncManager.cueStacks.map(\.name)
             )
-            dataSyncManager.cueStacks.append(contentsOf: stacksToAdd)
+            // New stacks go to the top; keep the same stack selected.
+            dataSyncManager.cueStacks.insert(contentsOf: stacksToAdd, at: 0)
+            dataSyncManager.selectedCueStackIndex += stacksToAdd.count
             editor.recordEdit()
 
         case .replaceAll:

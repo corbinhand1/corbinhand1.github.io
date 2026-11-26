@@ -22,6 +22,8 @@ extension Notification.Name {
     static let appDelegatePublishWebsite = Notification.Name("appDelegatePublishWebsite")
     static let appDelegateShowWebsite = Notification.Name("appDelegateShowWebsite")
     static let appDelegateShowAIImport = Notification.Name("appDelegateShowAIImport")
+    static let appDelegateShowFindReplace = Notification.Name("appDelegateShowFindReplace")
+    static let appDelegateToggleCueStacks = Notification.Name("appDelegateToggleCueStacks")
     static let appDelegateUndo = Notification.Name("appDelegateUndo")
     static let appDelegateRedo = Notification.Name("appDelegateRedo")
     static let appDelegateCut = Notification.Name("appDelegateCut")
@@ -446,7 +448,7 @@ enum WindowSnapshotter {
                 let names: [String: Notification.Name] = [
                     "viewers": .appDelegateShowViewers, "users": .appDelegateShowUsers,
                     "settings": .appDelegateShowPreferences, "website": .appDelegateShowWebsite,
-                    "ai": .appDelegateShowAIImport,
+                    "ai": .appDelegateShowAIImport, "find": .appDelegateShowFindReplace,
                     "shortcuts": .appDelegateShowShortcuts,
                 ]
                 let commands: [String: (Notification.Name, Any?)] = [

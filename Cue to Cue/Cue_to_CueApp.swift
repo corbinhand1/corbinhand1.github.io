@@ -116,6 +116,12 @@ struct EditMenuCommands: Commands {
             Button("Select All") { appDelegate.selectAll() }
                 .keyboardShortcut("a")
         }
+        CommandGroup(replacing: .textEditing) {
+            Button("Find and Replace…") {
+                NotificationCenter.default.post(name: .appDelegateShowFindReplace, object: nil)
+            }
+            .keyboardShortcut("f", modifiers: [.command, .option])
+        }
     }
 }
 
@@ -174,9 +180,22 @@ struct ViewMenuCommands: Commands {
         // macOS's automatic full-screen item is turned off (AppDelegate), so
         // this is the only one.
         CommandGroup(after: .toolbar) {
+            ToggleCueStacksMenuItem()
             Button("Toggle Full Screen") { appDelegate.toggleFullScreen() }
                 .keyboardShortcut("f", modifiers: [.command, .control])
         }
+    }
+}
+
+/// View ▸ Hide/Show Cue Stacks, titled for what it will do.
+private struct ToggleCueStacksMenuItem: View {
+    @AppStorage("layout.showCueStacks") private var showCueStacks = true
+
+    var body: some View {
+        Button(showCueStacks ? "Hide Cue Stacks" : "Show Cue Stacks") {
+            NotificationCenter.default.post(name: .appDelegateToggleCueStacks, object: nil)
+        }
+        .keyboardShortcut("s", modifiers: [.command, .control])
     }
 }
 
