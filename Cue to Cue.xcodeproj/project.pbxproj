@@ -50,6 +50,8 @@
 		31F2FABF2C0425ED0074D2A4 /* Cue_to_CueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FABE2C0425ED0074D2A4 /* Cue_to_CueTests.swift */; };
 		31CSV003 /* CueCSVCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSV004 /* CueCSVCodecTests.swift */; };
 		31EDT003 /* CueEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDT004 /* CueEditingTests.swift */; };
+		31EDC003 /* CueEditorControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDC004 /* CueEditorControllerTests.swift */; };
+		31DOC003 /* DocumentControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DOC004 /* DocumentControllerTests.swift */; };
 		31F2FAC92C0425ED0074D2A4 /* Cue_to_CueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FAC82C0425ED0074D2A4 /* Cue_to_CueUITests.swift */; };
 		31F2FACB2C0425ED0074D2A4 /* Cue_to_CueUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FACA2C0425ED0074D2A4 /* Cue_to_CueUITestsLaunchTests.swift */; };
 		31F2FADD2C0441630074D2A4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FADC2C0441630074D2A4 /* SettingsView.swift */; };
@@ -72,6 +74,8 @@
 		31WEBSYNC003 /* WebsiteSyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSYNC004 /* WebsiteSyncSettingsView.swift */; };
 		31CSV001 /* CueCSVCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSV002 /* CueCSVCodec.swift */; };
 		31EDT001 /* CueEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDT002 /* CueEditing.swift */; };
+		31EDC001 /* CueEditorController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDC002 /* CueEditorController.swift */; };
+		31DOC001 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DOC002 /* DocumentController.swift */; };
 		31CSVIMP001 /* CSVImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSVIMP002 /* CSVImportSheet.swift */; };
 		31CSVEXP001 /* CSVExportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSVEXP002 /* CSVExportSheet.swift */; };
 		31TIMER001 /* AuthoritativeTimerServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31TIMER002 /* AuthoritativeTimerServer.swift */; };
@@ -176,6 +180,8 @@
 		31F2FABE2C0425ED0074D2A4 /* Cue_to_CueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cue_to_CueTests.swift; sourceTree = "<group>"; };
 		31CSV004 /* CueCSVCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueCSVCodecTests.swift; sourceTree = "<group>"; };
 		31EDT004 /* CueEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditingTests.swift; sourceTree = "<group>"; };
+		31EDC004 /* CueEditorControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditorControllerTests.swift; sourceTree = "<group>"; };
+		31DOC004 /* DocumentControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentControllerTests.swift; sourceTree = "<group>"; };
 		31F2FAC42C0425ED0074D2A4 /* Cue to CueUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Cue to CueUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		31F2FAC82C0425ED0074D2A4 /* Cue_to_CueUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cue_to_CueUITests.swift; sourceTree = "<group>"; };
 		31F2FACA2C0425ED0074D2A4 /* Cue_to_CueUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cue_to_CueUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -199,6 +205,8 @@
 		31WEBSYNC004 /* WebsiteSyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteSyncSettingsView.swift; sourceTree = "<group>"; };
 		31CSV002 /* CueCSVCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueCSVCodec.swift; sourceTree = "<group>"; };
 		31EDT002 /* CueEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditing.swift; sourceTree = "<group>"; };
+		31EDC002 /* CueEditorController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditorController.swift; sourceTree = "<group>"; };
+		31DOC002 /* DocumentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
 		31CSVIMP002 /* CSVImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportSheet.swift; sourceTree = "<group>"; };
 		31CSVEXP002 /* CSVExportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVExportSheet.swift; sourceTree = "<group>"; };
 		31TIMER002 /* AuthoritativeTimerServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoritativeTimerServer.swift; sourceTree = "<group>"; };
@@ -348,6 +356,8 @@
 				31WEBSYNC004 /* WebsiteSyncSettingsView.swift */,
 				31CSV002 /* CueCSVCodec.swift */,
 				31EDT002 /* CueEditing.swift */,
+				31EDC002 /* CueEditorController.swift */,
+				31DOC002 /* DocumentController.swift */,
 				31CSVIMP002 /* CSVImportSheet.swift */,
 				31CSVEXP002 /* CSVExportSheet.swift */,
 				31CADDE42C856B200072CFCE /* CompleteHTML.swift */,
@@ -384,6 +394,8 @@
 				31F2FABE2C0425ED0074D2A4 /* Cue_to_CueTests.swift */,
 				31CSV004 /* CueCSVCodecTests.swift */,
 				31EDT004 /* CueEditingTests.swift */,
+				31EDC004 /* CueEditorControllerTests.swift */,
+				31DOC004 /* DocumentControllerTests.swift */,
 			);
 			path = "Cue to CueTests";
 			sourceTree = "<group>";
@@ -632,6 +644,8 @@
 				31WEBSYNC003 /* WebsiteSyncSettingsView.swift in Sources */,
 				31CSV001 /* CueCSVCodec.swift in Sources */,
 				31EDT001 /* CueEditing.swift in Sources */,
+				31EDC001 /* CueEditorController.swift in Sources */,
+				31DOC001 /* DocumentController.swift in Sources */,
 				31CSVIMP001 /* CSVImportSheet.swift in Sources */,
 				31CSVEXP001 /* CSVExportSheet.swift in Sources */,
 			);
@@ -644,6 +658,8 @@
 				31F2FABF2C0425ED0074D2A4 /* Cue_to_CueTests.swift in Sources */,
 				31CSV003 /* CueCSVCodecTests.swift in Sources */,
 				31EDT003 /* CueEditingTests.swift in Sources */,
+				31EDC003 /* CueEditorControllerTests.swift in Sources */,
+				31DOC003 /* DocumentControllerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

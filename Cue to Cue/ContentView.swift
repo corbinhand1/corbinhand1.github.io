@@ -12,84 +12,25 @@ import AppKit
 
 struct ContentView: View {
     @EnvironmentObject var settingsManager: SettingsManager
-    @StateObject private var dataSyncManager = DataSyncManager()
+    @EnvironmentObject var appDelegate: AppDelegate
+    /// Window-title name owned by the App scene; mirrored from `document`.
+    @Binding var currentFileName: String
+
+    // MARK: - Model
+    @StateObject private var dataSyncManager: DataSyncManager
+    /// Undo, selection, navigation and cue editing (see CueEditorController).
+    @StateObject private var editor: CueEditorController
+    /// The open show file: save/open/autosave/conflicts (see DocumentController).
+    @StateObject private var document: DocumentController
     @StateObject private var websiteSyncManager = WebsiteSyncManager()
     @StateObject private var timerServer = AuthoritativeTimerServer()
+
+    // MARK: - Presentation
     @State private var showSettings = false
     @State private var showConnectionMonitor = false
     @State private var showUserManagement = false
     @State private var showPlaylistEditor = false
-    @State private var selectedCueTime: Int?
-    @State var showSavePanel = false
-    @State var showOpenPanel = false
-    @State private var isOpeningFile = false
-    @State var showImportCSVPanel = false
-    @EnvironmentObject var appDelegate: AppDelegate
-    @Binding var currentFileName: String
-
-    @State private var scrollViewProxy: ScrollViewProxy?
-    @State private var undoHistory = CueUndoHistory()
-    @State private var isReorderingCues = false
-    @State private var editingCueIndex: Int?
-    @State private var cueStackListWidth: CGFloat = 150 // Default width
-    @State private var lastSavedURL: URL?
-    @State private var keynotePreviewWindow: NSWindow?
-    @State private var lastUpdateTime = Date()
-    @State var pdfNotes: [String: [Int: String]] = [:]
-    @State private var webServer: WebServer?
-    @State private var authManager: AuthenticationManager?
-    @State private var hasExplicitlyOpenedFile = false // Track if a file was explicitly opened (not from last file)
-
-    // MARK: - Save state (Phase 1: file-safety audit)
-    /// True when in-memory state has changed since the last successful save.
-    /// Cleared after a successful write through DocumentStore.
-    @State private var isDirty: Bool = false
-    /// Timestamp of the most recent successful save through DocumentStore.
-    @State private var lastSaveDate: Date?
-    /// True while we are loading data from disk into the in-memory model.
-    /// Used to suppress dirty-marking during loads, since assignments to
-    /// dataSyncManager.cueStacks etc. would otherwise look like edits.
-    @State private var isLoadingFromDisk: Bool = false
-    /// If the most recent autosave had nowhere to go (no file picked) we
-    /// route it to ~/Library/Application Support/Cue to Cue/Recovery and
-    /// remember the destination so the UI can surface a "recover" prompt.
-    @State private var lastRecoveryURL: URL?
-
-    // MARK: - Save state (Phase 2: external-change detection)
-    /// Set when the file watcher detects a change made *outside* of our own
-    /// writes, OR when an open-time mtime/size comparison shows the file
-    /// changed since we last touched it. Surfaced through the conflict alert
-    /// and gates writes (we do not silently overwrite a divergent on-disk
-    /// version).
-    @State private var documentChangedExternally: Bool = false
-    /// Drives the "the file changed outside the app" conflict alert.
-    @State private var showConflictSheet: Bool = false
-    /// Drives the "couldn't find your file" alert when the bookmark resolves
-    /// to a path that no longer exists or the watcher reports delete/rename.
-    @State private var showMissingFileSheet: Bool = false
-    /// URL associated with the missing-file or open-time conflict alert.
-    @State private var pendingConflictURL: URL?
-    /// Live filesystem watcher for the current document, when one is open.
-    /// Held in `@State` so it persists across re-renders of the view struct.
-    @State private var fileWatcher: FileWatcher?
-
-    // MARK: - Save state (Phase 3: backup fan-out + Restore sheet)
-    /// Latest backup-fan-out report from BackupManager, posted by
-    /// DocumentStore after every save. Drives the title-bar status pill and
-    /// any "backups degraded" warning.
-    @State private var latestBackupReport: BackupManager.Report?
-    /// Drives the Restore-from-Backup… sheet.
-    @State private var showRestoreSheet: Bool = false
-    /// Drives a non-blocking "some backup tiers failed" alert.
-    @State private var showBackupWarning: Bool = false
-    @State private var backupWarningDetail: String = ""
-
-    // Multi-selection properties
-    @State private var selectedCueIndices: Set<Int> = []
-    @State private var lastSelectedIndex: Int? = nil
-    @State private var isMultiSelectMode: Bool = false
-
-    // MARK: - Print Settings State
+    @State private var showRestoreSheet = false
     @State private var showPrintSheet = false
     @State private var showCSVImportSheet = false
     @State private var pendingCSVImport: (sourceName: String, result: CueCSVImportResult)?
@@ -99,23 +40,30 @@ struct ContentView: View {
     @State private var printSelectedCueStackIndices: Set<Int> = []  // indices of cueStacks to print
     @State private var printFontSize: CGFloat = 12
 
+    // MARK: - Table UI
+    @State private var scrollViewProxy: ScrollViewProxy?
+    @State private var isReorderingCues = false
+    @State private var editingCueIndex: Int?
+    @State private var cueStackListWidth: CGFloat = 150
+
+    // MARK: - LAN server
+    @State private var webServer: WebServer?
+    @State private var authManager: AuthenticationManager?
+
     public init(currentFileName: Binding<String>) {
         self._currentFileName = currentFileName
+        // All three objects must share one DataSyncManager. StateObject only
+        // uses these values the first time the view is created.
+        let data = DataSyncManager()
+        let editor = CueEditorController(data: data)
+        self._dataSyncManager = StateObject(wrappedValue: data)
+        self._editor = StateObject(wrappedValue: editor)
+        self._document = StateObject(wrappedValue: DocumentController(data: data, editor: editor))
     }
 
+    /// File name without extension, for sheets and export names.
     private var currentFileStem: String {
-        let name = currentFileName
-        if name.hasSuffix(".cuestack") {
-            return String(name.dropLast(9))
-        }
-        if name.hasSuffix(".json") {
-            return String(name.dropLast(5))
-        }
-        return name
-    }
-
-    private var displayFileName: String {
-        currentFileStem
+        document.fileStem
     }
 
     private var currentSelectedStackName: String {
@@ -189,120 +137,87 @@ struct ContentView: View {
             .sheet(isPresented: $showCSVImportSheet) {
                 csvImportSheet
             }
+            .onReceive(menuCommands) { handleMenuCommand($0) }
             .modifier(ContentViewLifecycleModifiers(
-                showSavePanel: $showSavePanel,
-                showOpenPanel: $showOpenPanel,
-                showImportCSVPanel: $showImportCSVPanel,
-                isOpeningFile: $isOpeningFile,
                 dataSyncManager: dataSyncManager,
                 timerServer: timerServer,
-                saveFile: saveFile,
-                openFile: openFile,
-                importCSV: importCSV,
-                clearCueSelection: clearCueSelection,
+                document: document,
+                clearCueSelection: { editor.clearSelection() },
                 updateWebClients: updateWebClients,
-                autoSave: autoSave,
                 printCueStacks: printCueStacks,
                 setupAppDelegate: setupAppDelegate,
                 setupAppDelegateNotifications: setupAppDelegateNotifications,
-                loadLastFile: loadLastFile,
-                openDocumentAtURL: { url in beginOpeningDocument(at: url) },
                 handleKeyDown: handleKeyDown,
-                hasExplicitlyOpenedFile: $hasExplicitlyOpenedFile,
                 appDelegate: appDelegate,
-                showSettings: $showSettings,
-                isDirty: isDirty,
-                isLoadingFromDisk: $isLoadingFromDisk,
-                markDirty: { isDirty = true },
-                updateWindowChrome: updateWindowChrome
+                showSettings: $showSettings
             ))
-            .onChange(of: pdfNotes) { _, _ in
-                if !isLoadingFromDisk { isDirty = true }
-            }
             .onChange(of: settingsManager.settings.highlightColors) { _, _ in
-                if !isLoadingFromDisk { isDirty = true }
+                document.markDirty()
             }
-            // MARK: - Phase 2 — file-safety wiring on the body
-            .onChange(of: lastSavedURL) { _, newURL in
-                if let url = newURL {
-                    startFileWatcher(at: url)
-                } else {
-                    fileWatcher?.stop()
-                    fileWatcher = nil
-                }
+            .onChange(of: document.fileName, initial: true) { _, name in
+                currentFileName = name
             }
-            .onReceive(NotificationCenter.default.publisher(for: .appDelegateDidBecomeActive)) { _ in
-                recheckExternalChangesNow()
-            }
-            .alert("This file changed outside of Cue to Cue", isPresented: $showConflictSheet) {
+            // MARK: File alerts (state lives in DocumentController)
+            .alert("This file changed outside of Cue to Cue", isPresented: $document.showConflictAlert) {
                 Button("Reload from Disk", role: .destructive) {
-                    reloadFromDiskAfterConflict()
+                    document.reloadFromDiskAfterConflict()
                 }
                 Button("Keep My Version") {
-                    forceOverwriteAfterConflict()
+                    document.forceOverwriteAfterConflict()
                 }
                 Button("Show in Finder") {
-                    if let url = pendingConflictURL ?? lastSavedURL {
+                    if let url = document.pendingConflictURL ?? document.lastSavedURL {
                         NSWorkspace.shared.activateFileViewerSelecting([url])
                     }
-                    // Re-arm so the alert can show again on next save.
-                    DispatchQueue.main.async { showConflictSheet = true }
+                    // Re-arm so the alert can show again.
+                    DispatchQueue.main.async { document.showConflictAlert = true }
                 }
                 Button("Cancel", role: .cancel) {
-                    // Keep documentChangedExternally so the toolbar / next
-                    // save still warns.
+                    // documentChangedExternally stays set, so the next save still warns.
                 }
             } message: {
-                let name = (pendingConflictURL ?? lastSavedURL)?.lastPathComponent ?? displayFileName
+                let name = (document.pendingConflictURL ?? document.lastSavedURL)?.lastPathComponent ?? currentFileStem
                 Text("\(name) was modified by another program since you last saved. Reloading replaces your unsaved edits with the on-disk version. Keeping your version overwrites the on-disk version (a backup is kept in Application Support).")
             }
-            .alert("Couldn't find your file", isPresented: $showMissingFileSheet) {
+            .alert("Couldn't find your file", isPresented: $document.showMissingFileAlert) {
                 Button("Locate File…") {
-                    locateMissingFile()
+                    document.locateMissingFile()
                 }
                 Button("Save As…") {
-                    saveFileAs()
+                    document.saveFileAs()
                 }
                 Button("Continue Without a File", role: .cancel) {
-                    abandonMissingFile()
+                    document.abandonMissingFile()
                 }
             } message: {
-                let path = pendingConflictURL?.path ?? "(unknown)"
-                Text("\(pendingConflictURL?.lastPathComponent ?? displayFileName) couldn't be located at \(path). It may have been moved, renamed, or deleted in Finder or another app.")
+                let path = document.pendingConflictURL?.path ?? "(unknown)"
+                Text("\(document.pendingConflictURL?.lastPathComponent ?? currentFileStem) couldn't be located at \(path). It may have been moved, renamed, or deleted in Finder or another app.")
             }
-            // MARK: - Phase 3 — Restore-from-Backup + backup status
             .sheet(isPresented: $showRestoreSheet) {
                 RestoreFromBackupView(
-                    mainFileURL: lastSavedURL,
+                    mainFileURL: document.lastSavedURL,
                     onRestore: { url in
                         showRestoreSheet = false
-                        restoreFromBackup(at: url)
+                        document.restoreFromBackup(at: url)
                     },
                     onCancel: {
                         showRestoreSheet = false
                     }
                 )
             }
-            .alert("Some backup destinations were unavailable", isPresented: $showBackupWarning) {
+            .alert("Some backup destinations were unavailable", isPresented: $document.showBackupWarning) {
                 Button("OK") {}
                 Button("Show in Finder") {
-                    if let url = BackupManager.shared.revealableBackupURL(forMainFile: lastSavedURL) {
-                        NSWorkspace.shared.activateFileViewerSelecting([url])
-                    }
+                    document.revealBackupsInFinder()
                 }
             } message: {
-                Text("Your file saved successfully, but one or both backup copies reported an error:\n\n\(backupWarningDetail)\n\nYour data is still protected by the remaining backup.")
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .documentStoreBackupsCompleted)) { note in
-                handleBackupReport(note)
+                Text("Your file saved successfully, but one or both backup copies reported an error:\n\n\(document.backupWarningDetail)\n\nYour data is still protected by the remaining backup.")
             }
             .onReceive(NotificationCenter.default.publisher(for: .appDelegateRestoreFromBackup)) { _ in
                 showRestoreSheet = true
             }
             .onReceive(NotificationCenter.default.publisher(for: .appDelegateRevealBackups)) { _ in
-                if let url = BackupManager.shared.revealableBackupURL(forMainFile: lastSavedURL) {
-                    NSWorkspace.shared.activateFileViewerSelecting([url])
-                }
+                document.revealBackupsInFinder()
             }
     }
     
@@ -353,23 +268,23 @@ struct ContentView: View {
                                     scrollViewProxy: $scrollViewProxy,
                                     geometry: geometry,
                                     selectedCueIndex: selectedCueIndexBinding,
-                                    selectedCueIndices: $selectedCueIndices,
-                                    selectedCueTime: $selectedCueTime,
+                                    selectedCueIndices: $editor.selectedCueIndices,
+                                    selectedCueTime: $editor.selectedCueTime,
                                     settingsManager: settingsManager,
                                     appDelegate: appDelegate,
                                     updateWebClients: updateWebClients,
                                     onCueValueCommitted: notifyMacCueValueCommitted,
-                                    saveState: saveState,
-                                    addCue: addCue,
-                                    advanceCue: advanceCue,
-                                    previousCue: previousCue,
-                                    highlightCue: highlightCue,
-                                    parseCountdownTime: parseCountdownTime,
+                                    saveState: { editor.recordEdit() },
+                                    addCue: { editor.addCue() },
+                                    advanceCue: { editor.advanceCue() },
+                                    previousCue: { editor.previousCue() },
+                                    highlightCue: { editor.highlightCue(at: $0) },
+                                    parseCountdownTime: CueEditorController.parseCountdownTime,
                                     getHighlightColor: getHighlightColor,
-                                    handleCueSelection: handleCueSelection,
-                                    deleteSelectedCues: deleteSelectedCues,
-                                    copyCue: copyCue,
-                                    pasteCue: pasteCue
+                                    handleCueSelection: { editor.handleCueSelection(at: $0, withShiftKey: $1, withCommandKey: $2) },
+                                    deleteSelectedCues: { editor.deleteSelectedCues() },
+                                    copyCue: { editor.copyCues(at: [$0]) },
+                                    pasteCue: { editor.pasteCues(after: $0) }
                                 )
                                 .padding(.horizontal)
                                 .background(Color.black.opacity(0.6))
@@ -416,7 +331,7 @@ struct ContentView: View {
             selectedIndices: $printSelectedCueStackIndices,
             fontSize: $printFontSize,
             cueStacks: dataSyncManager.cueStacks,
-            documentName: displayFileName,
+            documentName: currentFileStem,
             highlightColors: settingsManager.settings.highlightColors,
             onPrint: { configuration in
                 self.runPrint(with: configuration)
@@ -504,316 +419,86 @@ struct ContentView: View {
         return (dataSyncManager.cueStacks, dataSyncManager.selectedCueStackIndex, dataSyncManager.selectedCueIndex)
     }
     
-    // MARK: - App Termination Support
-    var currentFileURL: URL? {
-        return lastSavedURL
-    }
-    
     private func setupAppDelegate() {
         // Most communication goes through NotificationCenter; quitting needs a
         // reply, so it uses a callback.
         appDelegate.prepareForTermination = { completion in
-            self.prepareForQuit(completion)
+            self.document.prepareForQuit(completion)
+        }
+        editor.notifyWebClients = { self.updateWebClients() }
+        document.settingsManager = settingsManager
+        document.notifyWebClients = { self.updateWebClients() }
+        document.onDocumentLoaded = {
+            self.websiteSyncManager.autoSyncIfEnabled(
+                cueStacks: self.dataSyncManager.cueStacks,
+                selectedCueStackIndex: self.dataSyncManager.selectedCueStackIndex,
+                filename: self.document.fileName,
+                settingsManager: self.settingsManager
+            )
+        }
+        document.onNewDocument = {
+            self.editingCueIndex = nil
+            for action in ["pause", "reset", "pauseCountdownToTime"] {
+                self.timerServer.executeCommand(TimerCommand(action: action, countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil))
+            }
         }
     }
 
-    /// Cmd-Q / close window: save to the current file, or ask about an
-    /// untitled document. `completion(true)` lets the app quit.
-    private func prepareForQuit(_ completion: @escaping (Bool) -> Void) {
-        guard isDirty else {
-            completion(true)
-            return
-        }
-        if let url = lastSavedURL {
-            // A failed save (or an external-change conflict) shows its own
-            // alert; cancel the quit so the user can resolve it.
-            completion(saveToURL(url))
-            return
-        }
-        let alert = NSAlert()
-        alert.messageText = "Do you want to save the changes to \u{201C}\(displayFileName)\u{201D}?"
-        alert.informativeText = "Your changes will be lost if you don't save them."
-        alert.addButton(withTitle: "Save…")
-        alert.addButton(withTitle: "Cancel")
-        alert.addButton(withTitle: "Don't Save")
-        switch alert.runModal() {
-        case .alertFirstButtonReturn:
-            saveFileAs(completion: completion)
-        case .alertSecondButtonReturn:
-            completion(false)
-        default:
-            completion(true)
-        }
-    }
     
+    /// Menu commands arrive from AppDelegate as notifications. They are
+    /// received with `onReceive` (see `body`), so they run on the main actor,
+    /// are tied to this view's lifetime, and can never be registered twice.
     private func setupAppDelegateNotifications() {
-        // SwiftUI can call onAppear more than once (sheet dismiss, window
-        // focus, view rebuild). Each call used to register duplicate
-        // NotificationCenter observers, so Cmd-Z fired undo() twice.
-        guard !ContentViewLifecycleSetup.appDelegateNotificationsRegistered else { return }
+        // AppDelegate only posts Finder "open file" requests once this is set;
+        // before that it queues them in `pendingFileToOpen`.
         ContentViewLifecycleSetup.appDelegateNotificationsRegistered = true
+    }
 
-        // File operations
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateNewFile,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.newFile()
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateOpenFile,
-            object: nil,
-            queue: .main
-        ) { notification in
-            if let url = notification.object as? URL {
-                self.hasExplicitlyOpenedFile = true
-                self.appDelegate.pendingFileToOpen = nil
-                self.beginOpeningDocument(at: url)
+    private static let menuCommandNames: [Notification.Name] = [
+        .appDelegateNewFile, .appDelegateOpenFile, .appDelegateSaveFile,
+        .appDelegateSaveFileAs, .appDelegateDuplicateFile,
+        .appDelegateImportCSV, .appDelegateExportCSV,
+        .appDelegateUndo, .appDelegateRedo,
+        .appDelegateCut, .appDelegateCopy, .appDelegatePaste, .appDelegateDelete,
+        .appDelegateSelectAll, .appDelegateToggleStrikeThrough,
+        .appDelegateShowPreferences, .appDelegateUpdateWebClients,
+    ]
+
+    private var menuCommands: AnyPublisher<Notification, Never> {
+        Publishers.MergeMany(Self.menuCommandNames.map { NotificationCenter.default.publisher(for: $0) })
+            .eraseToAnyPublisher()
+    }
+
+    private func handleMenuCommand(_ note: Notification) {
+        switch note.name {
+        // File
+        case .appDelegateNewFile: document.newFile()
+        case .appDelegateOpenFile:
+            if let url = note.object as? URL {
+                document.hasExplicitlyOpenedFile = true
+                appDelegate.pendingFileToOpen = nil
+                document.beginOpeningDocument(at: url)
             } else {
-                self.openFile()
+                document.openFile()
             }
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateSaveFile,
-            object: nil,
-            queue: .main
-        ) { _ in
-            // Call saveFile() directly. The previous implementation set
-            // showSavePanel = true and relied on .onChange to fire, but
-            // .onChange only fires on transitions, so the second Cmd-S in
-            // a row was a silent no-op.
-            self.saveFile()
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateSaveFileAs,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.saveFileAs()
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateDuplicateFile,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.duplicateFile()
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateImportCSV,
-            object: nil,
-            queue: .main
-        ) { _ in
-            // Same reasoning as save: call directly, do not rely on a Bool
-            // binding edge as a trigger.
-            self.importCSV()
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateExportCSV,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.exportCSV()
-        }
-        
-        // Edit operations
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateUndo,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.undo()
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateRedo,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.redo()
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateCut,
-            object: nil,
-            queue: .main
-        ) { _ in
-            // Cut cue functionality - ContentView handles this through copy/delete
-            if let selectedIndices = self.getSelectedCueIndices() {
-                self.copyCues(at: selectedIndices)
-                self.deleteSelectedCues()
-            }
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateCopy,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.copy(nil)
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .appDelegatePaste,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.paste(nil)
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateDelete,
-            object: nil,
-            queue: .main
-        ) { _ in
-            if !self.selectedCueIndices.isEmpty {
-                self.deleteSelectedCues()
-            }
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateSelectAll,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.selectAllCues()
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateToggleStrikeThrough,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.toggleStrikeThrough()
-        }
-        
-        // View operations
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateShowPreferences,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.showSettings = true
-        }
-        
-        // Web client operations
-        NotificationCenter.default.addObserver(
-            forName: .appDelegateUpdateWebClients,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.updateWebClients()
-        }
-    }
-    
-    private func beginOpeningDocument(at url: URL) {
-        guard CueStackDocumentType.shouldOpen(at: url) else { return }
-
-        saveCurrentDocumentIfNeeded(for: .openDocument) { saved in
-            guard saved else { return }
-            self.loadDocument(from: url)
-        }
-    }
-
-    private func loadDocument(from url: URL) {
-        hasExplicitlyOpenedFile = true
-
-        do {
-            let savedData = try DocumentStore.shared.load(from: url)
-            applyLoadedData(savedData, from: url, persistAsLastSavedURL: true)
-            CueStackDocumentType.repairContentTypeIfNeeded(at: url)
-        } catch {
-            print("❌ Error reading file: \(error.localizedDescription)")
-            self.showOpenError(error: error)
-        }
-    }
-
-    /// Apply a loaded `SavedData` to the in-memory model without triggering
-    /// dirty-marking. If `persistAsLastSavedURL` is true the URL becomes the
-    /// autosave/Cmd-S target.
-    ///
-    /// IMPORTANT: we deliberately do **not** set `lastSavedURL` when the file
-    /// decoded to an empty `cueStacks`. That was the trap that caused the
-    /// app to point autosave at a user file while keeping seed test data in
-    /// memory.
-    private func applyLoadedData(_ savedData: SavedData, from url: URL, persistAsLastSavedURL: Bool) {
-        isLoadingFromDisk = true
-
-        let hasContent = !savedData.cueStacks.isEmpty
-        if hasContent {
-            // Older builds copied IDs when duplicating/pasting; give every
-            // stack, column and cue a unique ID so LAN sync can't hit the
-            // wrong row.
-            self.dataSyncManager.cueStacks = CueEditing.repairingDuplicateIDs(savedData.cueStacks)
-            self.dataSyncManager.selectedCueStackIndex = CueEditing.clampedStackIndex(self.dataSyncManager.selectedCueStackIndex, count: savedData.cueStacks.count)
-            let loadedStack = self.dataSyncManager.selectedCueStackIndex
-            if self.dataSyncManager.selectedCueIndex >= savedData.cueStacks[loadedStack].cues.count {
-                self.dataSyncManager.selectedCueIndex = -1
-            }
-            print("📂 Loaded \(savedData.cueStacks.count) cue stack(s) from \(url.lastPathComponent)")
-        } else {
-            print("⚠️ File decoded to empty cueStacks — keeping current in-memory data and NOT pointing autosave at this file.")
-        }
-        self.settingsManager.settings.highlightColors = savedData.highlightColors
-        self.pdfNotes = savedData.pdfNotes
-        self.dataSyncManager.countdownPlaylist = savedData.countdownPlaylist
-
-        if persistAsLastSavedURL && hasContent {
-            self.lastSavedURL = url
-            self.currentFileName = url.lastPathComponent
-            // Phase 2: bookmark survives renames/moves; the legacy URL key is
-            // mirrored for backward compatibility but no longer authoritative.
-            try? DocumentStore.shared.saveBookmark(for: url)
-            UserDefaults.standard.set(url, forKey: "LastSavedURL")
-            if let state = try? DocumentStore.shared.diskState(for: url) {
-                DocumentStore.shared.recordDiskState(state)
-                self.lastSaveDate = state.modificationDate
-            } else {
-                self.lastSaveDate = Date()
-            }
-        } else if persistAsLastSavedURL && !hasContent {
-            // Decoded an empty document. Clear the autosave target so we
-            // don't overwrite the file with seed/test data.
-            self.lastSavedURL = nil
-            self.currentFileName = url.lastPathComponent + " (empty — choose Save As to keep changes)"
-            DocumentStore.shared.clearBookmark()
-            DocumentStore.shared.clearRecordedDiskState()
-            UserDefaults.standard.removeObject(forKey: "LastSavedURL")
-        }
-
-        // Loading is the new clean baseline.
-        self.documentChangedExternally = false
-        self.isDirty = false
-        self.lastRecoveryURL = nil
-
-        self.dataSyncManager.syncWebClientWithMacOSApp()
-        self.updateWebClients()
-
-        // Auto-sync to website if enabled (don't let it touch the local file).
-        self.websiteSyncManager.autoSyncIfEnabled(
-            cueStacks: self.dataSyncManager.cueStacks,
-            selectedCueStackIndex: self.dataSyncManager.selectedCueStackIndex,
-            filename: self.currentFileName,
-            settingsManager: self.settingsManager
-        )
-
-        // Window chrome (modified-dot, title, "Saved at" line).
-        updateWindowChrome()
-
-        if hasContent {
-            resetUndoHistory()
-        }
-
-        // Drop the loading flag on the next runloop tick so all the .onChange
-        // observers fire while it is still true.
-        DispatchQueue.main.async {
-            self.isLoadingFromDisk = false
+        case .appDelegateSaveFile: document.saveFile()
+        case .appDelegateSaveFileAs: document.saveFileAs()
+        case .appDelegateDuplicateFile: document.duplicateFile()
+        case .appDelegateImportCSV: importCSV()
+        case .appDelegateExportCSV: exportCSV()
+        // Edit
+        case .appDelegateUndo: editor.undo()
+        case .appDelegateRedo: editor.redo()
+        case .appDelegateCut: editor.cutSelection()
+        case .appDelegateCopy: editor.copySelection()
+        case .appDelegatePaste: editor.paste()
+        case .appDelegateDelete: editor.deleteSelectedCues()
+        case .appDelegateSelectAll: editor.selectAll()
+        case .appDelegateToggleStrikeThrough: editor.toggleStrikeThrough()
+        // Other
+        case .appDelegateShowPreferences: showSettings = true
+        case .appDelegateUpdateWebClients: updateWebClients()
+        default: break
         }
     }
     
@@ -853,140 +538,15 @@ struct ContentView: View {
         // return false for menu shortcuts to let them pass through to the menu.
         switch event.keyCode {
         case 126: // Up arrow
-            previousCue()
+            editor.previousCue()
             return true
         case 125: // Down arrow
-            advanceCue()
+            editor.advanceCue()
             return true
-        case 51: // Delete key
-            if isMultiSelectMode && !selectedCueIndices.isEmpty {
-                deleteSelectedCues()
-                return true
-            }
         default:
             break
         }
         return false
-    }
-    
-    // MARK: - Selection Methods
-    
-    func handleCueSelection(at index: Int, withShiftKey: Bool, withCommandKey: Bool) {
-        guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex),
-              index >= 0 && index < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count else {
-            return
-        }
-        if withCommandKey {
-            isMultiSelectMode = true
-            if selectedCueIndices.contains(index) {
-                selectedCueIndices.remove(index)
-                if selectedCueIndices.isEmpty {
-                    isMultiSelectMode = false
-                    dataSyncManager.selectedCueIndex = -1
-                }
-            } else {
-                selectedCueIndices.insert(index)
-                dataSyncManager.selectedCueIndex = index
-            }
-        } else if withShiftKey && lastSelectedIndex != nil {
-            isMultiSelectMode = true
-            let start = min(lastSelectedIndex!, index)
-            let end = max(lastSelectedIndex!, index)
-            for i in start...end {
-                if i >= 0 && i < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count {
-                    selectedCueIndices.insert(i)
-                }
-            }
-            dataSyncManager.selectedCueIndex = index
-        } else {
-            if isMultiSelectMode {
-                selectedCueIndices.removeAll()
-                isMultiSelectMode = false
-            }
-            dataSyncManager.selectedCueIndex = index
-            lastSelectedIndex = index
-            selectedCueIndices = [index]
-            // Reset the countdown based on the cue’s timer.
-            highlightCue(at: index)
-        }
-        lastSelectedIndex = index
-        updateWebClients()
-    }
-    
-    func getSelectedCueIndices() -> [Int]? {
-        if isMultiSelectMode && !selectedCueIndices.isEmpty {
-            return Array(selectedCueIndices).sorted()
-        } else if dataSyncManager.selectedCueIndex >= 0 {
-            return [dataSyncManager.selectedCueIndex]
-        }
-        return nil
-    }
-    
-    func clearCueSelection() {
-        selectedCueIndices.removeAll()
-        isMultiSelectMode = false
-        lastSelectedIndex = nil
-    }
-    
-    func selectAllCues() {
-        guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex) else { return }
-        let cueCount = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count
-        if cueCount > 0 {
-            isMultiSelectMode = true
-            selectedCueIndices = Set(0..<cueCount)
-            if dataSyncManager.selectedCueIndex >= 0 {
-                lastSelectedIndex = dataSyncManager.selectedCueIndex
-            } else {
-                dataSyncManager.selectedCueIndex = 0
-                lastSelectedIndex = 0
-            }
-            updateWebClients()
-        }
-    }
-    
-    /// Delete the selected cue(s): the multi-selection when there is one,
-    /// otherwise the single selected cue.
-    func deleteSelectedCues() {
-        let stackIndex = dataSyncManager.selectedCueStackIndex
-        guard dataSyncManager.cueStacks.indices.contains(stackIndex),
-              let indices = getSelectedCueIndices(), !indices.isEmpty else { return }
-        var stack = dataSyncManager.cueStacks[stackIndex]
-        let newSelection = CueEditing.remove(indices: indices, from: &stack, selected: dataSyncManager.selectedCueIndex)
-        dataSyncManager.cueStacks[stackIndex] = stack
-        dataSyncManager.selectedCueIndex = newSelection
-        clearCueSelection()
-        if newSelection >= 0 {
-            selectedCueIndices = [newSelection]
-            lastSelectedIndex = newSelection
-        }
-        saveState()
-        updateWebClients()
-    }
-
-    private var hasValidSelectedStack: Bool {
-        dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex)
-    }
-
-    private func advanceCue() {
-        guard hasValidSelectedStack, dataSyncManager.selectedCueIndex >= 0 else { return }
-        let cues = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues
-        guard let nextIndex = cues.nextPlayableIndex(after: dataSyncManager.selectedCueIndex) else { return }
-        selectCue(at: nextIndex)
-        updateWebClients()
-    }
-
-    private func previousCue() {
-        guard hasValidSelectedStack, dataSyncManager.selectedCueIndex >= 0 else { return }
-        let cues = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues
-        guard let previousIndex = cues.previousPlayableIndex(before: dataSyncManager.selectedCueIndex) else { return }
-        selectCue(at: previousIndex)
-        updateWebClients()
-    }
-    
-    private func selectCue(at index: Int) {
-        dataSyncManager.selectedCueIndex = index
-        highlightCue(at: index)
-        // updateWebClients() will be called automatically by onChange(of: selectedCueIndex)
     }
     
     // MARK: - Timer Control Methods (for keyboard shortcuts)
@@ -1056,11 +616,11 @@ struct ContentView: View {
         
         // Cue Navigation
         case "addCue":
-            addCue()
+            editor.addCue()
         case "nextCue":
-            advanceCue()
+            editor.advanceCue()
         case "previousCue":
-            previousCue()
+            editor.previousCue()
         
         default:
             break
@@ -1116,776 +676,6 @@ struct ContentView: View {
         }
     }
     
-    // When a new cue is selected, reset the countdown clock.
-    func parseCountdownTime(_ timeString: String) -> Int? {
-        let parts = timeString.split(separator: ":").compactMap { Int($0) }
-        if parts.isEmpty {
-            return nil
-        } else if parts.count == 1 {
-            return parts[0]
-        } else if parts.count == 2 {
-            let (minutes, seconds) = (parts[0], parts[1])
-            return minutes * 60 + seconds
-        } else if parts.count == 3 {
-            let (hours, minutes, seconds) = (parts[0], parts[1], parts[2])
-            return hours * 3600 + minutes * 60 + seconds
-        } else {
-            return nil
-        }
-    }
-    
-    private func highlightCue(at index: Int) {
-        guard hasValidSelectedStack,
-              dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.indices.contains(index) else { return }
-        let cue = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues[index]
-        if let timerValue = parseCountdownTime(cue.timerValue) {
-            selectedCueTime = timerValue
-            // Post a notification to reset the countdown in TopSectionView
-            NotificationCenter.default.post(name: Notification.Name("ResetCountdown"), object: timerValue)
-        }
-    }
-    
-    func addCue() {
-        guard hasValidSelectedStack else {
-            NSSound.beep()
-            return
-        }
-        let newCue = Cue(values: Array(repeating: "", count: dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count))
-        dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.append(newCue)
-        // Snapshot AFTER the mutation so each undo step reverses exactly one add.
-        saveState()
-        self.appDelegate.updateWebClients()
-        print("➕ Added cue #\(dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count) with ID: \(newCue.id)")
-    }
-    
-    // MARK: - File Saving Methods (Phase 1 — atomic + coordinated + backed up)
-
-    /// Build the in-memory document snapshot.
-    private func currentSavedData() -> SavedData {
-        SavedData(
-            cueStacks: dataSyncManager.cueStacks,
-            highlightColors: settingsManager.settings.highlightColors,
-            pdfNotes: pdfNotes,
-            countdownPlaylist: dataSyncManager.countdownPlaylist
-        )
-    }
-
-    /// Cmd-S: save to the current file, or prompt for a location if none.
-    func saveFile() {
-        if let url = lastSavedURL {
-            _ = saveToURL(url)
-        } else {
-            saveFileAs()
-        }
-    }
-
-    /// Save any unsaved edits before switching documents (New, Open, etc.).
-    /// Calls `completion(true)` when it is safe to proceed, `completion(false)` if
-    /// the user cancelled or the save failed.
-    private enum DocumentSwitchAction {
-        case newDocument
-        case openDocument
-
-        var blockedTitle: String {
-            switch self {
-            case .newDocument: return "Can't Create a New Document Yet"
-            case .openDocument: return "Can't Open Another File Yet"
-            }
-        }
-
-        var blockedMessage: String {
-            switch self {
-            case .newDocument:
-                return "Save your changes first. This file was modified outside of Cue to Cue — resolve the conflict, then try again."
-            case .openDocument:
-                return "Save your changes before opening another file. This file was modified outside of Cue to Cue — resolve the conflict, then try again."
-            }
-        }
-    }
-
-    private func saveCurrentDocumentIfNeeded(
-        for action: DocumentSwitchAction,
-        completion: @escaping (Bool) -> Void
-    ) {
-        guard isDirty else {
-            completion(true)
-            return
-        }
-
-        if let url = lastSavedURL {
-            if saveWouldConflict(at: url) {
-                documentChangedExternally = true
-                pendingConflictURL = url
-                showConflictSheet = true
-                showDocumentActionBlockedAlert(
-                    messageText: action.blockedTitle,
-                    informativeText: action.blockedMessage
-                )
-                completion(false)
-                return
-            }
-            completion(saveToURL(url))
-        } else {
-            let context: SaveAsContext = action == .newDocument ? .beforeNewDocument : .beforeOpenDocument
-            saveFileAs(completion: completion, context: context)
-        }
-    }
-
-    /// File → New: save the current document, then reset to a blank document.
-    func newFile() {
-        saveCurrentDocumentIfNeeded(for: .newDocument) { saved in
-            guard saved else { return }
-            self.performNewDocument()
-        }
-    }
-
-    /// File → Duplicate: save the original if needed, copy to a new file, and
-    /// continue editing the copy (typical workflow for starting a new event
-    /// from last show's cue stack).
-    func duplicateFile() {
-        prepareOriginalBeforeDuplicate { ready in
-            guard ready else { return }
-            self.presentDuplicateSavePanel()
-        }
-    }
-
-    /// If the current document has a file on disk and unsaved edits, save the
-    /// original before duplicating so the archived show stays up to date.
-    private func prepareOriginalBeforeDuplicate(completion: @escaping (Bool) -> Void) {
-        guard isDirty, let url = lastSavedURL else {
-            completion(true)
-            return
-        }
-
-        if saveWouldConflict(at: url) {
-            documentChangedExternally = true
-            pendingConflictURL = url
-            showConflictSheet = true
-            showDocumentActionBlockedAlert(
-                messageText: "Can't Duplicate Yet",
-                informativeText: "Save your changes to the original file first. It was modified outside of Cue to Cue — resolve the conflict, then try again."
-            )
-            completion(false)
-            return
-        }
-
-        completion(saveToURL(url))
-    }
-
-    private func presentDuplicateSavePanel() {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = UTType.cueStackReadableTypes
-        panel.canCreateDirectories = true
-        panel.isExtensionHidden = false
-        panel.title = "Duplicate Cue Stack"
-        panel.message = "Save a copy under a new name for your next event. The original file stays unchanged."
-        panel.nameFieldStringValue = suggestedDuplicateFilename()
-        if let url = lastSavedURL {
-            panel.directoryURL = url.deletingLastPathComponent()
-        }
-
-        guard let window = NSApp.keyWindow ?? NSApp.windows.first else { return }
-        panel.beginSheetModal(for: window) { response in
-            guard response == .OK, let url = panel.url else { return }
-
-            if let existing = self.lastSavedURL,
-               url.standardizedFileURL == existing.standardizedFileURL {
-                self.showDocumentActionBlockedAlert(
-                    messageText: "Choose a Different Name",
-                    informativeText: "Duplicating requires a new file name so your original show file is preserved."
-                )
-                return
-            }
-
-            if self.saveToURL(url) {
-                self.hasExplicitlyOpenedFile = true
-                self.resetUndoHistory()
-            }
-        }
-    }
-
-    private func suggestedDuplicateFilename() -> String {
-        let stem = currentFileStem.trimmingCharacters(in: .whitespacesAndNewlines)
-        if stem.isEmpty || stem == "Untitled" {
-            return "Untitled copy.cuestack"
-        }
-        let lower = stem.lowercased()
-        if lower.hasSuffix(" copy") {
-            return CueStackDocumentType.defaultSaveFilename(stem: stem)
-        }
-        return CueStackDocumentType.defaultSaveFilename(stem: "Copy of \(stem)")
-    }
-
-    /// Replace in-memory state with a fresh blank document.
-    private func performNewDocument() {
-        let blank = SavedData.blankDocument(highlightColors: settingsManager.settings.highlightColors)
-        isLoadingFromDisk = true
-
-        dataSyncManager.cueStacks = blank.cueStacks
-        dataSyncManager.selectedCueStackIndex = 0
-        dataSyncManager.selectedCueIndex = 0
-        dataSyncManager.countdownPlaylist = blank.countdownPlaylist
-        pdfNotes = blank.pdfNotes
-
-        selectedCueIndices.removeAll()
-        lastSelectedIndex = nil
-        isMultiSelectMode = false
-        editingCueIndex = nil
-
-        lastSavedURL = nil
-        lastSaveDate = nil
-        lastRecoveryURL = nil
-        documentChangedExternally = false
-        pendingConflictURL = nil
-        latestBackupReport = nil
-        currentFileName = "Untitled"
-        hasExplicitlyOpenedFile = true
-
-        DocumentStore.shared.clearBookmark()
-        DocumentStore.shared.clearRecordedDiskState()
-        UserDefaults.standard.removeObject(forKey: "LastSavedURL")
-
-        fileWatcher?.stop()
-        fileWatcher = nil
-
-        isDirty = false
-
-        timerServer.executeCommand(TimerCommand(action: "pause", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil))
-        timerServer.executeCommand(TimerCommand(action: "reset", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil))
-        timerServer.executeCommand(TimerCommand(action: "pauseCountdownToTime", countdownTime: nil, countUpTime: nil, adjustment: nil, targetTimeString: nil))
-
-        resetUndoHistory()
-        dataSyncManager.syncWebClientWithMacOSApp()
-        updateWebClients()
-        updateWindowChrome()
-
-        DispatchQueue.main.async {
-            self.isLoadingFromDisk = false
-        }
-    }
-
-    private func showDocumentActionBlockedAlert(messageText: String, informativeText: String) {
-        let alert = NSAlert()
-        alert.messageText = messageText
-        alert.informativeText = informativeText
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
-    }
-
-    private func saveWouldConflict(at url: URL) -> Bool {
-        guard url == lastSavedURL,
-              FileManager.default.fileExists(atPath: url.path),
-              let recorded = DocumentStore.shared.loadRecordedDiskState() else {
-            return false
-        }
-        return DocumentStore.shared.diskStateChanged(at: url, since: recorded)
-            && !DocumentStore.shared.wasRecentlySelfWritten()
-    }
-
-    /// Save the current document to `url` through DocumentStore (atomic +
-    /// coordinated + rotating backup + post-write verification).
-    @discardableResult
-    func saveToURL(_ url: URL) -> Bool {
-        if saveWouldConflict(at: url) {
-            documentChangedExternally = true
-            pendingConflictURL = url
-            showConflictSheet = true
-            print("⚠️ Refusing to save — file was modified outside of Cue to Cue since the last known state. Showing conflict sheet.")
-            return false
-        }
-
-        do {
-            let result = try DocumentStore.shared.save(currentSavedData(), to: url)
-            self.lastSaveDate = result.savedAt
-            self.lastSavedURL = url
-            self.currentFileName = url.lastPathComponent
-            self.isDirty = false
-            self.lastRecoveryURL = nil
-            self.documentChangedExternally = false
-            self.pendingConflictURL = nil
-            try? DocumentStore.shared.saveBookmark(for: url)
-            DocumentStore.shared.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
-            UserDefaults.standard.set(url, forKey: "LastSavedURL")
-            print("✅ Saved \(url.lastPathComponent) at \(result.savedAt). Previous version at: \(result.backedUpTo?.path ?? "(no prior file)")")
-            self.appDelegate.updateWebClients()
-            updateWindowChrome()
-            startFileWatcher(at: url)
-            return true
-        } catch {
-            print("❌ Error saving file: \(error.localizedDescription)")
-            showSaveError(error: error)
-            return false
-        }
-    }
-
-    func showSaveError(error: Error) {
-        let alert = NSAlert()
-        alert.messageText = "Error Saving File"
-        alert.informativeText = error.localizedDescription
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
-    }
-
-    enum SaveAsContext {
-        case normal
-        case beforeNewDocument
-        case beforeOpenDocument
-    }
-
-    func saveFileAs(completion: ((Bool) -> Void)? = nil, context: SaveAsContext = .normal) {
-        let savePanel = NSSavePanel()
-        savePanel.allowedContentTypes = UTType.cueStackReadableTypes
-        savePanel.canCreateDirectories = true
-        savePanel.isExtensionHidden = false
-        savePanel.title = "Save Cue Stack"
-        switch context {
-        case .normal:
-            savePanel.message = "Choose a location to save your cue stack."
-        case .beforeNewDocument:
-            savePanel.message = "Save your current cue stack before creating a new document."
-        case .beforeOpenDocument:
-            savePanel.message = "Save your current cue stack before opening another file."
-        }
-        savePanel.nameFieldStringValue = CueStackDocumentType.defaultSaveFilename(stem: currentFileStem)
-        guard let window = NSApp.keyWindow ?? NSApp.windows.first else {
-            completion?(false)
-            return
-        }
-        savePanel.beginSheetModal(for: window) { response in
-            if response == .OK, let url = savePanel.url {
-                completion?(self.saveToURL(url))
-            } else {
-                completion?(false)
-            }
-        }
-    }
-
-    /// Compatibility shim — old call sites used `saveDocument(to:)`.
-    func saveDocument(to url: URL) {
-        saveToURL(url)
-    }
-
-    // MARK: - Autosave (Phase 1 — never silently writes to NSTemporaryDirectory)
-
-    func autoSave() {
-        // Don't churn disk if nothing has changed.
-        guard isDirty else { return }
-
-        if let url = lastSavedURL {
-            saveToURL(url)
-            print("💾 Autosaved to \(url.path)")
-            return
-        }
-
-        // No document URL has been chosen. Write to the Recovery directory in
-        // Application Support so the user's edits are durable AND visible,
-        // never to NSTemporaryDirectory where they would be invisible.
-        do {
-            let suggestedStem = currentFileStem.trimmingCharacters(in: .whitespacesAndNewlines)
-            let result = try DocumentStore.shared.saveRecovery(currentSavedData(), suggestedStem: suggestedStem.isEmpty ? "Untitled" : suggestedStem)
-            self.lastRecoveryURL = result.url
-            self.lastSaveDate = result.savedAt
-            // Note: we do NOT clear isDirty here — the document still has no
-            // permanent home, so we keep the dirty marker on so the user is
-            // prompted to Save As before quit.
-            print("💾 Autosaved unsaved changes to recovery file: \(result.url.path)")
-            updateWindowChrome()
-        } catch {
-            print("❌ Recovery autosave failed: \(error.localizedDescription)")
-        }
-    }
-
-    func openFile() {
-        guard !isOpeningFile else { return }
-
-        saveCurrentDocumentIfNeeded(for: .openDocument) { saved in
-            guard saved else { return }
-            self.presentOpenPanel()
-        }
-    }
-
-    private func presentOpenPanel() {
-        guard !isOpeningFile else { return }
-        isOpeningFile = true
-
-        let openPanel = NSOpenPanel()
-        openPanel.allowedContentTypes = UTType.cueStackReadableTypes
-        openPanel.allowsMultipleSelection = false
-        openPanel.canChooseDirectories = false
-        openPanel.canCreateDirectories = false
-        openPanel.canChooseFiles = true
-        if let url = lastSavedURL {
-            openPanel.directoryURL = url.deletingLastPathComponent()
-        }
-        openPanel.begin { response in
-            self.showOpenPanel = false
-            self.isOpeningFile = false
-
-            if response == .OK, let url = openPanel.url {
-                self.loadDocument(from: url)
-            }
-        }
-    }
-
-    func loadLastFile() {
-        // Only load files on app startup, never during runtime
-        // This prevents overwriting web changes
-
-        // Skip loading if a file was explicitly opened
-        if hasExplicitlyOpenedFile {
-            return
-        }
-
-        // Whatever happens below, never leave the app with zero cue stacks.
-        defer { ensureDocumentHasAStack() }
-
-        DocumentStore.shared.migrateLegacyLastSavedURLIfNeeded()
-
-        let resolvedURL: URL?
-        do {
-            resolvedURL = try DocumentStore.shared.resolveBookmark()?.url
-        } catch {
-            print("❌ Could not resolve last document bookmark: \(error.localizedDescription)")
-            resolvedURL = nil
-        }
-
-        guard let lastURL = resolvedURL else {
-            return
-        }
-
-        guard FileManager.default.fileExists(atPath: lastURL.path) else {
-            print("❌ Last saved file no longer exists: \(lastURL.lastPathComponent)")
-            // Phase 2: tell the user instead of silently dropping the file
-            // reference. They can locate it, save as, or continue without.
-            pendingConflictURL = lastURL
-            showMissingFileSheet = true
-            return
-        }
-
-        // If the file changed while the app wasn't running (iCloud, Dropbox,
-        // another Mac), the on-disk version is the only version: there are
-        // no in-memory edits to conflict with. Just load it. (This used to
-        // show the conflict alert, where "Keep My Version" would overwrite
-        // the show file with an empty document.)
-        if let recorded = DocumentStore.shared.loadRecordedDiskState(),
-           DocumentStore.shared.diskStateChanged(at: lastURL, since: recorded) {
-            print("ℹ️ \(lastURL.lastPathComponent) changed while the app was closed. Loading the newer version.")
-        }
-
-        do {
-            print("📂 Restoring last document: \(lastURL.lastPathComponent)")
-            let result = try DocumentStore.shared.loadResult(from: lastURL)
-            applyLoadedData(result.savedData, from: lastURL, persistAsLastSavedURL: true)
-            DocumentStore.shared.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
-        } catch {
-            print("❌ Error loading last file: \(error.localizedDescription)")
-            // Do NOT set lastSavedURL — we don't want autosave to overwrite a
-            // file that we just failed to decode. Surface the issue to the
-            // user so they can investigate the file or restore a backup.
-            showOpenError(error: error)
-        }
-    }
-
-    /// First launch, a missing last file, or a failed load would otherwise
-    /// leave the window with no cue stacks at all. Install a blank stack
-    /// without touching the saved-file reference or marking the doc dirty.
-    private func ensureDocumentHasAStack() {
-        guard dataSyncManager.cueStacks.isEmpty else { return }
-        isLoadingFromDisk = true
-        let blank = SavedData.blankDocument(highlightColors: settingsManager.settings.highlightColors)
-        dataSyncManager.cueStacks = blank.cueStacks
-        dataSyncManager.selectedCueStackIndex = 0
-        dataSyncManager.selectedCueIndex = -1
-        resetUndoHistory()
-        dataSyncManager.syncWebClientWithMacOSApp()
-        DispatchQueue.main.async {
-            self.isLoadingFromDisk = false
-        }
-    }
-
-    func showOpenError(error: Error) {
-        let alert = NSAlert()
-        alert.messageText = "Error Opening File"
-        alert.informativeText = error.localizedDescription
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
-        alert.addButton(withTitle: "Reveal Backups in Finder")
-        let response = alert.runModal()
-        if response == .alertSecondButtonReturn {
-            if let backupRoot = try? DocumentStore.shared.backupRoot() {
-                NSWorkspace.shared.activateFileViewerSelecting([backupRoot])
-            }
-        }
-    }
-
-    // MARK: - Window chrome (modified-dot, "Saved at HH:mm:ss")
-
-    private func updateWindowChrome() {
-        guard let window = NSApplication.shared.windows.first else { return }
-        window.isDocumentEdited = isDirty
-
-        // Title format examples:
-        //   "Show — Edited - Cue to Cue 2.1"
-        //   "Show — Saved 1:34:06 PM · 3 backups - Cue to Cue 2.1"
-        //   "Show — Saved 1:34:06 PM · 2 of 3 backups - Cue to Cue 2.1"
-        let stem = currentFileStem
-        var suffix: String
-        if isDirty {
-            suffix = " — Edited"
-        } else if let saved = lastSaveDate {
-            let f = DateFormatter()
-            f.dateFormat = "h:mm:ss a"
-            suffix = " — Saved \(f.string(from: saved))"
-            if let report = latestBackupReport {
-                if report.hasFailures {
-                    suffix += " · \(report.writtenCount) of \(report.totalCount) backups"
-                } else {
-                    suffix += " · \(report.writtenCount) backups"
-                }
-            }
-        } else {
-            suffix = ""
-        }
-        window.title = "\(stem)\(suffix) - Cue to Cue 2.1"
-    }
-
-    // MARK: - Phase 2 — file watcher + external-change handlers
-
-    /// Start (or restart) the filesystem watcher pointed at `url`. Safe to
-    /// call repeatedly; the watcher stops itself first if already active.
-    private func startFileWatcher(at url: URL) {
-        let watcher = FileWatcher { reason in
-            self.handleExternalChange(reason: reason)
-        }
-        watcher.start(watching: url)
-        self.fileWatcher = watcher
-    }
-
-    /// Called by the watcher (on the main queue) for filesystem events that
-    /// were *not* produced by our own writes.
-    private func handleExternalChange(reason: FileWatcher.Reason) {
-        switch reason {
-        case .delete, .rename:
-            guard let url = lastSavedURL else { return }
-            // Defense-in-depth: even though FileWatcher does this check too,
-            // re-verify here. Atomic writes (NSFileCoordinator + .atomic)
-            // replace the inode at the same path, so an apparent .delete
-            // can simply mean "we just saved and the path now points to
-            // the fresh file." If our own write window is still warm, OR
-            // the path still resolves, treat it as a benign atomic
-            // replacement and just reattach the watcher.
-            if DocumentStore.shared.wasRecentlySelfWritten(within: 5.0)
-                || FileManager.default.fileExists(atPath: url.path) {
-                startFileWatcher(at: url)
-                return
-            }
-            pendingConflictURL = url
-            showMissingFileSheet = true
-        case .write, .other:
-            guard let url = lastSavedURL else { return }
-            // Cross-check disk state: if mtime+size still match what we
-            // recorded after our last save, this was a noop event (Spotlight,
-            // iCloud metadata refresh, etc.) and we ignore it.
-            if let recorded = DocumentStore.shared.loadRecordedDiskState(),
-               !DocumentStore.shared.diskStateChanged(at: url, since: recorded) {
-                return
-            }
-            documentChangedExternally = true
-            pendingConflictURL = url
-            // Don't auto-pop the alert mid-edit; flag is enough. The next
-            // save attempt will pop it. AppDelegate.didBecomeActive will
-            // also pop it if the user comes back to the app.
-        }
-    }
-
-    /// Re-check the on-disk file when we become the active app. This catches
-    /// cases where iCloud or another editor changed the file while we were
-    /// in the background and the watcher was throttled.
-    private func recheckExternalChangesNow() {
-        guard let url = lastSavedURL else { return }
-        // Suppress if our own write was within the settle window.
-        if DocumentStore.shared.wasRecentlySelfWritten() { return }
-        // If the file is missing, don't pop the missing-file sheet
-        // synchronously — Finder, iCloud, and other tools sometimes briefly
-        // unlink + relink during sync. Recheck after a short delay; if it
-        // is still gone, *then* surface the sheet.
-        if !FileManager.default.fileExists(atPath: url.path) {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                guard let stillURL = self.lastSavedURL, stillURL == url else { return }
-                if !FileManager.default.fileExists(atPath: stillURL.path),
-                   !DocumentStore.shared.wasRecentlySelfWritten(within: 5.0) {
-                    self.pendingConflictURL = stillURL
-                    self.showMissingFileSheet = true
-                }
-            }
-            return
-        }
-        if let recorded = DocumentStore.shared.loadRecordedDiskState(),
-           DocumentStore.shared.diskStateChanged(at: url, since: recorded) {
-            documentChangedExternally = true
-            pendingConflictURL = url
-            showConflictSheet = true
-        }
-    }
-
-    /// Conflict-sheet action: replace our in-memory state with the on-disk
-    /// version.
-    private func reloadFromDiskAfterConflict() {
-        let url = pendingConflictURL ?? lastSavedURL
-        guard let url else { return }
-        do {
-            let result = try DocumentStore.shared.loadResult(from: url)
-            applyLoadedData(result.savedData, from: url, persistAsLastSavedURL: true)
-            DocumentStore.shared.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
-            documentChangedExternally = false
-            pendingConflictURL = nil
-        } catch {
-            showOpenError(error: error)
-        }
-    }
-
-    /// Conflict-sheet action: overwrite the on-disk file with our in-memory
-    /// version. The disk version is preserved as a backup snapshot by
-    /// DocumentStore before the write happens.
-    private func forceOverwriteAfterConflict() {
-        let url = pendingConflictURL ?? lastSavedURL
-        guard let url else { return }
-        // Never overwrite a show file with an empty document.
-        guard !dataSyncManager.cueStacks.isEmpty, url == lastSavedURL else {
-            reloadFromDiskAfterConflict()
-            return
-        }
-        do {
-            let result = try DocumentStore.shared.save(currentSavedData(), to: url)
-            self.lastSavedURL = url
-            self.lastSaveDate = result.savedAt
-            self.currentFileName = url.lastPathComponent
-            self.isDirty = false
-            self.lastRecoveryURL = nil
-            self.documentChangedExternally = false
-            self.pendingConflictURL = nil
-            try? DocumentStore.shared.saveBookmark(for: url)
-            DocumentStore.shared.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
-            UserDefaults.standard.set(url, forKey: "LastSavedURL")
-            self.appDelegate.updateWebClients()
-            updateWindowChrome()
-        } catch {
-            showSaveError(error: error)
-        }
-    }
-
-    /// Missing-file-sheet action: prompt the user to locate the file.
-    private func locateMissingFile() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = UTType.cueStackReadableTypes
-        panel.allowsMultipleSelection = false
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        if let parent = pendingConflictURL?.deletingLastPathComponent() {
-            panel.directoryURL = parent
-        }
-        panel.begin { response in
-            self.showMissingFileSheet = false
-            if response == .OK, let url = panel.url {
-                self.hasExplicitlyOpenedFile = true
-                self.beginOpeningDocument(at: url)
-            }
-            self.pendingConflictURL = nil
-        }
-    }
-
-    /// Missing-file-sheet action: drop the file reference and continue with
-    /// the in-memory state. Future autosaves will go to Recovery.
-    private func abandonMissingFile() {
-        self.lastSavedURL = nil
-        DocumentStore.shared.clearBookmark()
-        DocumentStore.shared.clearRecordedDiskState()
-        UserDefaults.standard.removeObject(forKey: "LastSavedURL")
-        self.currentFileName = "Untitled"
-        self.pendingConflictURL = nil
-        // Mark dirty so the user is reminded to Save As before quitting.
-        self.isDirty = true
-        updateWindowChrome()
-    }
-
-    // MARK: - Phase 3 — Backup status + restore
-
-    /// Receives the asynchronous backup-fan-out report from DocumentStore.
-    /// Updates the in-memory status and surfaces a non-blocking warning if
-    /// any tier failed.
-    private func handleBackupReport(_ note: Notification) {
-        guard let report = note.object as? BackupManager.Report else { return }
-        latestBackupReport = report
-        if report.hasFailures {
-            let lines = report.tiers
-                .filter { !$0.succeeded }
-                .map { "• \($0.tier): \($0.error?.localizedDescription ?? "unknown error")" }
-            backupWarningDetail = lines.joined(separator: "\n")
-            showBackupWarning = true
-        }
-        updateWindowChrome()
-    }
-
-    /// Restore the document from a chosen backup snapshot. To make this
-    /// safe even if the user picked the wrong snapshot, the current
-    /// in-memory state is first written to a Recovery file. Only after
-    /// that succeeds do we load the snapshot.
-    private func restoreFromBackup(at backupURL: URL) {
-        // 1) Snapshot current state to Recovery so this action can never
-        //    lose work, even if the user picks the wrong backup.
-        let suggestedStem = currentFileStem.trimmingCharacters(in: .whitespacesAndNewlines)
-        let recoveryStem = "PreRestore-" + (suggestedStem.isEmpty ? "Untitled" : suggestedStem)
-        // Only attempt the recovery snapshot if the in-memory document is
-        // non-empty; DocumentStore refuses empty saves.
-        if !dataSyncManager.cueStacks.isEmpty {
-            do {
-                let r = try DocumentStore.shared.saveRecovery(currentSavedData(), suggestedStem: recoveryStem)
-                self.lastRecoveryURL = r.url
-                print("📦 Pre-restore recovery saved at \(r.url.path)")
-            } catch {
-                NSLog("ContentView: pre-restore recovery save failed: \(error.localizedDescription). Continuing anyway.")
-            }
-        }
-
-        // 2) Load the chosen backup.
-        do {
-            let result = try DocumentStore.shared.loadResult(from: backupURL)
-            // Empty-payload guard: refuse to "restore" a backup that has no
-            // cue stacks. This prevents the user from clobbering a real
-            // document with an empty backup, the same trap that triggered
-            // the original data loss.
-            if result.savedData.cueStacks.isEmpty {
-                let alert = NSAlert()
-                alert.messageText = "That backup is empty"
-                alert.informativeText = "\(backupURL.lastPathComponent) decoded successfully but contains no cue stacks. Nothing was restored."
-                alert.alertStyle = .warning
-                alert.addButton(withTitle: "OK")
-                alert.runModal()
-                return
-            }
-            // 3) If we have a current main file URL, apply the restored
-            //    payload in memory and then write it back to the main file
-            //    so disk and memory both reflect the restored version.
-            //    Otherwise just load it in-memory and let the user Save As.
-            if let mainURL = lastSavedURL {
-                applyLoadedData(result.savedData, from: mainURL, persistAsLastSavedURL: true)
-                // Persist the restored bytes back to the main URL. This
-                // also fans out backups, so the restored version becomes
-                // the new "latest known good" across all tiers.
-                saveToURL(mainURL)
-            } else {
-                applyLoadedData(result.savedData, from: backupURL, persistAsLastSavedURL: false)
-                // Mark dirty so the user is prompted to Save As.
-                self.isDirty = true
-                self.currentFileName = "Restored from " + backupURL.lastPathComponent
-            }
-            updateWindowChrome()
-        } catch {
-            showOpenError(error: error)
-        }
-    }
 
     func importCSV() {
         let panel = NSOpenPanel()
@@ -1948,7 +738,7 @@ struct ContentView: View {
                 existingNames: dataSyncManager.cueStacks.map(\.name)
             )
             dataSyncManager.cueStacks.append(contentsOf: stacksToAdd)
-            saveState()
+            editor.recordEdit()
 
         case .addStacks:
             let stacksToAdd = CueCSVCodec.stacksForAdd(
@@ -1956,17 +746,23 @@ struct ContentView: View {
                 existingNames: dataSyncManager.cueStacks.map(\.name)
             )
             dataSyncManager.cueStacks.append(contentsOf: stacksToAdd)
-            saveState()
+            editor.recordEdit()
 
         case .replaceAll:
+            guard !result.stacks.isEmpty else {
+                showCSVImportError(
+                    messageText: "Could not import CSV",
+                    informativeText: "The file contains no cue stacks, so nothing was replaced."
+                )
+                return
+            }
             dataSyncManager.cueStacks = result.stacks
             dataSyncManager.selectedCueStackIndex = 0
-            dataSyncManager.selectedCueIndex = 0
-            selectedCueIndices.removeAll()
-            lastSelectedIndex = nil
-            isMultiSelectMode = false
+            dataSyncManager.selectedCueIndex = -1
+            editor.clearSelection()
             editingCueIndex = nil
-            resetUndoHistory()
+            // Undoable: Replace All wipes every stack, so keep it in history.
+            editor.recordEdit()
 
         case .mergeIntoSelected(let sourceStackName):
             guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex),
@@ -1983,10 +779,10 @@ struct ContentView: View {
                 existing: dataSyncManager.cueStacks[index],
                 imported: importedStack
             )
-            saveState()
+            editor.recordEdit()
         }
 
-        isDirty = true
+        document.markDirty()
         updateWebClients()
     }
 
@@ -2055,7 +851,7 @@ struct ContentView: View {
                 print("✅ CSV exported to \(url.path) (\(data.count) bytes, \(stacks.count) stack\(stacks.count == 1 ? "" : "s"))")
             } catch {
                 print("❌ CSV export failed: \(error.localizedDescription)")
-                self.showSaveError(error: error)
+                self.document.showSaveError(error: error)
             }
         }
 
@@ -2087,56 +883,6 @@ struct ContentView: View {
         return cleaned.isEmpty ? "Cue Stacks" : cleaned
     }
 
-    /// Record the document as it is now, after an edit. Call AFTER mutating.
-    func saveState() {
-        undoHistory.record(dataSyncManager.cueStacks)
-    }
-
-    /// Establish a clean undo baseline after loading a file or resetting the
-    /// document, so the first Cmd-Z only reverses edits made in this session.
-    private func resetUndoHistory() {
-        undoHistory.reset(to: dataSyncManager.cueStacks)
-    }
-
-    func undo() {
-        guard !ContentViewLifecycleSetup.isPerformingUndoRedo else { return }
-        ContentViewLifecycleSetup.isPerformingUndoRedo = true
-        defer { ContentViewLifecycleSetup.isPerformingUndoRedo = false }
-
-        guard let state = undoHistory.undo(current: dataSyncManager.cueStacks) else {
-            NSSound.beep()
-            return
-        }
-        applyHistoryState(state)
-    }
-
-    func redo() {
-        guard !ContentViewLifecycleSetup.isPerformingUndoRedo else { return }
-        ContentViewLifecycleSetup.isPerformingUndoRedo = true
-        defer { ContentViewLifecycleSetup.isPerformingUndoRedo = false }
-
-        guard let state = undoHistory.redo(current: dataSyncManager.cueStacks) else {
-            NSSound.beep()
-            return
-        }
-        applyHistoryState(state)
-    }
-
-    /// Restore a whole-document snapshot and keep selection indices valid.
-    private func applyHistoryState(_ state: [CueStack]) {
-        dataSyncManager.cueStacks = state
-        let stackIndex = CueEditing.clampedStackIndex(dataSyncManager.selectedCueStackIndex, count: state.count)
-        if stackIndex != dataSyncManager.selectedCueStackIndex {
-            dataSyncManager.selectedCueStackIndex = stackIndex
-        }
-        let cueCount = state.indices.contains(stackIndex) ? state[stackIndex].cues.count : 0
-        if dataSyncManager.selectedCueIndex >= cueCount {
-            dataSyncManager.selectedCueIndex = cueCount - 1
-        }
-        clearCueSelection()
-        appDelegate.updateWebClients()
-    }
-    
     func getHighlightColor(for cue: Cue) -> Color {
         for highlight in settingsManager.settings.highlightColors {
             if cue.values.contains(where: { $0.lowercased().contains(highlight.keyword.lowercased()) }) {
@@ -2144,73 +890,6 @@ struct ContentView: View {
             }
         }
         return settingsManager.settings.fontColor
-    }
-    
-    // MARK: - Copy and Paste Methods
-    
-    func copy(_ sender: Any?) {
-        if let selectedIndices = getSelectedCueIndices() {
-            copyCues(at: selectedIndices)
-        }
-    }
-    
-    func copyCues(at indices: [Int]) {
-        guard !indices.isEmpty, dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex) else { return }
-        let cuesToCopy = indices.compactMap { index -> Cue? in
-            guard index >= 0 && index < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count else {
-                return nil
-            }
-            return dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues[index]
-        }
-        CueClipboard.write(
-            cuesToCopy,
-            columnCount: dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count
-        )
-    }
-
-    func copyCue(at index: Int) {
-        copyCues(at: [index])
-    }
-
-    /// Paste after the selected cue, or at the end when nothing is selected
-    /// (so an empty stack can be pasted into).
-    func paste(_ sender: Any?) {
-        pasteCues(after: dataSyncManager.selectedCueIndex >= 0 ? dataSyncManager.selectedCueIndex : nil)
-    }
-
-    func pasteCues(after index: Int?) {
-        let stackIndex = dataSyncManager.selectedCueStackIndex
-        guard dataSyncManager.cueStacks.indices.contains(stackIndex) else { return }
-        guard let cues = CueClipboard.read(), !cues.isEmpty else {
-            NSSound.beep()
-            return
-        }
-        var stack = dataSyncManager.cueStacks[stackIndex]
-        guard let lastInserted = CueEditing.paste(cues, into: &stack, after: index) else { return }
-        dataSyncManager.cueStacks[stackIndex] = stack
-        dataSyncManager.selectedCueIndex = lastInserted
-        clearCueSelection()
-        saveState()
-        appDelegate.updateWebClients()
-    }
-    
-    func pasteCue(at index: Int) {
-        pasteCues(after: index)
-    }
-    
-    // MARK: - Strike-Through Functionality
-    
-    func toggleStrikeThrough() {
-        guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex) else { return }
-        
-        let selectedStack = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex]
-        guard selectedStack.cues.indices.contains(dataSyncManager.selectedCueIndex) else { return }
-        
-        let cueId = selectedStack.cues[dataSyncManager.selectedCueIndex].id
-        Task {
-            guard await dataSyncManager.toggleStrikeThrough(cueId: cueId) else { return }
-            updateWebClients()
-        }
     }
     
     // MARK: - Printing Functionality
@@ -2238,9 +917,7 @@ struct ContentView: View {
 /// observers/monitors that must not be registered more than once.
 enum ContentViewLifecycleSetup {
     static var appDelegateNotificationsRegistered = false
-    static var autoSaveObserverRegistered = false
     static var keyEventMonitor: Any?
-    static var isPerformingUndoRedo = false
     static var didCompleteLaunchSetup = false
     static var webServerStarted = false
     static weak var sharedWebServer: WebServer?
@@ -2630,60 +1307,20 @@ struct MultiCueTransfer: Codable {
 // MARK: - View Modifier for ContentView Lifecycle
 
 struct ContentViewLifecycleModifiers: ViewModifier {
-    @Binding var showSavePanel: Bool
-    @Binding var showOpenPanel: Bool
-    @Binding var showImportCSVPanel: Bool
-    @Binding var isOpeningFile: Bool
     let dataSyncManager: DataSyncManager
     let timerServer: AuthoritativeTimerServer
-    let saveFile: () -> Void
-    let openFile: () -> Void
-    let importCSV: () -> Void
+    let document: DocumentController
     let clearCueSelection: () -> Void
     let updateWebClients: () -> Void
-    let autoSave: () -> Void
     let printCueStacks: () -> Void
     let setupAppDelegate: () -> Void
     let setupAppDelegateNotifications: () -> Void
-    let loadLastFile: () -> Void
-    let openDocumentAtURL: (URL) -> Void
     let handleKeyDown: (NSEvent) -> Bool
-    @Binding var hasExplicitlyOpenedFile: Bool
     let appDelegate: AppDelegate
     @Binding var showSettings: Bool
-    // Phase 1 — file-safety wiring
-    let isDirty: Bool
-    @Binding var isLoadingFromDisk: Bool
-    let markDirty: () -> Void
-    let updateWindowChrome: () -> Void
-    
+
     func body(content: Content) -> some View {
         content
-            // Defensive: if anyone flips these flags to true we still want
-            // the action to happen, AND we always reset the flag back to
-            // false on the next runloop tick so the next attempt fires.
-            // Real triggering now happens directly in the notification
-            // observers so menu/Cmd-S works on every press, not just the
-            // first one.
-            .onChange(of: showSavePanel) { _, newValue in
-                if newValue {
-                    saveFile()
-                    DispatchQueue.main.async { showSavePanel = false }
-                }
-            }
-            .onChange(of: showOpenPanel) { _, newValue in
-                if newValue && !isOpeningFile {
-                    openFile()
-                    // openFile resets showOpenPanel itself when its NSOpenPanel
-                    // completion runs, so no extra reset is needed here.
-                }
-            }
-            .onChange(of: showImportCSVPanel) { _, newValue in
-                if newValue {
-                    importCSV()
-                    DispatchQueue.main.async { showImportCSVPanel = false }
-                }
-            }
             .onChange(of: dataSyncManager.selectedCueStackIndex) { _, _ in
                 dataSyncManager.syncWebClientWithMacOSApp()
                 clearCueSelection()
@@ -2698,13 +1335,6 @@ struct ContentViewLifecycleModifiers: ViewModifier {
             .onChange(of: dataSyncManager.countdownPlaylist) { oldValue, newValue in
                 guard oldValue != newValue else { return }
                 timerServer.syncPlaylistState(newValue)
-                if !isLoadingFromDisk { markDirty() }
-            }
-            .onChange(of: dataSyncManager.cueStacks) { _, _ in
-                if !isLoadingFromDisk { markDirty() }
-            }
-            .onChange(of: isDirty) { _, _ in
-                updateWindowChrome()
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("PlaylistAdvanced"))) { notification in
                 if let newIndex = notification.userInfo?["newIndex"] as? Int {
@@ -2720,7 +1350,10 @@ struct ContentViewLifecycleModifiers: ViewModifier {
                 dataSyncManager.setPlaylistActive(false)
             }
             .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
-                autoSave()
+                document.autoSave()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .autoSaveRequested)) { _ in
+                document.autoSave()
             }
             .onReceive(NotificationCenter.default.publisher(for: Notification.Name("TriggerPrint"))) { _ in
                 printCueStacks()
@@ -2742,22 +1375,13 @@ struct ContentViewLifecycleModifiers: ViewModifier {
                 ContentViewLifecycleSetup.didCompleteLaunchSetup = true
 
                 if let url = appDelegate.pendingFileToOpen {
+                    // Opened from Finder: open that file instead of the last one.
                     appDelegate.pendingFileToOpen = nil
-                    hasExplicitlyOpenedFile = true
-                    openDocumentAtURL(url)
-                } else if !hasExplicitlyOpenedFile {
-                    loadLastFile()
-                }
-
-                if !ContentViewLifecycleSetup.autoSaveObserverRegistered {
-                    ContentViewLifecycleSetup.autoSaveObserverRegistered = true
-                    NotificationCenter.default.addObserver(
-                        forName: .autoSaveRequested,
-                        object: nil,
-                        queue: .main
-                    ) { _ in
-                        autoSave()
-                    }
+                    document.hasExplicitlyOpenedFile = true
+                    document.beginOpeningDocument(at: url)
+                    document.ensureDocumentHasAStack()
+                } else if !document.hasExplicitlyOpenedFile {
+                    document.loadLastFile()
                 }
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -2766,10 +1390,6 @@ struct ContentViewLifecycleModifiers: ViewModifier {
             }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in
                 showSettings = false
-            }
-            .onDisappear {
-                // Observer cleanup is handled automatically by NotificationCenter
-                // when the view is deallocated
             }
     }
 }

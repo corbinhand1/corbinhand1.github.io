@@ -28,9 +28,6 @@ struct CueToCueApp: App {
                         systemViewMenu.isHidden = true
                     }
                 }
-                .onChange(of: currentFileName) { oldValue, newValue in
-                    updateWindowTitle(to: newValue)
-                }
         }
         .commands {
             // App Menu
@@ -165,9 +162,4 @@ struct CueToCueApp: App {
     }
 
     // Function to update the window title.
-    private func updateWindowTitle(to title: String) {
-        if let window = NSApplication.shared.windows.first {
-            window.title = "\(title) - Cue to Cue 2.1"
-        }
-    }
 }
