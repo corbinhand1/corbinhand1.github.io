@@ -5,6 +5,7 @@ struct ConnectView: View {
     @State private var address = ""
     @State private var username = ""
     @State private var password = ""
+    @State private var useFaceID = Biometrics.isAvailable
 
     var body: some View {
         NavigationStack {
@@ -25,12 +26,29 @@ struct ConnectView: View {
                         .autocorrectionDisabled()
                     SecureField("Password", text: $password)
                 }
+                if store.faceIDEnabled {
+                    Section {
+                        Button {
+                            Task { await store.signInWithFaceID() }
+                        } label: {
+                            Label("Sign in with \(Biometrics.name)", systemImage: "faceid")
+                                .font(.headline).frame(minHeight: 44)
+                        }
+                    }
+                }
+                if Biometrics.isAvailable {
+                    Section {
+                        Toggle("Use \(Biometrics.name) next time", isOn: $useFaceID)
+                    } footer: {
+                        Text("Your password is kept in the secure keychain and only released after \(Biometrics.name).")
+                    }
+                }
                 if let e = store.error {
                     Section { Text(e).foregroundStyle(.red) }
                 }
                 Section {
                     Button {
-                        Task { await store.signIn(address: address, username: username, password: password) }
+                        Task { await store.signIn(address: address, username: username, password: password, rememberWithFaceID: useFaceID) }
                     } label: {
                         HStack {
                             Text("Connect")

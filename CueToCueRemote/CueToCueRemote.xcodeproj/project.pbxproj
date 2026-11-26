@@ -155,6 +155,7 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlock Cue Remote and sign in to your show.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Connects to Cue to Cue running on your Mac.";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
 				MARKETING_VERSION = 1.0;
@@ -178,6 +179,7 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlock Cue Remote and sign in to your show.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Connects to Cue to Cue running on your Mac.";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
 				MARKETING_VERSION = 1.0;

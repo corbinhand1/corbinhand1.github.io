@@ -117,6 +117,9 @@ struct SheetView: View {
                 }
             }
             Divider()
+            if store.faceIDEnabled {
+                Button("Turn off \(Biometrics.name) lock") { store.disableFaceID() }
+            }
             Button("Sign out", role: .destructive) { store.signOut() }
         } label: {
             Image(systemName: "rectangle.stack").frame(minWidth: 44, minHeight: 44)

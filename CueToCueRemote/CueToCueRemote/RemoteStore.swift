@@ -1,12 +1,19 @@
 import Foundation
 import SwiftUI
+import LocalAuthentication
 
 @MainActor
 final class RemoteStore: ObservableObject {
     @AppStorage("serverAddress") var serverAddress = ""
     @AppStorage("username") var username = ""
 
+    @AppStorage("faceIDEnabled") var faceIDEnabled = false
+
     @Published var token: String? = Keychain.get("token")
+    /// Starts locked when Face ID protection is on, so the show isn't visible until you unlock.
+    @Published var locked: Bool = {
+        UserDefaults.standard.bool(forKey: "faceIDEnabled") && Keychain.get("token") != nil
+    }()
     @Published var sheet: Sheet?
     @Published var selectedStackID: String?
     @Published var live = false
@@ -25,7 +32,7 @@ final class RemoteStore: ObservableObject {
 
     // MARK: Connect
 
-    func signIn(address: String, username: String, password: String) async {
+    func signIn(address: String, username: String, password: String, rememberWithFaceID: Bool = false) async {
         serverAddress = address
         self.username = username
         guard let url = API.normalize(address) else { error = APIError.badURL.localizedDescription; return }
@@ -35,6 +42,11 @@ final class RemoteStore: ObservableObject {
             Keychain.set(t, for: "token")
             token = t
             error = nil
+            if rememberWithFaceID, Biometrics.isAvailable {
+                faceIDEnabled = Keychain.setProtected(password, for: "password")
+            } else if !rememberWithFaceID {
+                disableFaceID()
+            }
             sheet = try await API(baseURL: url, token: t).currentSheet()
             selectedStackID = sheet?.cueStackId
             startLive()
@@ -54,6 +66,35 @@ final class RemoteStore: ObservableObject {
         } catch {
             self.error = Self.message(error)
         }
+    }
+
+    // MARK: Face ID
+
+    /// Unlocks the app with Face ID, then reconnects.
+    func unlock() async {
+        guard let ctx = await Biometrics.authenticate(reason: "Unlock your cue sheet") else { return }
+        locked = false
+        if sheet == nil { await resume() } else { await refresh() }
+        // The saved login may have expired; sign in again with the Face ID-protected password.
+        if sheet == nil, faceIDEnabled { await signInSaved(context: ctx) }
+    }
+
+    /// One-tap sign in from the sign-in screen using the Face ID-protected password.
+    func signInWithFaceID() async {
+        guard let ctx = await Biometrics.authenticate(reason: "Sign in to Cue Remote") else { return }
+        await signInSaved(context: ctx)
+    }
+
+    private func signInSaved(context: LAContext) async {
+        let pw = await Task.detached { Keychain.getProtected("password", context: context) }.value
+        guard let pw else { error = "Couldn't read your saved password. Sign in with it once more."; return }
+        await signIn(address: serverAddress, username: username, password: pw, rememberWithFaceID: true)
+    }
+
+    func disableFaceID() {
+        Keychain.setProtected(nil, for: "password")
+        faceIDEnabled = false
+        locked = false
     }
 
     func signOut() {
