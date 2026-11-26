@@ -47,6 +47,8 @@ struct HTMLJavaScript {
             ws: null,
             wsConnected: false,
             wsReconnectAttempt: 0,
+            wsReconnectTimer: null,
+            lastWsMessageAt: 0,
             lastDataVersion: 0,
             lastPlaybackVersion: 0,
             lastSnapshotAt: 0,
@@ -765,6 +767,11 @@ struct HTMLJavaScript {
         const CLOCK_TICK_MS = 250;
         const WS_RECONNECT_BASE_MS = 1000;
         const WS_RECONNECT_MAX_MS = 15000;
+        // Liveness: ping every 10 s; if nothing at all arrives for 25 s the
+        // link is dead (Mac asleep, Wi-Fi dropped) even if the browser still
+        // reports it open, so drop it and reconnect.
+        const WS_PING_MS = 10000;
+        const WS_STALE_MS = 25000;
 
         function getPollIntervalMs() {
             return state.wsConnected ? POLL_FALLBACK_MS : POLL_INTERVAL_MS;
@@ -794,23 +801,34 @@ struct HTMLJavaScript {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${protocol}//${window.location.host}/ws`;
 
+            let socket;
             try {
-                state.ws = new WebSocket(wsUrl);
+                socket = new WebSocket(wsUrl);
             } catch (err) {
                 console.warn('WebSocket connect failed:', err);
                 scheduleWebSocketReconnect();
                 return;
             }
+            state.ws = socket;
 
-            state.ws.onopen = () => {
+            socket.onopen = () => {
+                if (state.ws !== socket) return;
                 state.wsConnected = true;
                 state.wsReconnectAttempt = 0;
+                state.lastWsMessageAt = Date.now();
+                // A new connection may be to a restarted Mac app whose version
+                // counters began again at 0. Accept whatever it sends first;
+                // otherwise every snapshot looks "old" and the viewer freezes.
+                state.lastDataVersion = -1;
+                state.lastPlaybackVersion = -1;
                 console.log('📡 LAN WebSocket connected');
                 updateConnectionStatus('connected');
                 fetchTimerState();
             };
 
-            state.ws.onmessage = (event) => {
+            socket.onmessage = (event) => {
+                if (state.ws !== socket) return;
+                state.lastWsMessageAt = Date.now();
                 try {
                     const message = JSON.parse(event.data);
                     handleWebSocketMessage(message);
@@ -819,26 +837,72 @@ struct HTMLJavaScript {
                 }
             };
 
-            state.ws.onclose = () => {
+            socket.onclose = () => {
+                // Ignore late close events from a socket we already replaced.
+                if (state.ws !== socket) return;
                 state.wsConnected = false;
                 state.ws = null;
                 console.log('📡 LAN WebSocket disconnected');
+                updateConnectionStatus('disconnected');
                 scheduleWebSocketReconnect();
                 schedulePoll(POLL_INTERVAL_MS);
             };
 
-            state.ws.onerror = () => {
+            socket.onerror = () => {
                 // onclose will handle reconnect
             };
         }
 
         function scheduleWebSocketReconnect() {
+            if (state.wsReconnectTimer) {
+                clearTimeout(state.wsReconnectTimer);
+            }
             const delay = Math.min(
                 WS_RECONNECT_BASE_MS * Math.pow(2, state.wsReconnectAttempt),
                 WS_RECONNECT_MAX_MS
             );
             state.wsReconnectAttempt += 1;
-            setTimeout(connectWebSocket, delay);
+            state.wsReconnectTimer = setTimeout(() => {
+                state.wsReconnectTimer = null;
+                connectWebSocket();
+            }, delay);
+        }
+
+        // Abandon the current socket right away (it may be half-open and
+        // never fire onclose) and start a fresh connection.
+        function dropWebSocket(reason) {
+            const old = state.ws;
+            state.ws = null;
+            state.wsConnected = false;
+            if (old) {
+                old.onopen = old.onmessage = old.onclose = old.onerror = null;
+                try { old.close(); } catch (err) { /* already closed */ }
+            }
+            console.log('📡 LAN WebSocket dropped: ' + reason);
+            updateConnectionStatus('disconnected');
+            schedulePoll(POLL_INTERVAL_MS);
+            reconnectWebSocketNow();
+        }
+
+        // Skip the backoff (device woke up, network came back).
+        function reconnectWebSocketNow() {
+            if (state.wsReconnectTimer) {
+                clearTimeout(state.wsReconnectTimer);
+                state.wsReconnectTimer = null;
+            }
+            state.wsReconnectAttempt = 0;
+            connectWebSocket();
+        }
+
+        function handleDeviceWake() {
+            if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+                // Might be a stale link after sleep: ping now, and let the
+                // watchdog drop it if nothing comes back.
+                sendWebSocketPing();
+                fetchCues();
+            } else {
+                reconnectWebSocketNow();
+            }
         }
 
         function handleWebSocketMessage(message) {
@@ -977,6 +1041,10 @@ struct HTMLJavaScript {
 
         function sendWebSocketPing() {
             if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+                if (state.lastWsMessageAt && Date.now() - state.lastWsMessageAt > WS_STALE_MS) {
+                    dropWebSocket('no data for ' + Math.round(WS_STALE_MS / 1000) + ' s');
+                    return;
+                }
                 state.ws.send(JSON.stringify({ type: 'ping', version: state.lastDataVersion }));
             }
         }
@@ -2161,7 +2229,14 @@ struct HTMLJavaScript {
             setTimeout(() => {
                 fetchCues().finally(() => schedulePoll());
             }, 900);
-            setInterval(sendWebSocketPing, 30000);
+            setInterval(sendWebSocketPing, WS_PING_MS);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') handleDeviceWake();
+            });
+            window.addEventListener('online', handleDeviceWake);
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted) handleDeviceWake();
+            });
             
             // Authentication event listeners
             document.getElementById('loginButton').addEventListener('click', showLoginModal);

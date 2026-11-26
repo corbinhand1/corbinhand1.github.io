@@ -65,8 +65,11 @@ class WebServer: ObservableObject {
         self.httpHandler = HTTPHandler(dataSyncManager: dataSyncManager, offlineFileServer: offlineFileServer, networkUtilities: networkUtilities, connectionManager: connectionManager, authManager: authManager, timerServer: timerServer)
         self.connectionManager.setHTTPHandler(self.httpHandler)
         
-        // Create test data if needed
+        #if DEBUG
+        // Sample data for development only. Release builds never inject
+        // fake cues into a real show.
         self.dataSyncManager.createTestDataIfNeeded()
+        #endif
         
         // Initialize published properties safely for initialization
         initializePublishedProperties()
@@ -75,10 +78,13 @@ class WebServer: ObservableObject {
         setupBindings()
         setupLANObservers()
         
-        // Create test user if needed (after all initialization is complete)
+        #if DEBUG
+        // Development-only LAN account with a known password. Never create
+        // it in Release: anyone on the venue network could log in and edit.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.authManager.createTestUserIfNeeded()
         }
+        #endif
     }
     
     // MARK: - Server Management
@@ -93,10 +99,17 @@ class WebServer: ObservableObject {
         let parameters = NWParameters.tcp
         parameters.allowLocalEndpointReuse = true
 
-        if let tcpOptions = parameters.defaultProtocolStack.internetProtocol as? NWProtocolTCP.Options {
+        // TCP options live on the *transport* protocol. (This used to cast
+        // internetProtocol, which is the IP layer, so keepalive was never
+        // enabled and dead viewers were never detected.) A viewer that
+        // vanishes (iPad asleep, Wi-Fi drop) is now dropped after ~25 s.
+        if let tcpOptions = parameters.defaultProtocolStack.transportProtocol as? NWProtocolTCP.Options {
             tcpOptions.enableKeepalive = true
-            tcpOptions.keepaliveCount = 5
+            tcpOptions.keepaliveIdle = 10
+            tcpOptions.keepaliveInterval = 5
+            tcpOptions.keepaliveCount = 3
             tcpOptions.connectionTimeout = 30
+            tcpOptions.noDelay = true
         }
 
         do {

@@ -160,6 +160,9 @@ class ConnectionManager: ObservableObject {
     
     // MARK: - Request Handling
 
+    /// Cap on a buffered, not-yet-complete HTTP request.
+    static let maxHTTPRequestBytes = 1 << 20
+
     private func isExpectedDisconnect(_ error: Error) -> Bool {
         let nsError = error as NSError
         if nsError.code == 54 || nsError.code == 89 {
@@ -208,13 +211,20 @@ class ConnectionManager: ObservableObject {
                 return
             }
 
-            var buffer = self.requestBuffers[connectionID] ?? Data()
+            // requestBuffers is shared with cleanup on connectionQueue; never
+            // touch it from the receive callback's queue directly.
+            var buffer = self.connectionQueue.sync { self.requestBuffers[connectionID] ?? Data() }
             buffer.append(data)
+            if buffer.count > Self.maxHTTPRequestBytes {
+                // No legitimate viewer request is this large.
+                self.connectionQueue.sync { _ = self.requestBuffers.removeValue(forKey: connectionID) }
+                self.cleanupConnection(connection)
+                return
+            }
 
             var upgradedToWebSocket = false
             while let requestData = HTTPRequest.extractNextCompleteMessage(from: &buffer) {
-                let connectionId = ObjectIdentifier(connection)
-                if self.webSocketClientIds[connectionId] != nil {
+                if self.connectionQueue.sync(execute: { self.webSocketClientIds[connectionID] != nil }) {
                     continue
                 }
                 if self.processRequest(requestData, on: connection) {
@@ -224,18 +234,19 @@ class ConnectionManager: ObservableObject {
                 }
             }
 
-            if buffer.isEmpty {
-                self.requestBuffers.removeValue(forKey: connectionID)
-            } else if !upgradedToWebSocket {
-                self.requestBuffers[connectionID] = buffer
-            } else {
-                // Any bytes after the upgrade request belong to the WebSocket stream.
-                self.connectionQueue.async {
+            let remaining = buffer
+            self.connectionQueue.sync {
+                if remaining.isEmpty {
+                    self.requestBuffers.removeValue(forKey: connectionID)
+                } else if !upgradedToWebSocket {
+                    self.requestBuffers[connectionID] = remaining
+                } else {
+                    // Any bytes after the upgrade request belong to the WebSocket stream.
                     var wsBuffer = self.webSocketBuffers[connectionID] ?? Data()
-                    wsBuffer.append(buffer)
+                    wsBuffer.append(remaining)
                     self.webSocketBuffers[connectionID] = wsBuffer
+                    self.requestBuffers.removeValue(forKey: connectionID)
                 }
-                self.requestBuffers.removeValue(forKey: connectionID)
             }
 
             if !upgradedToWebSocket,
@@ -339,21 +350,24 @@ class ConnectionManager: ObservableObject {
     }
 
     private func receiveWebSocket(on connection: NWConnection, clientId: UUID) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, _, error in
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
             guard let self = self else { return }
             let connectionId = ObjectIdentifier(connection)
 
-            if let error = error {
-                if self.isExpectedDisconnect(error) {
-                    self.cleanupConnection(connection)
-                    return
-                }
+            if error != nil {
                 self.cleanupConnection(connection)
                 return
             }
 
             guard let data = data, !data.isEmpty else {
-                self.receiveWebSocket(on: connection, clientId: clientId)
+                if isComplete {
+                    // Peer closed the socket without a WebSocket close frame.
+                    // Receiving again would return immediately, forever
+                    // (a 100% CPU loop), so clean up instead.
+                    self.cleanupConnection(connection)
+                } else {
+                    self.receiveWebSocket(on: connection, clientId: clientId)
+                }
                 return
             }
 
@@ -368,6 +382,10 @@ class ConnectionManager: ObservableObject {
                 }
             }
 
+            if isComplete {
+                self.cleanupConnection(connection)
+                return
+            }
             self.receiveWebSocket(on: connection, clientId: clientId)
         }
     }

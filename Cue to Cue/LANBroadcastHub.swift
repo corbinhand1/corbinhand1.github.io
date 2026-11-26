@@ -21,7 +21,14 @@ final class LANWebSocketClient {
     func send(text: String) {
         guard let frame = LANWebSocketFraming.encodeText(text) else { return }
         sendQueue.async { [connection] in
-            connection.send(content: frame, completion: .contentProcessed { _ in })
+            connection.send(content: frame, completion: .contentProcessed { error in
+                // A failed send means the viewer is gone (sleep, Wi-Fi drop).
+                // Cancelling triggers ConnectionManager cleanup, which
+                // unregisters the client instead of sending to it forever.
+                if error != nil {
+                    connection.cancel()
+                }
+            })
         }
     }
 }
@@ -31,6 +38,8 @@ final class LANBroadcastHub {
     private var clients: [UUID: LANWebSocketClient] = [:]
     private var lastTimerBroadcast: Date = .distantPast
     private let timerBroadcastMinInterval: TimeInterval = 0.25
+    /// A trailing broadcast is scheduled for the end of the throttle window.
+    private var trailingTimerBroadcastScheduled = false
 
     weak var dataSyncManager: DataSyncManager?
     weak var timerServer: AuthoritativeTimerServer?
@@ -110,7 +119,18 @@ final class LANBroadcastHub {
                   let timerServer = self.timerServer else { return }
 
             let now = Date()
-            if !force, now.timeIntervalSince(self.lastTimerBroadcast) < self.timerBroadcastMinInterval {
+            let elapsed = now.timeIntervalSince(self.lastTimerBroadcast)
+            if !force, elapsed < self.timerBroadcastMinInterval {
+                // Throttled: send the latest state when the window ends
+                // instead of dropping it. (Dropping meant e.g. a second
+                // "+1 min" while paused never reached viewers.)
+                if !self.trailingTimerBroadcastScheduled {
+                    self.trailingTimerBroadcastScheduled = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + (self.timerBroadcastMinInterval - elapsed)) { [weak self] in
+                        self?.trailingTimerBroadcastScheduled = false
+                        self?.broadcastTimerStateIfNeeded(force: true)
+                    }
+                }
                 return
             }
             self.lastTimerBroadcast = now

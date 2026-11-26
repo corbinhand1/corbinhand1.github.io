@@ -110,9 +110,18 @@ enum LANWebSocketFraming {
         let kind: Kind
     }
 
-    /// Decode complete client frames from a receive buffer.
+    /// Largest client frame we accept. Viewers only send tiny pings; anything
+    /// bigger is a broken or hostile client, and is disconnected.
+    static let maxClientFrameBytes = 1 << 20
+
+    /// Decode complete client frames from a receive buffer. Returns `.close`
+    /// (and clears the buffer) for oversized or malformed frames, so a bad
+    /// client can't crash the app or make it buffer without limit.
     static func extractFrames(from buffer: inout Data) -> [DecodedFrame] {
         var frames: [DecodedFrame] = []
+        // Work on a zero-based copy so indices are always valid even if the
+        // caller's Data is a slice.
+        if buffer.startIndex != 0 { buffer = Data(buffer) }
         while true {
             guard buffer.count >= 2 else { break }
 
@@ -129,11 +138,23 @@ enum LANWebSocketFraming {
                 index += 2
             } else if payloadLength == 127 {
                 guard buffer.count >= index + 8 else { break }
-                payloadLength = 0
+                var length: UInt64 = 0
                 for offset in 0..<8 {
-                    payloadLength = (payloadLength << 8) | Int(buffer[index + offset])
+                    length = (length << 8) | UInt64(buffer[index + offset])
                 }
+                guard length <= UInt64(maxClientFrameBytes) else {
+                    buffer.removeAll()
+                    frames.append(DecodedFrame(kind: .close))
+                    return frames
+                }
+                payloadLength = Int(length)
                 index += 8
+            }
+
+            guard payloadLength <= maxClientFrameBytes else {
+                buffer.removeAll()
+                frames.append(DecodedFrame(kind: .close))
+                return frames
             }
 
             let maskKeyOffset = index

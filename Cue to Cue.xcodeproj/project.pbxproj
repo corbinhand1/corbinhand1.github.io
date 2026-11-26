@@ -52,6 +52,7 @@
 		31EDT003 /* CueEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDT004 /* CueEditingTests.swift */; };
 		31EDC003 /* CueEditorControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDC004 /* CueEditorControllerTests.swift */; };
 		31DOC003 /* DocumentControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DOC004 /* DocumentControllerTests.swift */; };
+		31LSY003 /* LiveSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31LSY004 /* LiveSyncTests.swift */; };
 		31STG003 /* DocumentStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31STG004 /* DocumentStorageTests.swift */; };
 		31TMR003 /* TimerServerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31TMR004 /* TimerServerTests.swift */; };
 		31F2FAC92C0425ED0074D2A4 /* Cue_to_CueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FAC82C0425ED0074D2A4 /* Cue_to_CueUITests.swift */; };
@@ -184,6 +185,7 @@
 		31EDT004 /* CueEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditingTests.swift; sourceTree = "<group>"; };
 		31EDC004 /* CueEditorControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditorControllerTests.swift; sourceTree = "<group>"; };
 		31DOC004 /* DocumentControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentControllerTests.swift; sourceTree = "<group>"; };
+		31LSY004 /* LiveSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSyncTests.swift; sourceTree = "<group>"; };
 		31STG004 /* DocumentStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentStorageTests.swift; sourceTree = "<group>"; };
 		31TMR004 /* TimerServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerServerTests.swift; sourceTree = "<group>"; };
 		31F2FAC42C0425ED0074D2A4 /* Cue to CueUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Cue to CueUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -400,6 +402,7 @@
 				31EDT004 /* CueEditingTests.swift */,
 				31EDC004 /* CueEditorControllerTests.swift */,
 				31DOC004 /* DocumentControllerTests.swift */,
+				31LSY004 /* LiveSyncTests.swift */,
 				31STG004 /* DocumentStorageTests.swift */,
 				31TMR004 /* TimerServerTests.swift */,
 			);
@@ -666,6 +669,7 @@
 				31EDT003 /* CueEditingTests.swift in Sources */,
 				31EDC003 /* CueEditorControllerTests.swift in Sources */,
 				31DOC003 /* DocumentControllerTests.swift in Sources */,
+				31LSY003 /* LiveSyncTests.swift in Sources */,
 				31STG003 /* DocumentStorageTests.swift in Sources */,
 				31TMR003 /* TimerServerTests.swift in Sources */,
 			);
