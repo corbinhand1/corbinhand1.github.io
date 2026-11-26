@@ -14,6 +14,11 @@ import Foundation
 import AppKit
 import Combine
 import UniformTypeIdentifiers
+import os
+
+/// Save/open diagnostics, readable with:
+///   log show --last 10m --predicate 'subsystem == "Cue to Cue" AND category == "Document"'
+private let documentLog = Logger(subsystem: "Cue to Cue", category: "Document")
 
 @MainActor
 final class DocumentController: ObservableObject {
@@ -408,6 +413,7 @@ final class DocumentController: ObservableObject {
 
         guard let window = Self.documentWindow else { return }
         panel.beginSheetModal(for: window) { response in
+            documentLog.log("Duplicate panel closed: \(response == .OK ? "Save" : "Cancel", privacy: .public) \(panel.url?.lastPathComponent ?? "-", privacy: .public)")
             guard response == .OK, let url = panel.url else { return }
 
             if let existing = self.lastSavedURL,
@@ -507,7 +513,9 @@ final class DocumentController: ObservableObject {
         // Snapshot runs open the user's real show; never write it.
         if WindowSnapshotter.isActive { return true }
         #endif
+        documentLog.log("Saving \(url.lastPathComponent, privacy: .public) (same file: \(url.standardizedFileURL == self.lastSavedURL?.standardizedFileURL, privacy: .public))")
         if saveWouldConflict(at: url) {
+            documentLog.error("Save refused: \(url.lastPathComponent, privacy: .public) changed on disk; showing conflict alert")
             documentChangedExternally = true
             pendingConflictURL = url
             showConflictAlert = true
@@ -527,12 +535,14 @@ final class DocumentController: ObservableObject {
             try? store.saveBookmark(for: url)
             store.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
             print("✅ Saved \(url.lastPathComponent) at \(result.savedAt). Previous version at: \(result.backedUpTo?.path ?? "(no prior file)")")
+            documentLog.log("Saved \(url.lastPathComponent, privacy: .public)")
             notifyWebClients()
             updateWindowChrome()
             startFileWatcher(at: url)
             return true
         } catch {
             print("❌ Error saving file: \(error.localizedDescription)")
+            documentLog.error("Save failed for \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
             showSaveError(error: error)
             return false
         }
@@ -567,21 +577,38 @@ final class DocumentController: ObservableObject {
         case .beforeOpenDocument:
             savePanel.message = "Save your current cue stack before opening another file."
         }
-        savePanel.nameFieldStringValue = CueStackDocumentType.defaultSaveFilename(stem: fileStem)
+        // Save As is for starting a new version, so suggest a new name next
+        // to the current file rather than the same name (which would just
+        // ask to replace the file you have open).
+        savePanel.nameFieldStringValue = lastSavedURL == nil
+            ? CueStackDocumentType.defaultSaveFilename(stem: fileStem)
+            : CueStackDocumentType.defaultSaveFilename(stem: "\(fileStem) copy")
         if let url = lastSavedURL {
             savePanel.directoryURL = url.deletingLastPathComponent()
         }
         guard let window = Self.documentWindow else {
+            documentLog.error("Save As: no window to attach the panel to")
             completion?(false)
             return
         }
+        documentLog.log("Save As panel opened")
         savePanel.beginSheetModal(for: window) { response in
-            if response == .OK, let url = savePanel.url {
-                completion?(self.saveToURL(url))
-            } else {
-                completion?(false)
-            }
+            documentLog.log("Save As panel closed: \(response == .OK ? "Save" : "Cancel", privacy: .public) \(savePanel.url?.lastPathComponent ?? "-", privacy: .public)")
+            self.finishSaveAs(chosenURL: response == .OK ? savePanel.url : nil, completion: completion)
         }
+    }
+
+    /// What happens after the Save As panel closes. The save must run even
+    /// when nobody passed a completion: `completion?(saveToURL(url))` skips
+    /// its argument when `completion` is nil, which is how File ▸ Save As…
+    /// used to close the panel without saving anything.
+    func finishSaveAs(chosenURL: URL?, completion: ((Bool) -> Void)? = nil) {
+        guard let url = chosenURL else {
+            completion?(false)
+            return
+        }
+        let saved = saveToURL(url)
+        completion?(saved)
     }
 
     /// Compatibility shim — old call sites used `saveDocument(to:)`.

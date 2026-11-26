@@ -368,10 +368,9 @@ struct TopSectionView: View {
         websiteSyncManager.publishedFingerprint != nil && !websiteSyncManager.hasUnpublishedChanges && !publishFailed
     }
 
-    private var publishTitle: String {
-        if websiteSyncManager.isSyncing { return "Publishing" }
-        return publishIsCurrent ? "Published" : "Publish"
-    }
+    /// Always "Publish" (longer words don't fit the button); the icon and
+    /// dot show the state, and hovering explains it.
+    private var publishTitle: String { "Publish" }
 
     private var publishIcon: String {
         if websiteSyncManager.isSyncing { return "arrow.triangle.2.circlepath" }

@@ -55,6 +55,33 @@ final class DocumentStorageTests: XCTestCase {
 
     private var showURL: URL { root.appendingPathComponent("Show.cuestack") }
 
+    // MARK: Save As
+
+    /// File ▸ Save As… passes no completion; the chosen file must still be
+    /// written and become the open document.
+    func testSaveAsWithoutCompletionWritesTheNewFile() throws {
+        let (data, _, document) = makeDocument()
+        data.cueStacks = sampleStacks()
+        XCTAssertTrue(document.saveToURL(showURL))
+        let newURL = root.appendingPathComponent("New Show.cuestack")
+
+        document.finishSaveAs(chosenURL: newURL)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: newURL.path))
+        XCTAssertEqual(document.lastSavedURL?.standardizedFileURL, newURL.standardizedFileURL)
+        XCTAssertEqual(document.fileName, "New Show.cuestack")
+        XCTAssertFalse(document.isDirty)
+        XCTAssertEqual(try store.load(from: newURL).cueStacks.first?.cues.count, 2)
+    }
+
+    func testSaveAsCancelledWritesNothing() {
+        var result: Bool?
+        let (_, _, document) = makeDocument()
+        document.finishSaveAs(chosenURL: nil) { result = $0 }
+        XCTAssertEqual(result, false)
+        XCTAssertNil(document.lastSavedURL)
+    }
+
     // MARK: DocumentStore
 
     func testSaveAndLoadRoundTrip() throws {
