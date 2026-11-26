@@ -77,14 +77,9 @@ struct CueRowView: View {
             let isShiftDown = modifierFlags.contains(.shift)
             let isCommandDown = modifierFlags.contains(.command)
             
+            // No scrolling here: the row is already on screen, and moving it
+            // under the pointer made double-click-to-type jump around.
             onSelect(index, isShiftDown, isCommandDown)
-            
-            // Only scroll if not multi-selecting
-            if !isShiftDown && !isCommandDown {
-                withAnimation {
-                    scrollViewProxy?.scrollTo(index, anchor: .center)
-                }
-            }
         }
         .simultaneousGesture(
             // Add a high-priority drag gesture when reordering to prevent tap gesture interference

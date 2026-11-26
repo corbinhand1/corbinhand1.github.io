@@ -36,6 +36,9 @@ struct CueStackDetailView: View {
     var copyCue: (Int) -> Void
     var pasteCue: (Int) -> Void
 
+    /// Row the user just clicked, so selecting it doesn't scroll the list.
+    @State private var clickedCueIndex: Int?
+
     var body: some View {
         VStack(spacing: 0) {
             // Headers and rows scroll sideways together inside this panel when
@@ -125,6 +128,13 @@ struct CueStackDetailView: View {
             .cornerRadius(8)
             // Whenever the selectedCueIndex changes, scroll to it
             .onChange(of: selectedCueIndex) { _, newValue in
+                // A click selects a row that's already on screen: leave the
+                // list where it is. Next/Previous, demo jumps and remote
+                // changes still bring the live cue into view.
+                if let clicked = clickedCueIndex {
+                    clickedCueIndex = nil
+                    if clicked == newValue { return }
+                }
                 if let newValue = newValue {
                     withAnimation {
                         proxy.scrollTo(newValue, anchor: UnitPoint(x: 0.5, y: 0.2))
@@ -180,6 +190,7 @@ struct CueStackDetailView: View {
             onSelect: { idx, isShiftDown, isCommandDown in
                 // Only allow selection if not reordering
                 if !isReorderingCues {
+                    clickedCueIndex = idx
                     handleCueSelection(idx, isShiftDown, isCommandDown)
                 }
             },
@@ -202,7 +213,19 @@ struct CueStackDetailView: View {
                 ShowControlButton(title: "Delete Selected", systemImage: "trash", style: .destructive, action: deleteSelectedCues)
             }
 
-            Spacer()
+            // Jump buttons for each demo (or other highlighted group).
+            DemoJumpBar(
+                cueStack: cueStack,
+                rules: settingsManager.settings.highlightColors,
+                selectedCueIndex: selectedCueIndex,
+                onJump: { index in
+                    guard !isReorderingCues else { return }
+                    handleCueSelection(index, false, false)
+                }
+            )
+            .padding(.horizontal, 6)
+
+            Spacer(minLength: 0)
 
             ShowControlButton(title: "Previous", systemImage: "chevron.left", shortcut: shortcuts.displayString(for: "previousCue"), action: previousCue)
             ShowControlButton(title: "Next Cue", systemImage: "chevron.right", shortcut: shortcuts.displayString(for: "nextCue"), style: .go, action: advanceCue)

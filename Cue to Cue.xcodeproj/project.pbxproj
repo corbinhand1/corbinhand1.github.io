@@ -88,8 +88,10 @@
 		31AIG001 /* AICueStackGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31AIG002 /* AICueStackGenerator.swift */; };
 		31AIV001 /* AIImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31AIV002 /* AIImportView.swift */; };
 		31FRV001 /* FindReplaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31FRV002 /* FindReplaceView.swift */; };
+		31DJB001 /* DemoJumpBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DJB002 /* DemoJumpBar.swift */; };
 		31AIT003 /* AICueStackGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31AIT004 /* AICueStackGeneratorTests.swift */; };
 		31FRT003 /* FindReplaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31FRT004 /* FindReplaceTests.swift */; };
+		31DJT003 /* DemoJumpBarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DJT004 /* DemoJumpBarTests.swift */; };
 		31GHP001 /* GitHubPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31GHP002 /* GitHubPublisher.swift */; };
 		31CSVIMP001 /* CSVImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSVIMP002 /* CSVImportSheet.swift */; };
 		31CSVEXP001 /* CSVExportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSVEXP002 /* CSVExportSheet.swift */; };
@@ -234,8 +236,10 @@
 		31AIG002 /* AICueStackGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICueStackGenerator.swift; sourceTree = "<group>"; };
 		31AIV002 /* AIImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIImportView.swift; sourceTree = "<group>"; };
 		31FRV002 /* FindReplaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindReplaceView.swift; sourceTree = "<group>"; };
+		31DJB002 /* DemoJumpBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoJumpBar.swift; sourceTree = "<group>"; };
 		31AIT004 /* AICueStackGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICueStackGeneratorTests.swift; sourceTree = "<group>"; };
 		31FRT004 /* FindReplaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindReplaceTests.swift; sourceTree = "<group>"; };
+		31DJT004 /* DemoJumpBarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoJumpBarTests.swift; sourceTree = "<group>"; };
 		31GHP002 /* GitHubPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubPublisher.swift; sourceTree = "<group>"; };
 		31CSVIMP002 /* CSVImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportSheet.swift; sourceTree = "<group>"; };
 		31CSVEXP002 /* CSVExportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVExportSheet.swift; sourceTree = "<group>"; };
@@ -394,6 +398,7 @@
 				31AIG002 /* AICueStackGenerator.swift */,
 				31AIV002 /* AIImportView.swift */,
 				31FRV002 /* FindReplaceView.swift */,
+				31DJB002 /* DemoJumpBar.swift */,
 				31GHP002 /* GitHubPublisher.swift */,
 				31CSVIMP002 /* CSVImportSheet.swift */,
 				31CSVEXP002 /* CSVExportSheet.swift */,
@@ -436,6 +441,7 @@
 				31WST004 /* WebsitePublishingTests.swift */,
 				31AIT004 /* AICueStackGeneratorTests.swift */,
 				31FRT004 /* FindReplaceTests.swift */,
+				31DJT004 /* DemoJumpBarTests.swift */,
 				31ATH004 /* AuthenticationTests.swift */,
 				31LSY004 /* LiveSyncTests.swift */,
 				31ROP004 /* RemoteOpsTests.swift */,
@@ -697,6 +703,7 @@
 				31AIG001 /* AICueStackGenerator.swift in Sources */,
 				31AIV001 /* AIImportView.swift in Sources */,
 				31FRV001 /* FindReplaceView.swift in Sources */,
+				31DJB001 /* DemoJumpBar.swift in Sources */,
 				31GHP001 /* GitHubPublisher.swift in Sources */,
 				31CSVIMP001 /* CSVImportSheet.swift in Sources */,
 				31CSVEXP001 /* CSVExportSheet.swift in Sources */,
@@ -715,6 +722,7 @@
 				31WST003 /* WebsitePublishingTests.swift in Sources */,
 				31AIT003 /* AICueStackGeneratorTests.swift in Sources */,
 				31FRT003 /* FindReplaceTests.swift in Sources */,
+				31DJT003 /* DemoJumpBarTests.swift in Sources */,
 				31ATH003 /* AuthenticationTests.swift in Sources */,
 				31LSY003 /* LiveSyncTests.swift in Sources */,
 				31ROP003 /* RemoteOpsTests.swift in Sources */,
