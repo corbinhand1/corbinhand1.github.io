@@ -16,6 +16,20 @@ enum SyncNotificationType {
     case info
 }
 
+enum WebsiteSyncError: LocalizedError {
+    case noViewerPassword
+    case viewerPasswordMismatch
+
+    var errorDescription: String? {
+        switch self {
+        case .noViewerPassword:
+            return "Set a viewer password in File ▸ Website… first. The website uses it to lock your show files so only your crew can read them."
+        case .viewerPasswordMismatch:
+            return "The viewer password saved in this app doesn't match the website's. Enter the website's current password in File ▸ Website…."
+        }
+    }
+}
+
 enum WebsiteSyncSettingsKeys {
     /// Legacy plain-text location; migrated to the Keychain on first launch.
     static let githubToken = "githubToken"
@@ -61,16 +75,23 @@ final class WebsiteSyncManager: ObservableObject {
 
     private let defaults: UserDefaults
     private let tokenStore: GitHubTokenStore
+    private let viewerPasswordStore: GitHubTokenStore
+    /// PBKDF2 rounds for new site keys. Lowered in tests.
+    var keyIterations = WebsiteCipher.defaultIterations
+    private var cachedCipher: (password: String, cipher: WebsiteCipher)?
     private let makePublisher: (String, GitHubRepository) -> GitHubPublisher
 
     init(defaults: UserDefaults = .standard,
          tokenStore: GitHubTokenStore? = nil,
+         viewerPasswordStore: GitHubTokenStore? = nil,
          makePublisher: ((String, GitHubRepository) -> GitHubPublisher)? = nil) {
         self.defaults = defaults
         // The app itself is the host for unit tests; keep test runs away from
         // the real Keychain.
         let runningTests = NSClassFromString("XCTestCase") != nil
         self.tokenStore = tokenStore ?? (runningTests ? InMemoryGitHubTokenStore() : KeychainGitHubTokenStore())
+        self.viewerPasswordStore = viewerPasswordStore ?? (runningTests ? InMemoryGitHubTokenStore() : KeychainGitHubTokenStore(
+            account: "viewer-password", label: "Cue to Cue website viewer password"))
         self.makePublisher = makePublisher ?? { GitHubPublisher(token: $0, repository: $1) }
         if tokenStore != nil || !runningTests {
             migrateLegacyToken()
@@ -113,6 +134,104 @@ final class WebsiteSyncManager: ObservableObject {
         try tokenStore.writeToken(trimmed?.isEmpty == false ? trimmed : nil)
         objectWillChange.send()
         connection = hasToken ? .unknown : .notConfigured
+    }
+
+    // MARK: - Viewer password
+
+    var hasViewerPassword: Bool { viewerPasswordStore.readToken() != nil }
+
+    /// Set the password the crew types to open the website.
+    ///
+    /// - If the site isn't locked yet, it's saved and the next publish locks it.
+    /// - If it's the site's current password (e.g. set up from another Mac), it's saved.
+    /// - Otherwise the site is re-locked with it in one commit, using the
+    ///   previously saved password to read the existing files.
+    func setViewerPassword(_ password: String) async throws {
+        let trimmed = password.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        defer { objectWillChange.send() }
+        guard hasToken else {
+            try viewerPasswordStore.writeToken(trimmed)
+            return
+        }
+        isSyncing = true
+        defer { isSyncing = false }
+        let github = try publisher()
+        guard let siteKey = try await readSiteKey(github) else {
+            try viewerPasswordStore.writeToken(trimmed)
+            return
+        }
+        if let cipher = try? WebsiteCipher(password: trimmed, siteKey: siteKey) {
+            cachedCipher = (trimmed, cipher)
+            try viewerPasswordStore.writeToken(trimmed)
+            await refreshLibrary()
+            return
+        }
+        guard let old = viewerPasswordStore.readToken(),
+              let oldCipher = try? WebsiteCipher(password: old, siteKey: siteKey) else {
+            throw NSError(domain: "WebsiteSync", code: 3, userInfo: [NSLocalizedDescriptionKey:
+                "That isn't the website's current password, and this app doesn't have the current one, so it can't change it. Enter the password the website uses now first."])
+        }
+        let newCipher = try WebsiteCipher.create(password: trimmed, iterations: keyIterations)
+        var changes: [GitHubFileChange] = [.write(path: WebsiteCipher.sitePath, data: try newCipher.siteKeyData())]
+        let indexFile = try await github.readFile(WebsitePayload.libraryIndexPath)
+        let index = ShowLibraryIndex.decode(try indexFile.map(oldCipher.open))
+        let paths = [WebsitePayload.dataPath, WebsitePayload.libraryIndexPath] + index.shows.map { WebsitePayload.showPath($0.slug) }
+        for path in paths {
+            let file = path == WebsitePayload.libraryIndexPath ? indexFile : try await github.readFile(path)
+            guard let file else { continue }
+            changes.append(.write(path: path, data: try newCipher.seal(try oldCipher.open(file))))
+        }
+        _ = try await github.commit(changes, message: "Change the website viewer password from Cue to Cue")
+        cachedCipher = (trimmed, newCipher)
+        try viewerPasswordStore.writeToken(trimmed)
+        library = index
+    }
+
+    private func readSiteKey(_ github: GitHubPublisher) async throws -> WebsiteSiteKey? {
+        WebsiteCipher.decodeSiteKey(try await github.readFile(WebsiteCipher.sitePath))
+    }
+
+    private func cipher(password: String, siteKey: WebsiteSiteKey) throws -> WebsiteCipher {
+        if let cached = cachedCipher, cached.password == password, cached.cipher.siteKey == siteKey {
+            return cached.cipher
+        }
+        do {
+            let cipher = try WebsiteCipher(password: password, siteKey: siteKey)
+            cachedCipher = (password, cipher)
+            return cipher
+        } catch WebsiteEncryptionError.wrongPassword {
+            throw WebsiteSyncError.viewerPasswordMismatch
+        }
+    }
+
+    /// The cipher to write with. If the site isn't locked yet, also returns the
+    /// changes that lock it: the key file plus encrypted copies of show files
+    /// earlier publishes left readable.
+    private func cipherForWriting(_ github: GitHubPublisher) async throws -> (WebsiteCipher, [GitHubFileChange]) {
+        guard let password = viewerPasswordStore.readToken() else { throw WebsiteSyncError.noViewerPassword }
+        if let siteKey = try await readSiteKey(github) {
+            return (try cipher(password: password, siteKey: siteKey), [])
+        }
+        let cipher = try WebsiteCipher.create(password: password, iterations: keyIterations)
+        cachedCipher = (password, cipher)
+        var changes: [GitHubFileChange] = [.write(path: WebsiteCipher.sitePath, data: try cipher.siteKeyData())]
+        let indexFile = try await github.readFile(WebsitePayload.libraryIndexPath)
+        if let indexFile, !WebsiteCipher.isEncrypted(indexFile) {
+            changes.append(.write(path: WebsitePayload.libraryIndexPath, data: try cipher.seal(indexFile)))
+            for show in ShowLibraryIndex.decode(indexFile).shows {
+                let path = WebsitePayload.showPath(show.slug)
+                if let file = try await github.readFile(path), !WebsiteCipher.isEncrypted(file) {
+                    changes.append(.write(path: path, data: try cipher.seal(file)))
+                }
+            }
+        }
+        return (cipher, changes)
+    }
+
+    /// Read the library index, decrypting it if needed.
+    private func readLibrary(_ github: GitHubPublisher, cipher: WebsiteCipher) async throws -> ShowLibraryIndex {
+        ShowLibraryIndex.decode(try await github.readFile(WebsitePayload.libraryIndexPath).map(cipher.open))
     }
 
     /// Earlier builds stored the token in plain text in preferences. Copy it
@@ -166,7 +285,13 @@ final class WebsiteSyncManager: ObservableObject {
         isLoadingLibrary = true
         defer { isLoadingLibrary = false }
         do {
-            let data = try await publisher().readFile(WebsitePayload.libraryIndexPath)
+            let github = try publisher()
+            var data = try await github.readFile(WebsitePayload.libraryIndexPath)
+            if let file = data, WebsiteCipher.isEncrypted(file) {
+                guard let password = viewerPasswordStore.readToken() else { throw WebsiteSyncError.noViewerPassword }
+                guard let siteKey = try await readSiteKey(github) else { throw WebsiteEncryptionError.corruptFile }
+                data = try cipher(password: password, siteKey: siteKey).open(file)
+            }
             library = ShowLibraryIndex.decode(data)
             libraryError = nil
         } catch {
@@ -214,14 +339,18 @@ final class WebsiteSyncManager: ObservableObject {
 
         do {
             let github = try publisher()
+            let (cipher, lockChanges) = try await cipherForWriting(github)
             // Start from the library on GitHub, so shows published from another
             // Mac aren't dropped.
-            let existing = ShowLibraryIndex.decode(try await github.readFile(WebsitePayload.libraryIndexPath))
+            let existing = try await readLibrary(github, cipher: cipher)
             let cleanName = filename.isEmpty ? "Untitled.cuestack" : filename
             let bundle = try WebsitePayload.bundle(
                 cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex,
-                highlightColors: highlightColors, filename: cleanName, existingLibrary: existing)
-            let result = try await github.commit(bundle.changes, message: "Publish \(cleanName) from Cue to Cue")
+                highlightColors: highlightColors, filename: cleanName, existingLibrary: existing,
+                cipher: cipher)
+            let written = Set(bundle.changes.map(\.path))
+            let changes = lockChanges.filter { !written.contains($0.path) } + bundle.changes
+            let result = try await github.commit(changes, message: "Publish \(cleanName) from Cue to Cue")
 
             library = bundle.library
             syncStatus = .success
@@ -252,7 +381,7 @@ final class WebsiteSyncManager: ObservableObject {
         filename: String,
         settingsManager: SettingsManager
     ) {
-        guard isAutoSyncEnabled, hasToken else { return }
+        guard isAutoSyncEnabled, hasToken, hasViewerPassword else { return }
         syncCueData(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex,
                     filename: filename, settingsManager: settingsManager)
     }
@@ -284,7 +413,8 @@ final class WebsiteSyncManager: ObservableObject {
         isSyncing = true
         defer { isSyncing = false }
         let github = try publisher()
-        var index = ShowLibraryIndex.decode(try await github.readFile(WebsitePayload.libraryIndexPath))
+        let (cipher, lockChanges) = try await cipherForWriting(github)
+        var index = try await readLibrary(github, cipher: cipher)
         let time = ISO8601DateFormatter.withFractionalSeconds.string(from: Date())
         change(&index, time)
         // Only delete files the library actually lists, so a missing file
@@ -295,7 +425,9 @@ final class WebsiteSyncManager: ObservableObject {
             }
             return true
         }
-        _ = try await github.commit(deletions + [.write(path: WebsitePayload.libraryIndexPath, data: try index.encoded())], message: message)
+        let changes = deletions + [.write(path: WebsitePayload.libraryIndexPath, data: try cipher.seal(index.encoded()))]
+        let written = Set(changes.map(\.path))
+        _ = try await github.commit(lockChanges.filter { !written.contains($0.path) } + changes, message: message)
         library = index
     }
 

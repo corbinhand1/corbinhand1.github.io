@@ -9,6 +9,11 @@
 //    metadata.json           the current show's name and publish time
 //    shows/index.json        the library: every published show, newest first
 //    shows/<slug>.json       each show's cue stacks, same format as cuetocue-data.json
+//    site-key.json           how to turn the viewer password into the key (see WebsiteEncryption)
+//
+//  When the site is locked (the normal case), the data, show and library files
+//  are encrypted and metadata.json holds only the publish time, which the
+//  viewer polls to notice new publishes.
 //
 
 import Foundation
@@ -121,7 +126,8 @@ enum WebsitePayload {
 
     /// The viewer's data format (unchanged keys, minus the duplicate
     /// "allCues" copy that nothing read and that doubled the upload).
-    static func cueData(cueStacks: [CueStack], selectedCueStackIndex: Int, highlightColors: [HighlightColorSetting]) -> [String: Any] {
+    static func cueData(cueStacks: [CueStack], selectedCueStackIndex: Int, highlightColors: [HighlightColorSetting],
+                        show: ShowLibraryEntry? = nil) -> [String: Any] {
         func columnsJSON(_ columns: [Column]) -> [[String: Any]] {
             columns.map { ["id": $0.id.uuidString, "name": $0.name, "width": $0.width] }
         }
@@ -140,12 +146,18 @@ enum WebsitePayload {
             return ["id": stack.id.uuidString, "name": stack.name, "columns": columnsJSON(stack.columns), "cues": cues]
         }
         let primary = cueStacks.indices.contains(selectedCueStackIndex) ? cueStacks[selectedCueStackIndex].columns : (cueStacks.first?.columns ?? [])
-        return [
+        var result: [String: Any] = [
             "availableCueStacks": stacks,
             "columns": columnsJSON(primary),
             "highlightColors": highlightColors.map { ["keyword": $0.keyword, "color": $0.color.toHex()] },
             "selectedCueStackIndex": selectedCueStackIndex,
         ]
+        // The show's name travels inside the (encrypted) data rather than in
+        // the public metadata file.
+        if let show {
+            result["show"] = ["name": show.name, "filename": show.filename, "slug": show.slug, "lastPublished": show.lastPublished]
+        }
+        return result
     }
 
     struct Bundle {
@@ -155,29 +167,19 @@ enum WebsitePayload {
     }
 
     /// Everything one publish writes: current data + metadata, this show's
-    /// library copy, and the updated library index.
+    /// library copy, and the updated library index. With a cipher, the data,
+    /// show and library files are encrypted and metadata carries no show details.
     static func bundle(cueStacks: [CueStack],
                        selectedCueStackIndex: Int,
                        highlightColors: [HighlightColorSetting],
                        filename: String,
                        existingLibrary: ShowLibraryIndex,
+                       cipher: WebsiteCipher? = nil,
                        now: Date = Date()) throws -> Bundle {
         let time = ISO8601DateFormatter.withFractionalSeconds.string(from: now)
         let slug = slug(forFilename: filename)
-        let data = try JSONSerialization.data(
-            withJSONObject: cueData(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex, highlightColors: highlightColors),
-            options: [.sortedKeys])
-        let metadata: [String: Any] = [
-            "filename": filename,
-            "lastUpdated": time,
-            "selectedCueStackIndex": selectedCueStackIndex,
-            "totalCueStacks": cueStacks.count,
-            "syncTimestamp": now.timeIntervalSince1970,
-            "showSlug": slug,
-        ]
-        let metadataData = try JSONSerialization.data(withJSONObject: metadata, options: [.prettyPrinted, .sortedKeys])
 
-        let entry = ShowLibraryEntry(
+        var entry = ShowLibraryEntry(
             slug: slug,
             name: (filename as NSString).deletingPathExtension,
             filename: filename,
@@ -186,15 +188,36 @@ enum WebsitePayload {
             cueCount: cueStacks.reduce(0) { $0 + $1.cues.count })
         var library = existingLibrary
         library.publish(entry, at: time)
+        entry = library.shows.first!
+
+        let data = try JSONSerialization.data(
+            withJSONObject: cueData(cueStacks: cueStacks, selectedCueStackIndex: selectedCueStackIndex,
+                                    highlightColors: highlightColors, show: entry),
+            options: [.sortedKeys])
+        var metadata: [String: Any] = [
+            "lastUpdated": time,
+            "syncTimestamp": now.timeIntervalSince1970,
+        ]
+        if cipher == nil {
+            metadata["filename"] = filename
+            metadata["selectedCueStackIndex"] = selectedCueStackIndex
+            metadata["totalCueStacks"] = cueStacks.count
+            metadata["showSlug"] = slug
+        } else {
+            metadata["locked"] = true
+        }
+        let metadataData = try JSONSerialization.data(withJSONObject: metadata, options: [.prettyPrinted, .sortedKeys])
+        let seal: (Data) throws -> Data = { plain in try cipher?.seal(plain) ?? plain }
+        let sealedData = try seal(data)
 
         return Bundle(
             changes: [
-                .write(path: dataPath, data: data),
+                .write(path: dataPath, data: sealedData),
                 .write(path: metadataPath, data: metadataData),
-                .write(path: showPath(slug), data: data),
-                .write(path: libraryIndexPath, data: try library.encoded()),
+                .write(path: showPath(slug), data: sealedData),
+                .write(path: libraryIndexPath, data: try seal(library.encoded())),
             ],
-            entry: library.shows.first!,
+            entry: entry,
             library: library)
     }
 }
@@ -208,12 +231,17 @@ protocol GitHubTokenStore: AnyObject {
 
 /// Stores the GitHub token in the login Keychain (earlier builds kept it in
 /// plain text in the app's preferences file).
+/// Also used for the website's viewer password (account "viewer-password").
 final class KeychainGitHubTokenStore: GitHubTokenStore {
     private let service: String
-    private let account = "github-token"
+    private let account: String
+    private let label: String
 
-    init(service: String = "Nebula-Creative.Cue-to-Cue.website") {
+    init(service: String = "Nebula-Creative.Cue-to-Cue.website", account: String = "github-token",
+         label: String = "Cue to Cue website publishing (GitHub)") {
         self.service = service
+        self.account = account
+        self.label = label
     }
 
     func readToken() -> String? {
@@ -232,11 +260,11 @@ final class KeychainGitHubTokenStore: GitHubTokenStore {
         guard let token, !token.isEmpty else { return }
         var item = baseQuery
         item[kSecValueData as String] = Data(token.utf8)
-        item[kSecAttrLabel as String] = "Cue to Cue website publishing (GitHub)"
+        item[kSecAttrLabel as String] = label
         let status = SecItemAdd(item as CFDictionary, nil)
         guard status == errSecSuccess else {
             throw NSError(domain: NSOSStatusErrorDomain, code: Int(status),
-                          userInfo: [NSLocalizedDescriptionKey: "Couldn't save the token to the Keychain (error \(status))."])
+                          userInfo: [NSLocalizedDescriptionKey: "Couldn't save to the Keychain (error \(status))."])
         }
     }
 
