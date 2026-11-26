@@ -76,6 +76,7 @@
 		31OFFLINE107 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 31OFFLINE007 /* manifest.json */; };
 		31RESTORE001 /* RestoreFromBackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31RESTORE002 /* RestoreFromBackupView.swift */; };
 		31WEBSYNC001 /* WebsiteSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSYNC002 /* WebsiteSyncManager.swift */; };
+		31WENC001 /* WebsiteEncryption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WENC002 /* WebsiteEncryption.swift */; };
 		31WEBSYNC003 /* WebsiteSyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31WEBSYNC004 /* WebsiteSyncSettingsView.swift */; };
 		31CSV001 /* CueCSVCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CSV002 /* CueCSVCodec.swift */; };
 		31EDT001 /* CueEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDT002 /* CueEditing.swift */; };
@@ -218,6 +219,7 @@
 		31OFFLINE007 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
 		31RESTORE002 /* RestoreFromBackupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreFromBackupView.swift; sourceTree = "<group>"; };
 		31WEBSYNC002 /* WebsiteSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteSyncManager.swift; sourceTree = "<group>"; };
+		31WENC002 /* WebsiteEncryption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteEncryption.swift; sourceTree = "<group>"; };
 		31WEBSYNC004 /* WebsiteSyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteSyncSettingsView.swift; sourceTree = "<group>"; };
 		31CSV002 /* CueCSVCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueCSVCodec.swift; sourceTree = "<group>"; };
 		31EDT002 /* CueEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditing.swift; sourceTree = "<group>"; };
@@ -375,6 +377,7 @@
 				31BACKUPMGR002 /* BackupManager.swift */,
 				31RESTORE002 /* RestoreFromBackupView.swift */,
 				31WEBSYNC002 /* WebsiteSyncManager.swift */,
+				31WENC002 /* WebsiteEncryption.swift */,
 				31WEBSYNC004 /* WebsiteSyncSettingsView.swift */,
 				31CSV002 /* CueCSVCodec.swift */,
 				31EDT002 /* CueEditing.swift */,
@@ -674,6 +677,7 @@
 				31BACKUPMGR001 /* BackupManager.swift in Sources */,
 				31RESTORE001 /* RestoreFromBackupView.swift in Sources */,
 				31WEBSYNC001 /* WebsiteSyncManager.swift in Sources */,
+				31WENC001 /* WebsiteEncryption.swift in Sources */,
 				31WEBSYNC003 /* WebsiteSyncSettingsView.swift in Sources */,
 				31CSV001 /* CueCSVCodec.swift in Sources */,
 				31EDT001 /* CueEditing.swift in Sources */,

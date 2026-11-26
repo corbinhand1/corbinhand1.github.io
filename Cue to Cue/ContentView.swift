@@ -419,7 +419,7 @@ struct ContentView: View {
     /// File › Publish to Website: publish the open show and add it to the
     /// website's show library. Opens the Website panel if publishing isn't set up.
     private func publishToWebsite() {
-        guard websiteSyncManager.hasToken else {
+        guard websiteSyncManager.hasToken, websiteSyncManager.hasViewerPassword else {
             showWebsitePanel = true
             return
         }
