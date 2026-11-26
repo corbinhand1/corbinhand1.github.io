@@ -1,7 +1,7 @@
 import Foundation
 
 /// One stack's sheet as served by the Mac (GET /stack/<id>, GET /cues).
-struct Sheet: Decodable, Equatable {
+struct Sheet: Codable, Equatable {
     var cueStackId: String
     var cueStackName: String
     var columns: [SheetColumn]
@@ -10,21 +10,21 @@ struct Sheet: Decodable, Equatable {
     var dataVersion: Int?
 }
 
-struct SheetColumn: Decodable, Equatable, Identifiable {
+struct SheetColumn: Codable, Equatable, Identifiable {
     var name: String
     var width: Double
     var id: String { name }
     // Column names can repeat; identify by position when needed.
 }
 
-struct SheetCue: Decodable, Equatable, Identifiable {
+struct SheetCue: Codable, Equatable, Identifiable {
     var id: String
     var values: [String]
     var timerValue: String
     var isStruckThrough: Bool
 }
 
-struct StackSummary: Decodable, Equatable, Identifiable, Hashable {
+struct StackSummary: Codable, Equatable, Identifiable, Hashable {
     var id: String
     var name: String
     var cueCount: Int

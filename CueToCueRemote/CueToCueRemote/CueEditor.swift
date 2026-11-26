@@ -11,6 +11,8 @@ struct CueEditor: View {
     @State private var cueID: String
     @State private var column: Int
     @State private var draft = ""
+    /// What the cell held when this field was loaded; edits are checked against it for conflicts.
+    @State private var baseline = ""
     @State private var saving = false
     @State private var savedFlash = false
     @FocusState private var focused: Bool
@@ -165,14 +167,16 @@ struct CueEditor: View {
 
     private func load() {
         draft = cue.map { value($0, column) } ?? ""
+        baseline = draft
     }
 
     /// Saves the draft if it changed. Returns false if the save failed.
     @discardableResult
     private func commit(silent: Bool = false) async -> Bool {
-        guard let cue, draft != value(cue, column) else { return true }
+        guard let cue, draft != baseline else { return true }
         saving = true; defer { saving = false }
-        let ok = await store.edit(cue: cue, column: column, value: draft)
+        let ok = await store.edit(cue: cue, column: column, value: draft, base: baseline)
+        if ok { baseline = draft }
         if ok && !silent {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             savedFlash = true

@@ -10,6 +10,7 @@ struct WhenEditor: View {
     @State private var ids: [String] = []
     @State private var cueID: String
     @State private var draft = ""
+    @State private var baselineDesc = ""
     @State private var savedFlash = false
     @FocusState private var focused: Bool
 
@@ -118,15 +119,16 @@ struct WhenEditor: View {
         .accessibilityLabel(label)
     }
 
-    private func load() { draft = When.text(in: description) ?? "" }
+    private func load() { baselineDesc = description; draft = When.text(in: baselineDesc) ?? "" }
 
     @discardableResult
     private func commit(silent: Bool = false) async -> Bool {
         guard let cue else { return true }
-        let current = When.text(in: description) ?? ""
+        let current = When.text(in: baselineDesc) ?? ""
         guard draft.trimmingCharacters(in: .whitespacesAndNewlines) != current else { return true }
         let newDesc = When.replacing(in: description, with: draft)
-        let ok = await store.edit(cue: cue, column: descCol, value: newDesc)
+        let ok = await store.edit(cue: cue, column: descCol, value: newDesc, base: baselineDesc)
+        if ok { baselineDesc = newDesc }
         if ok && !silent {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             savedFlash = true

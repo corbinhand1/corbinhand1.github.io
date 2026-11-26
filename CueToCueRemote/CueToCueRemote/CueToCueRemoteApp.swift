@@ -33,6 +33,7 @@ struct CueToCueRemoteApp: App {
                     if store.faceIDEnabled, store.isSignedIn, let t = backgroundedAt,
                        Date().timeIntervalSince(t) > grace { store.locked = true }
                     backgroundedAt = nil
+                    store.ensureRetry()
                 default: break
                 }
             }
