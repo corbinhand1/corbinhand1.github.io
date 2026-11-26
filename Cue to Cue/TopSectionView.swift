@@ -8,12 +8,14 @@
 import SwiftUI
 
 struct TopSectionView: View {
-    @Binding var currentTime: Date
-    @Binding var countdownTime: Int
-    @Binding var countdownRunning: Bool
-    @Binding var countUpTime: Int
-    @Binding var countUpRunning: Bool
-    var timerServer: AuthoritativeTimerServer
+    /// Observed here (not in ContentView) so timer ticks redraw only this
+    /// header, not the whole window and cue table.
+    @ObservedObject var timerServer: AuthoritativeTimerServer
+    private var currentTime: Date { timerServer.currentTime }
+    private var countdownTime: Int { timerServer.countdownTime }
+    private var countdownRunning: Bool { timerServer.countdownRunning }
+    private var countUpTime: Int { timerServer.countUpTime }
+    private var countUpRunning: Bool { timerServer.countUpRunning }
 
     // "Countdown to a specific time" states:
     @State private var targetTimeString: String = "10:00:00"

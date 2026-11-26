@@ -52,6 +52,8 @@
 		31EDT003 /* CueEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDT004 /* CueEditingTests.swift */; };
 		31EDC003 /* CueEditorControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EDC004 /* CueEditorControllerTests.swift */; };
 		31DOC003 /* DocumentControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DOC004 /* DocumentControllerTests.swift */; };
+		31STG003 /* DocumentStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31STG004 /* DocumentStorageTests.swift */; };
+		31TMR003 /* TimerServerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31TMR004 /* TimerServerTests.swift */; };
 		31F2FAC92C0425ED0074D2A4 /* Cue_to_CueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FAC82C0425ED0074D2A4 /* Cue_to_CueUITests.swift */; };
 		31F2FACB2C0425ED0074D2A4 /* Cue_to_CueUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FACA2C0425ED0074D2A4 /* Cue_to_CueUITestsLaunchTests.swift */; };
 		31F2FADD2C0441630074D2A4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F2FADC2C0441630074D2A4 /* SettingsView.swift */; };
@@ -182,6 +184,8 @@
 		31EDT004 /* CueEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditingTests.swift; sourceTree = "<group>"; };
 		31EDC004 /* CueEditorControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueEditorControllerTests.swift; sourceTree = "<group>"; };
 		31DOC004 /* DocumentControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentControllerTests.swift; sourceTree = "<group>"; };
+		31STG004 /* DocumentStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentStorageTests.swift; sourceTree = "<group>"; };
+		31TMR004 /* TimerServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerServerTests.swift; sourceTree = "<group>"; };
 		31F2FAC42C0425ED0074D2A4 /* Cue to CueUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Cue to CueUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		31F2FAC82C0425ED0074D2A4 /* Cue_to_CueUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cue_to_CueUITests.swift; sourceTree = "<group>"; };
 		31F2FACA2C0425ED0074D2A4 /* Cue_to_CueUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cue_to_CueUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -396,6 +400,8 @@
 				31EDT004 /* CueEditingTests.swift */,
 				31EDC004 /* CueEditorControllerTests.swift */,
 				31DOC004 /* DocumentControllerTests.swift */,
+				31STG004 /* DocumentStorageTests.swift */,
+				31TMR004 /* TimerServerTests.swift */,
 			);
 			path = "Cue to CueTests";
 			sourceTree = "<group>";
@@ -660,6 +666,8 @@
 				31EDT003 /* CueEditingTests.swift in Sources */,
 				31EDC003 /* CueEditorControllerTests.swift in Sources */,
 				31DOC003 /* DocumentControllerTests.swift in Sources */,
+				31STG003 /* DocumentStorageTests.swift in Sources */,
+				31TMR003 /* TimerServerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -22,6 +22,8 @@ final class DocumentController: ObservableObject {
 
     let data: DataSyncManager
     let editor: CueEditorController
+    /// File I/O, bookmarks and backups (an isolated store in tests).
+    let store: DocumentStore
     /// Set by ContentView (it is an environment object, so not available at init).
     weak var settingsManager: SettingsManager?
 
@@ -86,9 +88,10 @@ final class DocumentController: ObservableObject {
     var isOpeningFile = false
     private var cancellables = Set<AnyCancellable>()
 
-    init(data: DataSyncManager, editor: CueEditorController) {
+    init(data: DataSyncManager, editor: CueEditorController, store: DocumentStore = .shared) {
         self.data = data
         self.editor = editor
+        self.store = store
 
         // Dirty tracking for model changes (cue edits from the Mac or LAN,
         // playlist edits). Loads set isLoadingFromDisk first.
@@ -175,7 +178,7 @@ final class DocumentController: ObservableObject {
         hasExplicitlyOpenedFile = true
 
         do {
-            let savedData = try DocumentStore.shared.load(from: url)
+            let savedData = try store.load(from: url)
             applyLoadedData(savedData, from: url, persistAsLastSavedURL: true)
             CueStackDocumentType.repairContentTypeIfNeeded(at: url)
         } catch {
@@ -219,10 +222,9 @@ final class DocumentController: ObservableObject {
             self.fileName = url.lastPathComponent
             // Phase 2: bookmark survives renames/moves; the legacy URL key is
             // mirrored for backward compatibility but no longer authoritative.
-            try? DocumentStore.shared.saveBookmark(for: url)
-            UserDefaults.standard.set(url, forKey: "LastSavedURL")
-            if let state = try? DocumentStore.shared.diskState(for: url) {
-                DocumentStore.shared.recordDiskState(state)
+            try? store.saveBookmark(for: url)
+            if let state = try? store.diskState(for: url) {
+                store.recordDiskState(state)
                 self.lastSaveDate = state.modificationDate
             } else {
                 self.lastSaveDate = Date()
@@ -232,9 +234,8 @@ final class DocumentController: ObservableObject {
             // don't overwrite the file with seed/test data.
             self.lastSavedURL = nil
             self.fileName = url.lastPathComponent + " (empty — choose Save As to keep changes)"
-            DocumentStore.shared.clearBookmark()
-            DocumentStore.shared.clearRecordedDiskState()
-            UserDefaults.standard.removeObject(forKey: "LastSavedURL")
+            store.clearBookmark()
+            store.clearRecordedDiskState()
         }
 
         // Loading is the new clean baseline.
@@ -442,9 +443,8 @@ final class DocumentController: ObservableObject {
         fileName = "Untitled"
         hasExplicitlyOpenedFile = true
 
-        DocumentStore.shared.clearBookmark()
-        DocumentStore.shared.clearRecordedDiskState()
-        UserDefaults.standard.removeObject(forKey: "LastSavedURL")
+        store.clearBookmark()
+        store.clearRecordedDiskState()
 
         fileWatcher?.stop()
         fileWatcher = nil
@@ -475,11 +475,11 @@ final class DocumentController: ObservableObject {
     func saveWouldConflict(at url: URL) -> Bool {
         guard url == lastSavedURL,
               FileManager.default.fileExists(atPath: url.path),
-              let recorded = DocumentStore.shared.loadRecordedDiskState() else {
+              let recorded = store.loadRecordedDiskState() else {
             return false
         }
-        return DocumentStore.shared.diskStateChanged(at: url, since: recorded)
-            && !DocumentStore.shared.wasRecentlySelfWritten()
+        return store.diskStateChanged(at: url, since: recorded)
+            && !store.wasRecentlySelfWritten()
     }
 
     /// Save the current document to `url` through DocumentStore (atomic +
@@ -495,7 +495,7 @@ final class DocumentController: ObservableObject {
         }
 
         do {
-            let result = try DocumentStore.shared.save(currentSavedData(), to: url)
+            let result = try store.save(currentSavedData(), to: url)
             self.lastSaveDate = result.savedAt
             self.lastSavedURL = url
             self.fileName = url.lastPathComponent
@@ -503,9 +503,8 @@ final class DocumentController: ObservableObject {
             self.lastRecoveryURL = nil
             self.documentChangedExternally = false
             self.pendingConflictURL = nil
-            try? DocumentStore.shared.saveBookmark(for: url)
-            DocumentStore.shared.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
-            UserDefaults.standard.set(url, forKey: "LastSavedURL")
+            try? store.saveBookmark(for: url)
+            store.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
             print("✅ Saved \(url.lastPathComponent) at \(result.savedAt). Previous version at: \(result.backedUpTo?.path ?? "(no prior file)")")
             notifyWebClients()
             updateWindowChrome()
@@ -583,7 +582,7 @@ final class DocumentController: ObservableObject {
         // never to NSTemporaryDirectory where they would be invisible.
         do {
             let suggestedStem = fileStem.trimmingCharacters(in: .whitespacesAndNewlines)
-            let result = try DocumentStore.shared.saveRecovery(currentSavedData(), suggestedStem: suggestedStem.isEmpty ? "Untitled" : suggestedStem)
+            let result = try store.saveRecovery(currentSavedData(), suggestedStem: suggestedStem.isEmpty ? "Untitled" : suggestedStem)
             self.lastRecoveryURL = result.url
             self.lastSaveDate = result.savedAt
             // Note: we do NOT clear isDirty here — the document still has no
@@ -639,11 +638,11 @@ final class DocumentController: ObservableObject {
         // Whatever happens below, never leave the app with zero cue stacks.
         defer { ensureDocumentHasAStack() }
 
-        DocumentStore.shared.migrateLegacyLastSavedURLIfNeeded()
+        store.migrateLegacyLastSavedURLIfNeeded()
 
         let resolvedURL: URL?
         do {
-            resolvedURL = try DocumentStore.shared.resolveBookmark()?.url
+            resolvedURL = try store.resolveBookmark()?.url
         } catch {
             print("❌ Could not resolve last document bookmark: \(error.localizedDescription)")
             resolvedURL = nil
@@ -667,16 +666,16 @@ final class DocumentController: ObservableObject {
         // no in-memory edits to conflict with. Just load it. (This used to
         // show the conflict alert, where "Keep My Version" would overwrite
         // the show file with an empty document.)
-        if let recorded = DocumentStore.shared.loadRecordedDiskState(),
-           DocumentStore.shared.diskStateChanged(at: lastURL, since: recorded) {
+        if let recorded = store.loadRecordedDiskState(),
+           store.diskStateChanged(at: lastURL, since: recorded) {
             print("ℹ️ \(lastURL.lastPathComponent) changed while the app was closed. Loading the newer version.")
         }
 
         do {
             print("📂 Restoring last document: \(lastURL.lastPathComponent)")
-            let result = try DocumentStore.shared.loadResult(from: lastURL)
+            let result = try store.loadResult(from: lastURL)
             applyLoadedData(result.savedData, from: lastURL, persistAsLastSavedURL: true)
-            DocumentStore.shared.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
+            store.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
         } catch {
             print("❌ Error loading last file: \(error.localizedDescription)")
             // Do NOT set lastSavedURL — we don't want autosave to overwrite a
@@ -712,7 +711,7 @@ final class DocumentController: ObservableObject {
         alert.addButton(withTitle: "Reveal Backups in Finder")
         let response = alert.runModal()
         if response == .alertSecondButtonReturn {
-            if let backupRoot = try? DocumentStore.shared.backupRoot() {
+            if let backupRoot = try? store.backupRoot() {
                 NSWorkspace.shared.activateFileViewerSelecting([backupRoot])
             }
         }
@@ -754,8 +753,9 @@ final class DocumentController: ObservableObject {
     /// Start (or restart) the filesystem watcher pointed at `url`. Safe to
     /// call repeatedly; the watcher stops itself first if already active.
     func startFileWatcher(at url: URL) {
-        let watcher = FileWatcher { reason in
-            self.handleExternalChange(reason: reason)
+        let store = self.store
+        let watcher = FileWatcher(isRecentSelfWrite: { store.wasRecentlySelfWritten() }) { [weak self] reason in
+            self?.handleExternalChange(reason: reason)
         }
         watcher.start(watching: url)
         self.fileWatcher = watcher
@@ -774,7 +774,7 @@ final class DocumentController: ObservableObject {
             // the fresh file." If our own write window is still warm, OR
             // the path still resolves, treat it as a benign atomic
             // replacement and just reattach the watcher.
-            if DocumentStore.shared.wasRecentlySelfWritten(within: 5.0)
+            if store.wasRecentlySelfWritten(within: 5.0)
                 || FileManager.default.fileExists(atPath: url.path) {
                 startFileWatcher(at: url)
                 return
@@ -786,8 +786,8 @@ final class DocumentController: ObservableObject {
             // Cross-check disk state: if mtime+size still match what we
             // recorded after our last save, this was a noop event (Spotlight,
             // iCloud metadata refresh, etc.) and we ignore it.
-            if let recorded = DocumentStore.shared.loadRecordedDiskState(),
-               !DocumentStore.shared.diskStateChanged(at: url, since: recorded) {
+            if let recorded = store.loadRecordedDiskState(),
+               !store.diskStateChanged(at: url, since: recorded) {
                 return
             }
             documentChangedExternally = true
@@ -804,7 +804,7 @@ final class DocumentController: ObservableObject {
     func recheckExternalChangesNow() {
         guard let url = lastSavedURL else { return }
         // Suppress if our own write was within the settle window.
-        if DocumentStore.shared.wasRecentlySelfWritten() { return }
+        if store.wasRecentlySelfWritten() { return }
         // If the file is missing, don't pop the missing-file sheet
         // synchronously — Finder, iCloud, and other tools sometimes briefly
         // unlink + relink during sync. Recheck after a short delay; if it
@@ -813,15 +813,15 @@ final class DocumentController: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 guard let stillURL = self.lastSavedURL, stillURL == url else { return }
                 if !FileManager.default.fileExists(atPath: stillURL.path),
-                   !DocumentStore.shared.wasRecentlySelfWritten(within: 5.0) {
+                   !self.store.wasRecentlySelfWritten(within: 5.0) {
                     self.pendingConflictURL = stillURL
                     self.showMissingFileAlert = true
                 }
             }
             return
         }
-        if let recorded = DocumentStore.shared.loadRecordedDiskState(),
-           DocumentStore.shared.diskStateChanged(at: url, since: recorded) {
+        if let recorded = store.loadRecordedDiskState(),
+           store.diskStateChanged(at: url, since: recorded) {
             documentChangedExternally = true
             pendingConflictURL = url
             showConflictAlert = true
@@ -834,9 +834,9 @@ final class DocumentController: ObservableObject {
         let url = pendingConflictURL ?? lastSavedURL
         guard let url else { return }
         do {
-            let result = try DocumentStore.shared.loadResult(from: url)
+            let result = try store.loadResult(from: url)
             applyLoadedData(result.savedData, from: url, persistAsLastSavedURL: true)
-            DocumentStore.shared.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
+            store.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
             documentChangedExternally = false
             pendingConflictURL = nil
         } catch {
@@ -856,7 +856,7 @@ final class DocumentController: ObservableObject {
             return
         }
         do {
-            let result = try DocumentStore.shared.save(currentSavedData(), to: url)
+            let result = try store.save(currentSavedData(), to: url)
             self.lastSavedURL = url
             self.lastSaveDate = result.savedAt
             self.fileName = url.lastPathComponent
@@ -864,9 +864,8 @@ final class DocumentController: ObservableObject {
             self.lastRecoveryURL = nil
             self.documentChangedExternally = false
             self.pendingConflictURL = nil
-            try? DocumentStore.shared.saveBookmark(for: url)
-            DocumentStore.shared.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
-            UserDefaults.standard.set(url, forKey: "LastSavedURL")
+            try? store.saveBookmark(for: url)
+            store.recordDiskState(DocumentStore.DiskState(modificationDate: result.modificationDate, fileSize: result.fileSize))
             notifyWebClients()
             updateWindowChrome()
         } catch {
@@ -898,9 +897,8 @@ final class DocumentController: ObservableObject {
     /// the in-memory state. Future autosaves will go to Recovery.
     func abandonMissingFile() {
         self.lastSavedURL = nil
-        DocumentStore.shared.clearBookmark()
-        DocumentStore.shared.clearRecordedDiskState()
-        UserDefaults.standard.removeObject(forKey: "LastSavedURL")
+        store.clearBookmark()
+        store.clearRecordedDiskState()
         self.fileName = "Untitled"
         self.pendingConflictURL = nil
         // Mark dirty so the user is reminded to Save As before quitting.
@@ -939,7 +937,7 @@ final class DocumentController: ObservableObject {
         // non-empty; DocumentStore refuses empty saves.
         if !data.cueStacks.isEmpty {
             do {
-                let r = try DocumentStore.shared.saveRecovery(currentSavedData(), suggestedStem: recoveryStem)
+                let r = try store.saveRecovery(currentSavedData(), suggestedStem: recoveryStem)
                 self.lastRecoveryURL = r.url
                 print("📦 Pre-restore recovery saved at \(r.url.path)")
             } catch {
@@ -949,7 +947,7 @@ final class DocumentController: ObservableObject {
 
         // 2) Load the chosen backup.
         do {
-            let result = try DocumentStore.shared.loadResult(from: backupURL)
+            let result = try store.loadResult(from: backupURL)
             // Empty-payload guard: refuse to "restore" a backup that has no
             // cue stacks. This prevents the user from clobbering a real
             // document with an empty backup, the same trap that triggered

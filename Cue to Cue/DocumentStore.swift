@@ -109,6 +109,15 @@ final class DocumentStore {
 
     private let fileManager = FileManager.default
     private let coordinator = NSFileCoordinator(filePresenter: nil)
+    /// Where the "last document" bookmark and disk state are remembered.
+    private let defaults: UserDefaults
+    /// Overrides ~/Library/Application Support/Cue to Cue (tests).
+    private let appSupportOverride: URL?
+    /// Copy every save to the Desktop/Library backup tiers (off in tests).
+    private let fansOutBackups: Bool
+    /// Fixed for the life of the app, so autosaves of an untitled document
+    /// overwrite one recovery file instead of creating a new one each time.
+    private let recoverySessionStamp: String
 
     // MARK: - Formatters
 
@@ -121,7 +130,21 @@ final class DocumentStore {
         return f
     }()
 
-    private init() {}
+    private convenience init() {
+        self.init(defaults: .standard, appSupportRoot: nil, fansOutBackups: true)
+    }
+
+    /// Test/isolated store: separate defaults and Application Support root.
+    init(defaults: UserDefaults, appSupportRoot: URL?, fansOutBackups: Bool) {
+        self.defaults = defaults
+        self.appSupportOverride = appSupportRoot
+        self.fansOutBackups = fansOutBackups
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        f.timeZone = TimeZone(secondsFromGMT: 0)
+        self.recoverySessionStamp = f.string(from: Date())
+    }
 
     // MARK: - Public API: Save
 
@@ -226,12 +249,11 @@ final class DocumentStore {
         // Cmd-S round trip is not held up by sibling/history writes. The
         // report is delivered via NotificationCenter so any UI surface
         // (the title-bar status pill, the warning banner, etc.) can react.
-        BackupManager.shared.fanOut(verifiedData: data, mainFileURL: url, savedData: savedData) { report in
-            NotificationCenter.default.post(name: .documentStoreBackupsCompleted, object: report)
-            if report.hasFailures {
-                let failed = report.tiers.filter { !$0.succeeded }.map { $0.tier }.joined(separator: ", ")
-                NSLog("DocumentStore: backup tiers degraded: \(failed)")
-            }
+        // Recovery files are already a safety copy; fanning them out would
+        // put a Desktop file per untitled document session.
+        let isRecoveryFile = (try? recoveryDirectory()).map { url.deletingLastPathComponent().standardizedFileURL == $0.standardizedFileURL } ?? false
+        if fansOutBackups && !isRecoveryFile {
+            fanOutBackups(data: data, url: url, savedData: savedData)
         }
 
         return SaveResult(
@@ -244,6 +266,16 @@ final class DocumentStore {
         )
     }
 
+    private func fanOutBackups(data: Data, url: URL, savedData: SavedData) {
+        BackupManager.shared.fanOut(verifiedData: data, mainFileURL: url, savedData: savedData) { report in
+            NotificationCenter.default.post(name: .documentStoreBackupsCompleted, object: report)
+            if report.hasFailures {
+                let failed = report.tiers.filter { !$0.succeeded }.map { $0.tier }.joined(separator: ", ")
+                NSLog("DocumentStore: backup tiers degraded: \(failed)")
+            }
+        }
+    }
+
     /// Save into the Recovery directory (Application Support / Cue to Cue / Recovery).
     /// Used by autosave when no document URL is selected, so the user's work is
     /// never written into NSTemporaryDirectory.
@@ -251,9 +283,27 @@ final class DocumentStore {
     func saveRecovery(_ savedData: SavedData, suggestedStem: String? = nil) throws -> SaveResult {
         let dir = try recoveryDirectory()
         let stem = (suggestedStem?.isEmpty == false ? suggestedStem! : "Untitled")
-        let stamp = backupTimestampFormatter.string(from: Date())
-        let url = dir.appendingPathComponent("\(stem)-\(stamp).json")
-        return try save(savedData, to: url)
+        // One file per document name per app session: repeated autosaves
+        // overwrite it (the previous version is snapshotted to Backups),
+        // instead of adding a new file every 30 seconds.
+        let url = dir.appendingPathComponent("\(stem)-\(recoverySessionStamp).json")
+        let result = try save(savedData, to: url)
+        pruneRecoveryFiles()
+        return result
+    }
+
+    /// Keep recovery files from the last 14 days, and at least the 20 newest.
+    func pruneRecoveryFiles(now: Date = Date()) {
+        guard let dir = try? recoveryDirectory(),
+              let urls = try? fileManager.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles]) else { return }
+        let dated: [(url: URL, date: Date)] = urls.compactMap { u in
+            guard let d = (try? u.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate else { return nil }
+            return (u, d)
+        }.sorted { $0.date > $1.date }
+        let cutoff = now.addingTimeInterval(-14 * 24 * 3600)
+        for (offset, entry) in dated.enumerated() where offset >= 20 && entry.date < cutoff {
+            try? fileManager.removeItem(at: entry.url)
+        }
     }
 
     // MARK: - Public API: Load
@@ -352,7 +402,7 @@ final class DocumentStore {
     /// app is sandboxed later, switch the options to `[.withSecurityScope]`.
     func saveBookmark(for url: URL, key: String = "LastDocumentBookmark") throws {
         let data = try url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil)
-        UserDefaults.standard.set(data, forKey: key)
+        defaults.set(data, forKey: key)
     }
 
     /// Resolve a previously-saved bookmark. Returns `nil` if no bookmark is
@@ -360,7 +410,7 @@ final class DocumentStore {
     /// `isStale == true` means the OS resolved the URL but recommends we save a
     /// fresh bookmark on next access; we do that automatically.
     func resolveBookmark(key: String = "LastDocumentBookmark") throws -> (url: URL, isStale: Bool)? {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        guard let data = defaults.data(forKey: key) else { return nil }
         var isStale = false
         let url = try URL(resolvingBookmarkData: data, options: [], relativeTo: nil, bookmarkDataIsStale: &isStale)
         if isStale {
@@ -371,7 +421,9 @@ final class DocumentStore {
     }
 
     func clearBookmark(key: String = "LastDocumentBookmark") {
-        UserDefaults.standard.removeObject(forKey: key)
+        defaults.removeObject(forKey: key)
+        // Also drop the pre-bookmark key so migration can't resurrect it.
+        defaults.removeObject(forKey: "LastSavedURL")
     }
 
     /// Migrate a legacy `UserDefaults["LastSavedURL"]` value (plain URL, no
@@ -379,17 +431,17 @@ final class DocumentStore {
     func migrateLegacyLastSavedURLIfNeeded() {
         let legacyKey = "LastSavedURL"
         // If we already have a bookmark, do nothing.
-        if UserDefaults.standard.data(forKey: "LastDocumentBookmark") != nil {
-            UserDefaults.standard.removeObject(forKey: legacyKey)
+        if defaults.data(forKey: "LastDocumentBookmark") != nil {
+            defaults.removeObject(forKey: legacyKey)
             return
         }
-        if let url = UserDefaults.standard.url(forKey: legacyKey) {
+        if let url = defaults.url(forKey: legacyKey) {
             // Only migrate if the file still exists; otherwise let the
             // missing-file flow handle it.
             if fileManager.fileExists(atPath: url.path) {
                 try? saveBookmark(for: url)
             }
-            UserDefaults.standard.removeObject(forKey: legacyKey)
+            defaults.removeObject(forKey: legacyKey)
         }
     }
 
@@ -401,23 +453,27 @@ final class DocumentStore {
     /// can detect external modifications across launches.
     func recordDiskState(_ state: DiskState) {
         guard let data = try? JSONEncoder().encode(state) else { return }
-        UserDefaults.standard.set(data, forKey: diskStateDefaultsKey)
+        defaults.set(data, forKey: diskStateDefaultsKey)
     }
 
     /// Load the last-observed disk state, or `nil` if we have none.
     func loadRecordedDiskState() -> DiskState? {
-        guard let data = UserDefaults.standard.data(forKey: diskStateDefaultsKey) else { return nil }
+        guard let data = defaults.data(forKey: diskStateDefaultsKey) else { return nil }
         return try? JSONDecoder().decode(DiskState.self, from: data)
     }
 
     func clearRecordedDiskState() {
-        UserDefaults.standard.removeObject(forKey: diskStateDefaultsKey)
+        defaults.removeObject(forKey: diskStateDefaultsKey)
     }
 
     // MARK: - Directories
 
     /// `~/Library/Application Support/Cue to Cue/`
     func appSupportRoot() throws -> URL {
+        if let override = appSupportOverride {
+            try ensureDirectory(override)
+            return override
+        }
         guard let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             throw DocumentStoreError.appSupportUnavailable
         }

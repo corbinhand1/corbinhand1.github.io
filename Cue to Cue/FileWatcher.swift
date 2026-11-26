@@ -46,6 +46,8 @@ final class FileWatcher {
     private var pendingWorkItem: DispatchWorkItem?
     private let queue = DispatchQueue(label: "com.cuetocue.filewatcher", qos: .utility)
     private let onChange: (Reason) -> Void
+    /// True right after the app's own save, so those events are ignored.
+    private let isRecentSelfWrite: () -> Bool
 
     /// - Parameters:
     ///   - debounceInterval: minimum interval between callbacks; events within
@@ -53,8 +55,11 @@ final class FileWatcher {
     ///   - onChange: called on the main thread when a *non-self* change is
     ///     detected. Self-writes (within `DocumentStore.shared.selfWriteSettleWindow`)
     ///     are filtered out and never produce a callback.
-    init(debounceInterval: TimeInterval = 0.25, onChange: @escaping (Reason) -> Void) {
+    init(debounceInterval: TimeInterval = 0.25,
+         isRecentSelfWrite: @escaping () -> Bool = { DocumentStore.shared.wasRecentlySelfWritten() },
+         onChange: @escaping (Reason) -> Void) {
         self.debounceInterval = debounceInterval
+        self.isRecentSelfWrite = isRecentSelfWrite
         self.onChange = onChange
     }
 
@@ -119,7 +124,7 @@ final class FileWatcher {
     private func handleEvent(reason: Reason) {
         // Filter our own writes. We re-check at fire-time too, in case the
         // self-write happens between dispatch and execution.
-        if DocumentStore.shared.wasRecentlySelfWritten() {
+        if self.isRecentSelfWrite() {
             return
         }
 
@@ -139,7 +144,7 @@ final class FileWatcher {
                 guard let self else { return }
                 // 1) Self-write check on main (now that any in-flight save
                 //    on main has had a chance to update the timestamp).
-                if DocumentStore.shared.wasRecentlySelfWritten() {
+                if self.isRecentSelfWrite() {
                     self.stop()
                     return
                 }
@@ -166,7 +171,7 @@ final class FileWatcher {
             guard let self else { return }
             // Re-check at fire-time. If we self-wrote during the debounce
             // window, swallow.
-            if DocumentStore.shared.wasRecentlySelfWritten() {
+            if self.isRecentSelfWrite() {
                 return
             }
             DispatchQueue.main.async {

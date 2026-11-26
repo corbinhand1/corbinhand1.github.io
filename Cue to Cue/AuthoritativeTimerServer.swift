@@ -44,6 +44,11 @@ class AuthoritativeTimerServer: ObservableObject {
     // MARK: - Private Properties
     
     private var timer: Timer?
+    /// Clock source; injectable so tests can control time.
+    private let now: () -> Date
+    /// Exact time left when the countdown was paused, so pause/resume never
+    /// loses the fraction of a second the Int display hides.
+    private var pausedCountdownRemaining: TimeInterval?
     private var countdownTarget: Date?
     private var countUpTarget: Date?
     private var targetTimeString: String = "10:00:00"
@@ -53,18 +58,29 @@ class AuthoritativeTimerServer: ObservableObject {
     
     // MARK: - Initialization
     
-    init() {
+    init(now: @escaping () -> Date = Date.init, startTicking: Bool = true) {
+        self.now = now
+        currentTime = now()
         // Initialize countdown-to-time with default target (but don't start it)
         targetTimeString = "10:00:00"
         if let date = parseAsTodayTime(targetTimeString) {
             countUpTarget = date
             // Set initial countUpTime for display, but don't start running
-            countUpTime = max(0, Int(date.timeIntervalSince(Date())))
+            countUpTime = Self.secondsRemaining(until: date, from: now())
         }
         // countUpRunning starts as false - user must click Start
-        
-        startTimerBroadcast()
+
+        if startTicking {
+            startTimerBroadcast()
+        }
         print("🚀 Timer server ready (countdown-to-time target: \(targetTimeString))")
+    }
+
+    /// Whole seconds left until `target`, rounded UP: a countdown shows 10
+    /// for the whole first second and reaches 0 exactly at the target,
+    /// like a stage clock. (Rounding down showed 0 up to a second early.)
+    static func secondsRemaining(until target: Date, from now: Date) -> Int {
+        max(0, Int(ceil(target.timeIntervalSince(now) - 0.000_001)))
     }
     
     deinit {
@@ -74,24 +90,32 @@ class AuthoritativeTimerServer: ObservableObject {
     // MARK: - Timer Broadcasting
     
     private func startTimerBroadcast() {
-        // Update every 100ms for smooth display
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            self.updateTimers()
+        // Update every 100ms for smooth display.
+        let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.updateTimers()
         }
+        timer.tolerance = 0.02
+        // .common keeps the clocks (and LAN timer pushes) running while the
+        // user scrolls the cue list, holds a menu open, or an alert/sheet is
+        // up. A plain scheduledTimer runs only in .default mode and froze.
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
-    
-    private func updateTimers() {
-        let now = Date()
-        
-        // Always update currentTime every second for consistent web client updates
-        let newCurrentTime = now
-        if abs(newCurrentTime.timeIntervalSince(currentTime)) >= 1.0 {
-            currentTime = newCurrentTime
+
+    /// One tick of the clock. Called by the run-loop timer; tests call it
+    /// directly with an injected clock.
+    func updateTimers() {
+        let now = self.now()
+
+        // Time of day: publish when the wall-clock second changes, so the
+        // Mac clock flips in step with real time (and with browser clocks).
+        if Int(now.timeIntervalSince1970.rounded(.down)) != Int(currentTime.timeIntervalSince1970.rounded(.down)) {
+            currentTime = now
         }
-        
+
         // Update countdown timer
         if let target = countdownTarget {
-            let remaining = max(0, Int(target.timeIntervalSince(now)))
+            let remaining = Self.secondsRemaining(until: target, from: now)
             // Always update countdownTime when running to ensure @Published fires
             // This ensures web clients get updates even if the value hasn't changed by a full second
             if countdownTime != remaining {
@@ -116,7 +140,7 @@ class AuthoritativeTimerServer: ObservableObject {
         
         // Update count-up timer (only when running)
         if countUpRunning, let target = countUpTarget {
-            let remaining = max(0, Int(target.timeIntervalSince(now)))
+            let remaining = Self.secondsRemaining(until: target, from: now)
             // Update countUpTime when running
             if countUpTime != remaining {
                 countUpTime = remaining
@@ -189,17 +213,25 @@ class AuthoritativeTimerServer: ObservableObject {
             return
         }
         countdownRunning = true
-        countdownTarget = Date().addingTimeInterval(TimeInterval(countdownTime))
+        let remaining = pausedCountdownRemaining ?? TimeInterval(countdownTime)
+        pausedCountdownRemaining = nil
+        countdownTarget = now().addingTimeInterval(remaining)
         print("▶️ Countdown timer started: \(countdownTime) seconds, target: \(countdownTarget?.description ?? "nil")")
     }
     
     private func pauseCountdownTimer() {
+        if countdownRunning, let target = countdownTarget {
+            let exact = max(0, target.timeIntervalSince(now()))
+            pausedCountdownRemaining = exact
+            countdownTime = Self.secondsRemaining(until: target, from: now())
+        }
         countdownRunning = false
         countdownTarget = nil
         print("⏸️ Countdown timer paused")
     }
     
     private func resetCountdownTimer() {
+        pausedCountdownRemaining = nil
         countdownRunning = false
         countdownTime = 0
         countdownTarget = nil
@@ -207,18 +239,28 @@ class AuthoritativeTimerServer: ObservableObject {
     }
     
     private func setCountdownTime(_ time: Int) {
+        pausedCountdownRemaining = nil
         countdownTime = time
         if countdownRunning {
-            countdownTarget = Date().addingTimeInterval(TimeInterval(time))
+            countdownTarget = now().addingTimeInterval(TimeInterval(time))
         }
     }
     
     private func adjustCountdownTime(by seconds: Int) {
-        let newTime = max(0, countdownTime + seconds)
-        countdownTime = newTime
-        if countdownRunning {
-            countdownTarget = Date().addingTimeInterval(TimeInterval(newTime))
+        // Adjust the exact remaining time, so +1 min while running adds
+        // exactly 60 s instead of also snapping to a whole second.
+        if countdownRunning, let target = countdownTarget {
+            let exact = max(0, target.timeIntervalSince(now()) + TimeInterval(seconds))
+            countdownTarget = now().addingTimeInterval(exact)
+            countdownTime = Self.secondsRemaining(until: countdownTarget!, from: now())
+            if exact == 0 { countdownTarget = nil; countdownRunning = false }
+        } else {
+            let base = pausedCountdownRemaining ?? TimeInterval(countdownTime)
+            let exact = max(0, base + TimeInterval(seconds))
+            pausedCountdownRemaining = exact
+            countdownTime = Int(ceil(exact - 0.000_001))
         }
+        let newTime = countdownTime
         print("➕➖ Countdown adjusted by \(seconds) seconds to \(newTime)")
     }
     
@@ -232,7 +274,7 @@ class AuthoritativeTimerServer: ObservableObject {
             if countUpRunning {
                 // updateTimers() keeps countUpTime in sync while running.
             } else if isNewTarget || countUpTime == 0 {
-                countUpTime = max(0, Int(date.timeIntervalSince(Date())))
+                countUpTime = Self.secondsRemaining(until: date, from: now())
             }
 
             if isNewTarget {
@@ -271,7 +313,7 @@ class AuthoritativeTimerServer: ObservableObject {
             if let date = parseAsTodayTime(entry.timeString) {
                 countUpTarget = date
                 countUpRunning = true
-                countUpTime = max(0, Int(date.timeIntervalSince(Date())))
+                countUpTime = Self.secondsRemaining(until: date, from: now())
                 targetTimeString = entry.timeString
                 print("▶️ Countdown to time started (playlist entry \(currentIdx + 1)): \(entry.timeString) - \(countUpTime) seconds remaining")
                 return
@@ -319,14 +361,15 @@ class AuthoritativeTimerServer: ObservableObject {
         
         var calendar = Calendar.current
         calendar.timeZone = TimeZone.current
-        var components = calendar.dateComponents([.year, .month, .day], from: Date())
+        let now = self.now()
+        var components = calendar.dateComponents([.year, .month, .day], from: now)
         components.hour = hour
         components.minute = minute
         components.second = second
         
         if let date = calendar.date(from: components) {
             // If the time has already passed today, assume the next day
-            if date < Date() {
+            if date < now {
                 return calendar.date(byAdding: .day, value: 1, to: date)
             }
             return date
@@ -343,7 +386,7 @@ class AuthoritativeTimerServer: ObservableObject {
             countUpTime: countUpTime,
             countdownRunning: countdownRunning,
             countUpRunning: countUpRunning,
-            timestamp: Date().timeIntervalSince1970 * 1000, // Convert to milliseconds
+            timestamp: now().timeIntervalSince1970 * 1000, // Convert to milliseconds
             countdownTarget: countdownTarget?.timeIntervalSince1970,
             countUpTarget: countUpTarget?.timeIntervalSince1970
         )
@@ -353,12 +396,12 @@ class AuthoritativeTimerServer: ObservableObject {
         return targetTimeString
     }
     
+    /// Selecting a cue with a timer value restarts the countdown from it.
     func resetCountdown(with newTime: Int) {
-        countdownRunning = false
+        pausedCountdownRemaining = nil
         countdownTime = newTime
-        countdownTarget = Date().addingTimeInterval(TimeInterval(newTime))
+        countdownTarget = now().addingTimeInterval(TimeInterval(newTime))
         countdownRunning = true
-        countdownTarget = Date().addingTimeInterval(TimeInterval(newTime))
         print("🔄 Countdown reset: \(newTime)s")
     }
     
@@ -395,7 +438,7 @@ class AuthoritativeTimerServer: ObservableObject {
                 let firstEntry = playlistState.entries[0]
                 if let firstDate = parseAsTodayTime(firstEntry.timeString) {
                     countUpTarget = firstDate
-                    countUpTime = max(0, Int(firstDate.timeIntervalSince(Date())))
+                    countUpTime = Self.secondsRemaining(until: firstDate, from: now())
                     targetTimeString = firstEntry.timeString
                     countUpRunning = true
                     
@@ -420,7 +463,7 @@ class AuthoritativeTimerServer: ObservableObject {
             
             if let nextDate = parseAsTodayTime(nextEntry.timeString) {
                 countUpTarget = nextDate
-                countUpTime = max(0, Int(nextDate.timeIntervalSince(Date())))
+                countUpTime = Self.secondsRemaining(until: nextDate, from: now())
                 targetTimeString = nextEntry.timeString
                 countUpRunning = true
                 
@@ -440,7 +483,7 @@ class AuthoritativeTimerServer: ObservableObject {
             
             if let firstDate = parseAsTodayTime(firstEntry.timeString) {
                 countUpTarget = firstDate
-                countUpTime = max(0, Int(firstDate.timeIntervalSince(Date())))
+                countUpTime = Self.secondsRemaining(until: firstDate, from: now())
                 targetTimeString = firstEntry.timeString
                 countUpRunning = true
                 
@@ -472,7 +515,7 @@ class AuthoritativeTimerServer: ObservableObject {
             
             if let nextDate = parseAsTodayTime(nextEntry.timeString) {
                 countUpTarget = nextDate
-                countUpTime = max(0, Int(nextDate.timeIntervalSince(Date())))
+                countUpTime = Self.secondsRemaining(until: nextDate, from: now())
                 targetTimeString = nextEntry.timeString
                 countUpRunning = true
                 
@@ -496,7 +539,7 @@ class AuthoritativeTimerServer: ObservableObject {
             
             if let firstDate = parseAsTodayTime(firstEntry.timeString) {
                 countUpTarget = firstDate
-                countUpTime = max(0, Int(firstDate.timeIntervalSince(Date())))
+                countUpTime = Self.secondsRemaining(until: firstDate, from: now())
                 targetTimeString = firstEntry.timeString
                 countUpRunning = true
                 

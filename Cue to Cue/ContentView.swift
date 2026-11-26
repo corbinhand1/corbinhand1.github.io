@@ -23,7 +23,10 @@ struct ContentView: View {
     /// The open show file: save/open/autosave/conflicts (see DocumentController).
     @StateObject private var document: DocumentController
     @StateObject private var websiteSyncManager = WebsiteSyncManager()
-    @StateObject private var timerServer = AuthoritativeTimerServer()
+    /// Held in a box that never publishes, so 10 Hz timer ticks don't redraw
+    /// this whole view; TopSectionView observes the server directly.
+    @StateObject private var timerBox = TimerServerBox()
+    private var timerServer: AuthoritativeTimerServer { timerBox.server }
 
     // MARK: - Presentation
     @State private var showSettings = false
@@ -233,11 +236,6 @@ struct ContentView: View {
                     VStack(spacing: 0) {
                         VStack(spacing: 20) {
                             TopSectionView(
-                                currentTime: $timerServer.currentTime,
-                                countdownTime: $timerServer.countdownTime,
-                                countdownRunning: $timerServer.countdownRunning,
-                                countUpTime: $timerServer.countUpTime,
-                                countUpRunning: $timerServer.countUpRunning,
                                 timerServer: timerServer,
                                 showPlaylistEditor: $showPlaylistEditor,
                                 showSettings: $showSettings,
@@ -1303,6 +1301,11 @@ struct TransferCue: Codable {
 struct MultiCueTransfer: Codable {
     let cues: [Cue]
     let columnCount: Int
+}
+
+/// Owns the timer server without forwarding its changes (see ContentView).
+final class TimerServerBox: ObservableObject {
+    let server = AuthoritativeTimerServer()
 }
 
 // MARK: - View Modifier for ContentView Lifecycle
