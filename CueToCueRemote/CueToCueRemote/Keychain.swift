@@ -40,7 +40,7 @@ enum Keychain {
         SecItemDelete(base as CFDictionary)
         guard let value, let data = value.data(using: .utf8) else { return true }
         guard let access = SecAccessControlCreateWithFlags(
-            nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, .userPresence, nil) else { return false }
+            nil, kSecAttrAccessibleWhenUnlockedThisDeviceOnly, .userPresence, nil) else { return false }
         var add = base
         add[kSecValueData as String] = data
         add[kSecAttrAccessControl as String] = access

@@ -44,6 +44,7 @@ final class RemoteStore: ObservableObject {
             error = nil
             if rememberWithFaceID, Biometrics.isAvailable {
                 faceIDEnabled = Keychain.setProtected(password, for: "password")
+                if !faceIDEnabled { error = "Signed in, but \(Biometrics.name) couldn't be turned on for this device." }
             } else if !rememberWithFaceID {
                 disableFaceID()
             }
