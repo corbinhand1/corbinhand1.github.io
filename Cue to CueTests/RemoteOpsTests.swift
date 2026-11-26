@@ -125,4 +125,14 @@ final class RemoteSecurityTests: XCTestCase {
         // The key id must not reveal the token.
         XCTAssertFalse(AuthenticationManager.tokenID("tokenA").contains("tokenA"))
     }
+
+    func testTailscaleAddressRange() {
+        XCTAssertTrue(NetworkUtilities.isTailscaleAddress("100.64.0.1"))
+        XCTAssertTrue(NetworkUtilities.isTailscaleAddress("100.101.2.3"))
+        XCTAssertTrue(NetworkUtilities.isTailscaleAddress("100.127.255.254"))
+        XCTAssertFalse(NetworkUtilities.isTailscaleAddress("100.63.0.1"))
+        XCTAssertFalse(NetworkUtilities.isTailscaleAddress("100.128.0.1"))
+        XCTAssertFalse(NetworkUtilities.isTailscaleAddress("192.168.1.211"))
+        XCTAssertFalse(NetworkUtilities.isTailscaleAddress("not an ip"))
+    }
 }

@@ -45,6 +45,29 @@ class NetworkUtilities {
         return address
     }
     
+    /// Tailscale gives every device an address in 100.64.0.0/10.
+    static func isTailscaleAddress(_ ip: String) -> Bool {
+        let p = ip.split(separator: ".").compactMap { Int($0) }
+        return p.count == 4 && p[0] == 100 && (64...127).contains(p[1])
+    }
+
+    /// This Mac's Tailscale address, if Tailscale is installed and connected.
+    static func tailscaleIPAddress() -> String? {
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0 else { return nil }
+        defer { freeifaddrs(ifaddr) }
+        var ptr = ifaddr
+        while let current = ptr {
+            defer { ptr = current.pointee.ifa_next }
+            guard let addr = current.pointee.ifa_addr, addr.pointee.sa_family == UInt8(AF_INET) else { continue }
+            var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            getnameinfo(addr, socklen_t(addr.pointee.sa_len), &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST)
+            let ip = String(cString: host)
+            if isTailscaleAddress(ip) { return ip }
+        }
+        return nil
+    }
+
     static func getDeviceName() -> String {
         return Host.current().localizedName ?? "Unknown Device"
     }

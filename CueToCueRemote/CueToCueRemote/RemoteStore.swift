@@ -14,7 +14,12 @@ final class RemoteStore: ObservableObject {
     @AppStorage("bonjourName") var bonjourName = ""
     /// Address used when away from home (Tailscale name or tunnel URL).
     @AppStorage("remoteAddress") var remoteAddress = ""
+    /// True while `remoteAddress` was saved automatically from the Mac (false once you type your own).
+    @AppStorage("remoteAddressAuto") var remoteAddressAuto = true
+    /// Whether the Mac reported a Tailscale address the last time we asked (nil = not asked yet).
+    @Published var macHasTailscale: Bool?
     var lastReroute = Date.distantPast
+    private var rerouteTask: Task<Void, Never>?
 
     @Published var token: String? = Keychain.get("token")
     /// Starts locked when Face ID protection is on, so the show isn't visible until you unlock.
@@ -54,7 +59,11 @@ final class RemoteStore: ObservableObject {
     func signIn(address: String, username: String, password: String, rememberWithFaceID: Bool = false,
                 foundName: String? = nil) async {
         serverAddress = address
-        if let foundName { bonjourName = foundName } else { remoteAddress = address }
+        if let foundName {
+            bonjourName = foundName
+        } else if let u = API.normalize(address), [.tailscale, .encrypted].contains(ConnectionSecurity.classify(u)) {
+            remoteAddress = address; remoteAddressAuto = false      // a hand-typed address that works away from home
+        }
         self.username = username
         guard let url = API.normalize(address) else { error = APIError.badURL.localizedDescription; return }
         if ConnectionSecurity.classify(url) == .unsafe {
@@ -81,6 +90,7 @@ final class RemoteStore: ObservableObject {
             selectedStackID = s.cueStackId
             startLive()
             ensureRetry()
+            Task { await learnRemoteAddress() }
         } catch {
             self.error = Self.message(error)
         }
@@ -96,6 +106,7 @@ final class RemoteStore: ObservableObject {
             selectedStackID = s.cueStackId
             startLive()
             ensureRetry()
+            Task { await learnRemoteAddress() }
         } catch {
             // Can't reach the saved address: look for the Mac on this network, else use the away address.
             if error is URLError, await reroute() { await resume(); return }
@@ -137,6 +148,31 @@ final class RemoteStore: ObservableObject {
         return false
     }
 
+    /// If the link stays down for a few seconds (you walked off the Wi-Fi), look for the Mac again:
+    /// first on this network, then at its saved Tailscale address.
+    private func scheduleRerouteIfStillDown() {
+        guard rerouteTask == nil, token != nil else { return }
+        rerouteTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            guard let self, !Task.isCancelled else { return }
+            self.rerouteTask = nil
+            guard !self.live, Date().timeIntervalSince(self.lastReroute) > 15 else { return }
+            if await self.reroute() { self.startLive(); await self.refresh() }
+        }
+    }
+
+    /// While connected, ask the Mac for its Tailscale address and save it, so the phone can
+    /// connect automatically when you're off the Wi-Fi.
+    func learnRemoteAddress() async {
+        guard let api, token != nil else { return }
+        guard let info = try? await api.networkInfo() else { return }
+        macHasTailscale = info.tailscale != nil
+        guard let ts = info.tailscale, remoteAddress.isEmpty || remoteAddressAuto else { return }
+        let address = "\(ts):\(info.port)"
+        if remoteAddress != address { remoteAddress = address }
+        remoteAddressAuto = true
+    }
+
     // MARK: Face ID
 
     /// Unlocks the app with Face ID, then reconnects.
@@ -175,6 +211,7 @@ final class RemoteStore: ObservableObject {
     }
 
     private func startLive() {
+        socket?.stop()
         guard let url = api?.webSocketURL else { return }
         let s = LiveSocket(
             onChange: { [weak self] in Task { @MainActor in self?.scheduleRefresh() } },
@@ -184,6 +221,7 @@ final class RemoteStore: ObservableObject {
                     let wasDown = !self.live
                     self.live = up
                     if up && wasDown { self.ensureRetry() }   // back online: send what's waiting
+                    if !up { self.scheduleRerouteIfStillDown() }
                 }
             })
         socket = s

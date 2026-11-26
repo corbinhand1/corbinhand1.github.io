@@ -69,6 +69,13 @@ struct API {
         return (token, result.user?.isAdmin ?? false)
     }
 
+    /// How to reach the Mac: its Tailscale address (if Tailscale is running there), LAN address and port.
+    func networkInfo() async throws -> (tailscale: String?, port: Int) {
+        let data = try await send(request("/auth/network", auth: true))
+        let o = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        return (o?["tailscale"] as? String, o?["port"] as? Int ?? 8080)
+    }
+
     /// Structural edit (insert, move, strike, timer, delete, columns). Returns a new cue's id for inserts.
     @discardableResult
     func op(_ body: [String: Any]) async throws -> String? {

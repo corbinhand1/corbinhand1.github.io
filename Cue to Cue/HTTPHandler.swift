@@ -102,6 +102,8 @@ class HTTPHandler {
         // Authentication endpoints
         case (.post, "/auth/login"):
             return handleLogin(request)
+        case (.get, "/auth/network"):
+            return handleNetworkInfo(request)
         case (.post, "/auth/proof"):
             return handleProof(request)
         case (.post, "/auth/logout"):
@@ -829,5 +831,22 @@ class HTTPHandler {
         let proof = onMainThread { authManager.proof(forTokenID: kid, nonce: nonce) }
         guard let proof else { return reply(.notFound, ["error": "Unknown session"]) }
         return reply(.ok, ["proof": proof])
+    }
+
+    /// GET /auth/network (signed in only): how to reach this Mac, so the phone can save its Tailscale
+    /// address while on Wi-Fi and connect automatically when away.
+    private func handleNetworkInfo(_ request: HTTPRequest) -> HTTPResponse {
+        guard getCurrentUser(from: request) != nil else {
+            return HTTPResponse(status: .unauthorized, headers: createCORSHeaders(["Content-Type": "application/json"]),
+                                body: createErrorJSON(message: "Authentication required"))
+        }
+        // The port the client used to reach us (so a non-default port still works).
+        let hostHeader = request.headers["host"] ?? ""
+        let port = hostHeader.split(separator: ":").last.flatMap { Int($0) } ?? 8080
+        var info: [String: Any] = ["port": port, "name": NetworkUtilities.getDeviceName()]
+        if let ts = NetworkUtilities.tailscaleIPAddress() { info["tailscale"] = ts }
+        if let lan = NetworkUtilities.getLocalIPAddress() { info["lan"] = lan }
+        let body = (try? JSONSerialization.data(withJSONObject: info)) ?? Data()
+        return HTTPResponse(status: .ok, headers: createCORSHeaders(["Content-Type": "application/json", "Cache-Control": "no-store"]), body: body)
     }
 }

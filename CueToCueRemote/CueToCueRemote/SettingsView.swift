@@ -24,10 +24,24 @@ struct SettingsView: View {
                     }
                 }
                 Section {
-                    TextField("mac.tailnet.ts.net:8080", text: $store.remoteAddress)
+                    TextField("100.x.x.x:8080 or mac.tailnet.ts.net:8080",
+                              text: Binding(get: { store.remoteAddress },
+                                            set: { store.remoteAddress = $0; store.remoteAddressAuto = false }))
                         .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
+                    if !store.remoteAddress.isEmpty && !store.remoteAddressAuto {
+                        Button("Use the address from my Mac") { store.remoteAddress = ""; store.remoteAddressAuto = true
+                            Task { await store.learnRemoteAddress() } }.frame(minHeight: 44)
+                    }
                 } header: { Text("Away from home") } footer: {
-                    Text("Used when your Mac isn't on this Wi-Fi. Use your Mac's Tailscale name or a tunnel address.")
+                    if store.macHasTailscale == false {
+                        Text("Tailscale wasn't found on your Mac. Install Tailscale on the Mac and on this iPhone and sign in to both, then reconnect here on Wi-Fi once. The app saves the address and uses it automatically when you're away.")
+                    } else if store.remoteAddress.isEmpty {
+                        Text("Connect on your Wi-Fi once and the app saves your Mac's Tailscale address here automatically. Turn on Tailscale on this iPhone to use it away from home.")
+                    } else if store.remoteAddressAuto {
+                        Text("Saved automatically from your Mac. When you leave your Wi-Fi the app connects here by itself. Tailscale must be on for this iPhone.")
+                    } else {
+                        Text("Using the address you typed. Tailscale must be on for this iPhone.")
+                    }
                 }
                 Section {
                     if store.faceIDEnabled {
