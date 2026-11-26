@@ -35,6 +35,7 @@ struct ContentView: View {
     @State private var showUserManagement = false
     @State private var showPlaylistEditor = false
     @State private var showWebsitePanel = false
+    @State private var showAIImport = false
     @State private var showRestoreSheet = false
     @State private var showPrintSheet = false
     @State private var showCSVImportSheet = false
@@ -139,6 +140,11 @@ struct ContentView: View {
                 )
                 .environmentObject(websiteSyncManager)
                 .frame(width: 640, height: 640)
+            }
+            .sheet(isPresented: $showAIImport) {
+                AIImportView(currentStacks: dataSyncManager.cueStacks,
+                             onAdd: addGeneratedStack,
+                             onClose: { showAIImport = false })
             }
             .sheet(isPresented: $showCSVExportSheet) {
                 csvExportSheet
@@ -505,7 +511,7 @@ struct ContentView: View {
         .appDelegateNewFile, .appDelegateOpenFile, .appDelegateSaveFile,
         .appDelegateSaveFileAs, .appDelegateDuplicateFile,
         .appDelegateImportCSV, .appDelegateExportCSV,
-        .appDelegatePublishWebsite, .appDelegateShowWebsite,
+        .appDelegatePublishWebsite, .appDelegateShowWebsite, .appDelegateShowAIImport,
         .appDelegateUndo, .appDelegateRedo,
         .appDelegateCut, .appDelegateCopy, .appDelegatePaste, .appDelegateDelete,
         .appDelegateSelectAll, .appDelegateToggleStrikeThrough,
@@ -543,6 +549,7 @@ struct ContentView: View {
         case .appDelegateExportCSV: exportCSV()
         case .appDelegatePublishWebsite: publishToWebsite()
         case .appDelegateShowWebsite: showWebsitePanel = true
+        case .appDelegateShowAIImport: showAIImport = true
         // Edit
         case .appDelegateUndo: editor.undo()
         case .appDelegateRedo: editor.redo()
@@ -792,6 +799,19 @@ struct ContentView: View {
 
         pendingCSVImport = (sourceName: sourceName, result: result)
         showCSVImportSheet = true
+    }
+
+    /// Adds a stack Claude wrote (after the user reviewed it), selects it,
+    /// and records it so Undo removes it again.
+    private func addGeneratedStack(_ stack: CueStack) {
+        let toAdd = CueCSVCodec.stacksForAdd(imported: [stack], existingNames: dataSyncManager.cueStacks.map(\.name))
+        guard !toAdd.isEmpty else { return }
+        dataSyncManager.cueStacks.append(contentsOf: toAdd)
+        dataSyncManager.selectedCueStackIndex = dataSyncManager.cueStacks.count - 1
+        dataSyncManager.selectedCueIndex = -1
+        editor.clearSelection()
+        editingCueIndex = nil
+        editor.recordEdit()
     }
 
     private func applyCSVImport(action: CSVImportAction, result: CueCSVImportResult) {

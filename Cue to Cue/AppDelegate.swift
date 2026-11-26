@@ -21,6 +21,7 @@ extension Notification.Name {
     static let appDelegateExportCSV = Notification.Name("appDelegateExportCSV")
     static let appDelegatePublishWebsite = Notification.Name("appDelegatePublishWebsite")
     static let appDelegateShowWebsite = Notification.Name("appDelegateShowWebsite")
+    static let appDelegateShowAIImport = Notification.Name("appDelegateShowAIImport")
     static let appDelegateUndo = Notification.Name("appDelegateUndo")
     static let appDelegateRedo = Notification.Name("appDelegateRedo")
     static let appDelegateCut = Notification.Name("appDelegateCut")
@@ -156,6 +157,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     func showWebsitePanel() {
         NotificationCenter.default.post(name: .appDelegateShowWebsite, object: nil)
+    }
+
+    func showAIImport() {
+        NotificationCenter.default.post(name: .appDelegateShowAIImport, object: nil)
     }
 
     /// Cue and Timer menu items (ids match Settings ▸ Keyboard Shortcuts).
@@ -441,6 +446,7 @@ enum WindowSnapshotter {
                 let names: [String: Notification.Name] = [
                     "viewers": .appDelegateShowViewers, "users": .appDelegateShowUsers,
                     "settings": .appDelegateShowPreferences, "website": .appDelegateShowWebsite,
+                    "ai": .appDelegateShowAIImport,
                     "shortcuts": .appDelegateShowShortcuts,
                 ]
                 let commands: [String: (Notification.Name, Any?)] = [

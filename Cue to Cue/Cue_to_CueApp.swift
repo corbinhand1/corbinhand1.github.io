@@ -53,6 +53,8 @@ struct FileMenuCommands: Commands {
         CommandGroup(replacing: .newItem) {
             Button("New") { appDelegate.newFile() }
                 .keyboardShortcut("n")
+            Button("New Cue Stack from Documents…") { appDelegate.showAIImport() }
+                .keyboardShortcut("n", modifiers: [.command, .option])
             Button("Open…") { appDelegate.openFile() }
                 .keyboardShortcut("o")
         }
