@@ -54,10 +54,7 @@ struct CueListView: View {
     // MARK: Body
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            list
-            if !isEditing && !loading { addButton }
-        }
+        list
         .background(Theme.background.ignoresSafeArea())
         .navigationTitle(sheet?.cueStackName ?? "Cues")
         .navigationBarTitleDisplayMode(.inline)
@@ -233,6 +230,7 @@ struct CueListView: View {
                 Button { Task { await store.redo() } } label: { Label("Redo", systemImage: "arrow.uturn.forward") }.disabled(!store.canRedo)
                     .keyboardShortcut("z", modifiers: [.command, .shift])
                 Divider()
+                Button { addAtEnd() } label: { Label("Add Cue at End", systemImage: "plus") }
                 Button { withAnimation { editMode = .active } } label: { Label("Select Cues", systemImage: "checkmark.circle") }
                 Button { showColumns = true } label: { Label("Columns", systemImage: "rectangle.split.3x1") }
             } label: { Image(systemName: "ellipsis.circle").frame(minWidth: 44, minHeight: 44) }
@@ -257,19 +255,6 @@ struct CueListView: View {
         }
     }
 
-    private var addButton: some View {
-        Button {
-            Task { if let id = await store.insertCue(at: sheet?.cues.count ?? 0) { target = EditTarget(cueID: id, column: descCol) } }
-        } label: {
-            Image(systemName: "plus").font(.title2.weight(.bold)).foregroundStyle(Theme.onAccent)
-                .frame(width: 60, height: 60).background(Theme.accentFill, in: Circle())
-                .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
-        }
-        .buttonStyle(PressStyle())
-        .accessibilityLabel("Add cue")
-        .padding(20)
-    }
-
     // MARK: Actions
 
     /// Scrolls to a cue (clearing any search or filter first) and flashes it so it's easy to spot.
@@ -285,6 +270,15 @@ struct CueListView: View {
     }
 
     private func descText(_ cue: SheetCue) -> String { descCol < cue.values.count ? cue.values[descCol] : "" }
+
+    private func addAtEnd() {
+        Task {
+            if let id = await store.insertCue(at: sheet?.cues.count ?? 0) {
+                scope = .all; search = ""
+                target = EditTarget(cueID: id, column: descCol)
+            }
+        }
+    }
 
     private func insert(relativeTo cue: SheetCue, delta: Int) {
         guard let i = sheet?.cues.firstIndex(where: { $0.id == cue.id }) else { return }
