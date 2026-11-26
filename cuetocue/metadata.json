@@ -1,7 +1,8 @@
 {
-  "selectedCueStackIndex" : 0,
-  "lastUpdated" : "2026-11-26T05:42:23.928Z",
-  "totalCueStacks" : 17,
   "filename" : "WT_LHR_26_Fall.cuestack",
-  "syncTimestamp" : 1795671743.927973
+  "lastUpdated" : "2026-11-26T06:15:29.782Z",
+  "selectedCueStackIndex" : 0,
+  "showSlug" : "wt-lhr-26-fall",
+  "syncTimestamp" : 1795673729.7822011,
+  "totalCueStacks" : 17
 }
