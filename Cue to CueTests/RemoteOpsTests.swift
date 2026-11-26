@@ -111,3 +111,18 @@ final class RemoteOpsTests: XCTestCase {
         XCTAssertThrowsError(try apply(sync, ["op": "deleteColumn", "cueStackId": sid.uuidString, "columnIndex": 0]).get())
     }
 }
+
+
+// MARK: - Security of the remote interface
+
+final class RemoteSecurityTests: XCTestCase {
+    func testIdentityProofIsDeterministicKeyedAndTokenSpecific() {
+        let a = AuthenticationManager.identityProof(token: "tokenA", nonce: "0123456789abcdef")
+        XCTAssertEqual(a, AuthenticationManager.identityProof(token: "tokenA", nonce: "0123456789abcdef"))
+        XCTAssertNotEqual(a, AuthenticationManager.identityProof(token: "tokenB", nonce: "0123456789abcdef"))
+        XCTAssertNotEqual(a, AuthenticationManager.identityProof(token: "tokenA", nonce: "fedcba9876543210"))
+        XCTAssertEqual(a.count, 64)
+        // The key id must not reveal the token.
+        XCTAssertFalse(AuthenticationManager.tokenID("tokenA").contains("tokenA"))
+    }
+}

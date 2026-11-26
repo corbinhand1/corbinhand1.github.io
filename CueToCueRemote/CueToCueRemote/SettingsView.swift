@@ -12,12 +12,27 @@ struct SettingsView: View {
             Form {
                 Section("Connection") {
                     LabeledContent("Mac", value: store.serverAddress)
+                    if let url = API.normalize(store.serverAddress) {
+                        let sec = ConnectionSecurity.classify(url)
+                        LabeledContent("Connection") {
+                            Label(sec.title, systemImage: sec.symbol)
+                                .foregroundStyle(sec == .encrypted || sec == .tailscale ? Theme.success : (sec == .unsafe ? Theme.danger : Color.orange))
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
                     LabeledContent("Signed in as", value: store.username)
+                    if !store.bonjourName.isEmpty { LabeledContent("Found as", value: store.bonjourName) }
                     LabeledContent("Role", value: store.isAdmin ? "Administrator" : "Editor")
                     LabeledContent("Status") {
                         Label(store.live ? "Live" : "Offline", systemImage: store.live ? "dot.radiowaves.left.and.right" : "wifi.slash")
                             .foregroundStyle(store.live ? Theme.success : Color.orange)
                     }
+                }
+                Section {
+                    TextField("mac.tailnet.ts.net:8080", text: $store.remoteAddress)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
+                } header: { Text("Away from home") } footer: {
+                    Text("Used when your Mac isn't on this Wi-Fi. Use your Mac's Tailscale name or a tunnel address.")
                 }
                 Section {
                     if store.faceIDEnabled {

@@ -6,19 +6,49 @@ struct ConnectView: View {
     @State private var username = ""
     @State private var password = ""
     @State private var useFaceID = Biometrics.isAvailable
+    @State private var pickedName: String?
+    @State private var showManual = false
+    @StateObject private var finder = MacFinder()
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("mac.tailnet.ts.net:8080", text: $address)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
-                } header: {
-                    Text("Mac address")
+                    ForEach(finder.found) { mac in
+                        Button {
+                            if let a = mac.address { address = a; pickedName = mac.name; Haptics.select() }
+                        } label: {
+                            HStack {
+                                Label(mac.name, systemImage: "desktopcomputer").foregroundStyle(Theme.text)
+                                Spacer()
+                                if pickedName == mac.name { Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.accent) }
+                                else if mac.address == nil { ProgressView() }
+                            }.frame(minHeight: 44)
+                        }
+                        .disabled(mac.address == nil)
+                    }
+                    if finder.found.isEmpty {
+                        HStack(spacing: 8) {
+                            if finder.searching { ProgressView() }
+                            Text(finder.searching ? "Looking for your Mac on this Wi-Fi…" : "No Mac found on this network.")
+                                .foregroundStyle(Theme.textMuted)
+                        }.frame(minHeight: 44)
+                    }
+                } header: { Text("On this network") }
+                footer: { Text("Open Cue to Cue on your Mac and join the same Wi-Fi. It shows up here automatically.") }
+
+                Section {
+                    DisclosureGroup("Away from home or not listed", isExpanded: $showManual) {
+                        TextField("mac.tailnet.ts.net:8080", text: $address)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.URL)
+                            .onChange(of: address) { _, new in
+                                if let n = pickedName, finder.found.first(where: { $0.name == n })?.address != new { pickedName = nil }
+                            }
+                    }
                 } footer: {
-                    Text("The address of the Mac running Cue to Cue: a Tailscale name, a tunnel URL, or a local IP. Use Tailscale or an https tunnel when away from home so your password isn't sent in the clear.")
+                    if showManual { Text("Use your Mac's Tailscale name or a tunnel address so it works outside your Wi-Fi. Prefer Tailscale or https so your password isn't sent in the clear.") }
                 }
                 Section("Account") {
                     TextField("Username", text: $username)
@@ -48,7 +78,7 @@ struct ConnectView: View {
                 }
                 Section {
                     Button {
-                        Task { await store.signIn(address: address, username: username, password: password, rememberWithFaceID: useFaceID) }
+                        Task { await store.signIn(address: address, username: username, password: password, rememberWithFaceID: useFaceID, foundName: pickedName) }
                     } label: {
                         HStack {
                             Text("Connect")
@@ -65,6 +95,14 @@ struct ConnectView: View {
             .onAppear {
                 address = store.serverAddress
                 username = store.username
+                showManual = !store.remoteAddress.isEmpty && store.bonjourName.isEmpty
+                finder.start()
+            }
+            .onDisappear { finder.stop() }
+            .onChange(of: finder.found) { _, list in
+                // First Mac found on the network: select it so signing in is just username + password.
+                if pickedName == nil, address.isEmpty || address == store.serverAddress && !showManual,
+                   let mac = list.first(where: { $0.address != nil }), let a = mac.address { address = a; pickedName = mac.name }
             }
         }
     }

@@ -150,6 +150,7 @@
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Info-extra.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Cue Remote";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -174,6 +175,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = MT8F5389YB;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Info-extra.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Cue Remote";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

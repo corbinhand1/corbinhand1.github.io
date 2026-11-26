@@ -261,7 +261,10 @@ class AuthenticationManager: ObservableObject {
         saveAuthData()
         print("✅ User logged in: \(username)")
         
-        return .success(LoginResponse(success: true, token: token.token, user: user))
+        // Never send the stored password hash to a client (the LAN server is plain HTTP).
+        var safeUser = user
+        safeUser.passwordHash = ""
+        return .success(LoginResponse(success: true, token: token.token, user: safeUser))
     }
     
     func logout() {
@@ -560,5 +563,27 @@ extension AuthenticationManager {
                 print("❌ Failed to create Sherman user: \(error)")
             }
         }
+    }
+}
+
+// MARK: - Server identity proof (lets the phone check it is talking to the real Mac)
+
+extension AuthenticationManager {
+    /// Hex SHA-256 of a token. Sent as a one-way "key id" so the token itself never leaves the phone.
+    nonisolated static func tokenID(_ token: String) -> String {
+        SHA256.hash(data: Data(token.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// HMAC-SHA256(token, nonce) in hex. Only a server that knows the token can produce it.
+    nonisolated static func identityProof(token: String, nonce: String) -> String {
+        let key = SymmetricKey(data: Data(token.utf8))
+        return HMAC<SHA256>.authenticationCode(for: Data(nonce.utf8), using: key)
+            .map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Answers a proof request for a still-valid session token identified by its hash.
+    func proof(forTokenID id: String, nonce: String) -> String? {
+        guard let token = tokens.first(where: { !$0.isExpired && Self.tokenID($0.token) == id }) else { return nil }
+        return Self.identityProof(token: token.token, nonce: nonce)
     }
 }

@@ -10,6 +10,11 @@ final class RemoteStore: ObservableObject {
     @AppStorage("faceIDEnabled") var faceIDEnabled = false
     /// Admins can change columns; everyone with access to a stack can restructure its cues.
     @AppStorage("isAdmin") var isAdmin = false
+    /// Bonjour name of the Mac we paired with on the local network (so we can find it again if its IP changes).
+    @AppStorage("bonjourName") var bonjourName = ""
+    /// Address used when away from home (Tailscale name or tunnel URL).
+    @AppStorage("remoteAddress") var remoteAddress = ""
+    var lastReroute = Date.distantPast
 
     @Published var token: String? = Keychain.get("token")
     /// Starts locked when Face ID protection is on, so the show isn't visible until you unlock.
@@ -46,10 +51,16 @@ final class RemoteStore: ObservableObject {
 
     // MARK: Connect
 
-    func signIn(address: String, username: String, password: String, rememberWithFaceID: Bool = false) async {
+    func signIn(address: String, username: String, password: String, rememberWithFaceID: Bool = false,
+                foundName: String? = nil) async {
         serverAddress = address
+        if let foundName { bonjourName = foundName } else { remoteAddress = address }
         self.username = username
         guard let url = API.normalize(address) else { error = APIError.badURL.localizedDescription; return }
+        if ConnectionSecurity.classify(url) == .unsafe {
+            error = "That address is on the public internet without encryption, so your password could be read on the way. Use https, your Tailscale name, or your Wi-Fi address."
+            return
+        }
         busy = true; defer { busy = false }
         do {
             let login = try await API(baseURL: url).login(username: username, password: password)
@@ -86,6 +97,8 @@ final class RemoteStore: ObservableObject {
             startLive()
             ensureRetry()
         } catch {
+            // Can't reach the saved address: look for the Mac on this network, else use the away address.
+            if error is URLError, await reroute() { await resume(); return }
             // Offline at launch: open the last-seen sheet so you can keep editing.
             if error is URLError, let cached = Outbox.loadSheet() {
                 sheet = overlay(cached)
@@ -96,6 +109,32 @@ final class RemoteStore: ObservableObject {
                 self.error = Self.message(error)
             }
         }
+    }
+
+    // MARK: Finding the Mac
+
+    /// Re-aims at the Mac: first on the local network by its Bonjour name, otherwise the away address.
+    /// Returns true if the address changed. Only follows the Mac we paired with.
+    @discardableResult
+    func reroute() async -> Bool {
+        lastReroute = Date()
+        let before = serverAddress
+        var candidates: [String] = []
+        if !bonjourName.isEmpty, let mac = await MacFinder.find(named: bonjourName), let addr = mac.address { candidates.append(addr) }
+        if !remoteAddress.isEmpty { candidates.append(remoteAddress) }
+        for addr in candidates where addr != before {
+            guard let url = API.normalize(addr), ConnectionSecurity.classify(url) != .unsafe else { continue }
+            // Only follow an address that proves it is the Mac that issued our session. This stops a
+            // look-alike on a venue network from collecting the session token or password.
+            if let token, await Proof.verify(baseURL: url, token: token) {
+                serverAddress = addr
+                return true
+            }
+        }
+        if !candidates.isEmpty, !candidates.contains(before) {
+            error = "Found a Mac, but couldn't confirm it's yours. Sign in again from the sign-in screen to reconnect."
+        }
+        return false
     }
 
     // MARK: Face ID
@@ -168,8 +207,10 @@ final class RemoteStore: ObservableObject {
             Outbox.saveSheet(s)
             sheet = overlay(s)
         } catch {
-            // Offline is normal here; the Live badge already says so.
-            if !(error is URLError) { self.error = Self.message(error) }
+            // Offline is normal here; the Live badge already says so. Try finding the Mac again.
+            if error is URLError {
+                if Date().timeIntervalSince(lastReroute) > 15, await reroute() { startLive(); await refresh() }
+            } else { self.error = Self.message(error) }
         }
     }
 

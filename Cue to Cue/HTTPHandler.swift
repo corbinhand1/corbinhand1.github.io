@@ -102,6 +102,8 @@ class HTTPHandler {
         // Authentication endpoints
         case (.post, "/auth/login"):
             return handleLogin(request)
+        case (.post, "/auth/proof"):
+            return handleProof(request)
         case (.post, "/auth/logout"):
             return handleLogout(request)
         case (.get, "/auth/me"):
@@ -788,9 +790,15 @@ class HTTPHandler {
             if DataSyncManager.isColumnOp(name) {
                 guard user.isAdmin else { return json(.forbidden, ["error": "Only administrators can change columns"]) }
             } else {
-                let hasAccess = authManager.permissions.contains { $0.userId == user.id && $0.cueStackId == stackID }
-                guard user.isAdmin || hasAccess else {
-                    return json(.forbidden, ["error": "Permission denied for this cue stack"])
+                // Restructuring (insert, move, skip, timers, delete) needs an admin, or an editor
+                // who is allowed to edit every column of this stack. Editors limited to some
+                // columns can change their columns' text but not the shape of the show.
+                let columns = dataSyncManager.cueStacks.first { $0.id == stackID }?.columns ?? []
+                let editsEverything = !columns.isEmpty && columns.allSatisfy {
+                    authManager.canUserEditColumnByName(user.id, cueStackId: stackID, columnName: $0.name)
+                }
+                guard user.isAdmin || editsEverything else {
+                    return json(.forbidden, ["error": "Changing the cue list needs an administrator or full edit access to this stack"])
                 }
             }
             switch dataSyncManager.applyRemoteOpSync(op) {
@@ -803,5 +811,23 @@ class HTTPHandler {
                 return json(.badRequest, ["error": e.message])
             }
         }
+    }
+
+    /// POST /auth/proof {"kid": sha256(token), "nonce": "..."} -> {"proof": hmac}. Lets a client confirm
+    /// this is the Mac that issued its token before it sends the token or a password to a new address.
+    private func handleProof(_ request: HTTPRequest) -> HTTPResponse {
+        func reply(_ status: HTTPStatus, _ object: [String: Any]) -> HTTPResponse {
+            HTTPResponse(status: status, headers: createCORSHeaders(["Content-Type": "application/json"]),
+                         body: (try? JSONSerialization.data(withJSONObject: object)) ?? Data())
+        }
+        guard let body = request.body,
+              let json = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any],
+              let kid = json["kid"] as? String, let nonce = json["nonce"] as? String,
+              nonce.count >= 16, nonce.count <= 128 else {
+            return reply(.badRequest, ["error": "Invalid request"])
+        }
+        let proof = onMainThread { authManager.proof(forTokenID: kid, nonce: nonce) }
+        guard let proof else { return reply(.notFound, ["error": "Unknown session"]) }
+        return reply(.ok, ["proof": proof])
     }
 }

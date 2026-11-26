@@ -125,6 +125,11 @@ class WebServer: ObservableObject {
                 self?.connectionManager.handleNewConnection(connection)
             }
 
+            // Announce on the local network so the iPhone remote can find this Mac
+            // without typing an address (Bonjour service "_cuetocue._tcp").
+            let macName = Host.current().localizedName ?? ProcessInfo.processInfo.hostName
+            listener?.service = NWListener.Service(name: macName, type: "_cuetocue._tcp")
+
             listener?.start(queue: .global(qos: .userInitiated))
 
             connectionManager.startConnectionCleanup()
