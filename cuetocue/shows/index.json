@@ -1,0 +1,15 @@
+{
+  "current" : "wt-lhr-26-fall",
+  "shows" : [
+    {
+      "cueCount" : 986,
+      "filename" : "WT_LHR_26_Fall.cuestack",
+      "lastPublished" : "2026-11-26T05:36:31.004Z",
+      "name" : "WT_LHR_26_Fall",
+      "slug" : "wt-lhr-26-fall",
+      "stackCount" : 17
+    }
+  ],
+  "updated" : "2026-11-26T05:36:31.004Z",
+  "version" : 1
+}
