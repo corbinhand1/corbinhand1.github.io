@@ -11,14 +11,16 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Connection") {
-                    LabeledContent("Mac", value: store.serverAddress)
+                    InfoRow("Mac") { Text(store.serverAddress).foregroundStyle(Theme.textMuted) }
                     if let url = API.normalize(store.serverAddress) {
                         SecurityRow(security: ConnectionSecurity.classify(url))
                     }
-                    LabeledContent("Signed in as", value: store.username)
-                    if !store.bonjourName.isEmpty { LabeledContent("Found as", value: store.bonjourName) }
-                    LabeledContent("Role", value: store.isAdmin ? "Administrator" : "Editor")
-                    LabeledContent("Status") {
+                    InfoRow("Signed in as") { Text(store.username).foregroundStyle(Theme.textMuted) }
+                    if !store.bonjourName.isEmpty {
+                        InfoRow("Found as") { Text(store.bonjourName).foregroundStyle(Theme.textMuted) }
+                    }
+                    InfoRow("Role") { Text(store.isAdmin ? "Administrator" : "Editor").foregroundStyle(Theme.textMuted) }
+                    InfoRow("Status") {
                         Label(store.live ? "Live" : "Offline", systemImage: store.live ? "dot.radiowaves.left.and.right" : "wifi.slash")
                             .foregroundStyle(store.live ? Theme.success : Color.orange)
                     }
@@ -112,6 +114,23 @@ private struct SecurityRow: View {
                 .multilineTextAlignment(.trailing)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// A plain label-and-value row with a predictable height (LabeledContent could stretch inside a Form).
+private struct InfoRow<Value: View>: View {
+    let title: String
+    let value: Value
+    init(_ title: String, @ViewBuilder value: () -> Value) { self.title = title; self.value = value() }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(title)
+            Spacer(minLength: 8)
+            value.multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(minHeight: 44)
         .accessibilityElement(children: .combine)
     }
 }
