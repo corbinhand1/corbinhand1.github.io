@@ -13,12 +13,7 @@ struct SettingsView: View {
                 Section("Connection") {
                     LabeledContent("Mac", value: store.serverAddress)
                     if let url = API.normalize(store.serverAddress) {
-                        let sec = ConnectionSecurity.classify(url)
-                        LabeledContent("Connection") {
-                            Label(sec.title, systemImage: sec.symbol)
-                                .foregroundStyle(sec == .encrypted || sec == .tailscale ? Theme.success : (sec == .unsafe ? Theme.danger : Color.orange))
-                                .multilineTextAlignment(.trailing)
-                        }
+                        SecurityRow(security: ConnectionSecurity.classify(url))
                     }
                     LabeledContent("Signed in as", value: store.username)
                     if !store.bonjourName.isEmpty { LabeledContent("Found as", value: store.bonjourName) }
@@ -65,5 +60,30 @@ struct SettingsView: View {
                 Button("Sign Out and Discard Them", role: .destructive) { store.signOut(); dismiss() }
             } message: { Text("Wait until they send, or they'll be lost.") }
         }
+    }
+}
+
+/// How the link to the Mac is protected, as a fixed-height row so it never stretches the form.
+private struct SecurityRow: View {
+    let security: ConnectionSecurity
+
+    private var color: Color {
+        switch security {
+        case .encrypted, .tailscale: return Theme.success
+        case .localNetwork: return .orange
+        case .unsafe: return Theme.danger
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text("Connection")
+            Spacer(minLength: 8)
+            Label(security.title, systemImage: security.symbol)
+                .foregroundStyle(color)
+                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
