@@ -28,6 +28,11 @@ struct WebsiteSyncSettingsView: View {
     @State private var renameDraft = ""
     @State private var pendingRemoval: ShowLibraryEntry?
     @State private var actionError: String?
+    @State private var passwordDraft = ""
+    @State private var passwordConfirm = ""
+    @State private var isEditingPassword = false
+    @State private var passwordError: String?
+    @State private var isSavingPassword = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,6 +41,7 @@ struct WebsiteSyncSettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     statusCard
+                    viewerPasswordSection
                     librarySection
                     connectionSection
                 }
@@ -117,7 +123,7 @@ struct WebsiteSyncSettingsView: View {
                         Label(publishButtonTitle, systemImage: "icloud.and.arrow.up")
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(websiteSyncManager.isSyncing || !websiteSyncManager.hasToken)
+                    .disabled(websiteSyncManager.isSyncing || !websiteSyncManager.hasToken || !websiteSyncManager.hasViewerPassword)
                     .help("File › Publish to Website (⇧⌘U)")
                 }
                 Button("Check Connection") {
@@ -187,6 +193,9 @@ struct WebsiteSyncSettingsView: View {
         case .failed(let message): if case .failed = websiteSyncManager.syncStatus {} else { lines.append(message) }
         case .notConfigured: lines.append("Add a GitHub token below to publish your show to the website.")
         default: break
+        }
+        if websiteSyncManager.hasToken && !websiteSyncManager.hasViewerPassword {
+            lines.append("Set a viewer password below before publishing.")
         }
         if let time = websiteSyncManager.lastSyncTime, let file = websiteSyncManager.lastSyncFilename {
             lines.append("Last published \(file) \(time.formatted(.relative(presentation: .named))).")
@@ -327,6 +336,83 @@ struct WebsiteSyncSettingsView: View {
             do { try await websiteSyncManager.removeShow(slug: entry.slug) }
             catch { actionError = error.localizedDescription }
         }
+    }
+
+    // MARK: - Viewer password
+
+    private var viewerPasswordSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Viewer Password").font(.headline)
+            Text("Your crew types this to open the website. Show files are encrypted with it before they're uploaded, so without it the files on GitHub can't be read.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if isEditingPassword || !websiteSyncManager.hasViewerPassword {
+                VStack(alignment: .leading, spacing: 6) {
+                    SecureField("New viewer password", text: $passwordDraft)
+                        .textFieldStyle(.roundedBorder)
+                    SecureField("Type it again", text: $passwordConfirm)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit(savePassword)
+                    HStack {
+                        Button(websiteSyncManager.hasViewerPassword ? "Change Password" : "Save Password", action: savePassword)
+                            .disabled(!passwordIsValid || isSavingPassword)
+                        if websiteSyncManager.hasViewerPassword {
+                            Button("Cancel") { resetPasswordDrafts() }
+                        }
+                        if isSavingPassword { ProgressView().controlSize(.small) }
+                    }
+                    Text(websiteSyncManager.hasViewerPassword
+                         ? "Changing it re-encrypts every show on the website. Anyone using the old password is asked for the new one."
+                         : "Use at least 8 characters. If the website already has a password (set from another Mac), enter that one.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                HStack {
+                    Label("Password saved in your Keychain", systemImage: "lock.fill")
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button("Change…") { isEditingPassword = true }
+                }
+            }
+            if let passwordError {
+                Text(passwordError).font(.caption).foregroundColor(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var passwordIsValid: Bool {
+        let trimmed = passwordDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.count >= 8 && trimmed == passwordConfirm.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func savePassword() {
+        guard passwordIsValid else {
+            if !passwordDraft.isEmpty && passwordDraft != passwordConfirm { passwordError = "The two passwords don't match." }
+            return
+        }
+        isSavingPassword = true
+        passwordError = nil
+        let password = passwordDraft
+        Task {
+            do {
+                try await websiteSyncManager.setViewerPassword(password)
+                resetPasswordDrafts()
+            } catch {
+                passwordError = error.localizedDescription
+            }
+            isSavingPassword = false
+        }
+    }
+
+    private func resetPasswordDrafts() {
+        passwordDraft = ""
+        passwordConfirm = ""
+        isEditingPassword = false
     }
 
     // MARK: - Connection settings

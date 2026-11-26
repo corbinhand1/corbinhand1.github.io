@@ -147,12 +147,31 @@ final class WebsitePublishingTests: XCTestCase {
         GitHubPublisher(token: "test-token", repository: repo, session: FakeGitHub.session())
     }
 
-    private func manager(token: String? = "test-token") -> WebsiteSyncManager {
+    private func manager(token: String? = "test-token", viewerPassword: String? = "crew-password-1") -> WebsiteSyncManager {
         defaults.set("owner", forKey: WebsiteSyncSettingsKeys.repoOwner)
         defaults.set("site", forKey: WebsiteSyncSettingsKeys.repoName)
-        return WebsiteSyncManager(defaults: defaults, tokenStore: InMemoryGitHubTokenStore(token: token)) { token, repo in
+        let manager = WebsiteSyncManager(defaults: defaults, tokenStore: InMemoryGitHubTokenStore(token: token),
+                                         viewerPasswordStore: InMemoryGitHubTokenStore(token: viewerPassword)) { token, repo in
             GitHubPublisher(token: token, repository: repo, session: FakeGitHub.session())
         }
+        manager.keyIterations = 1_000
+        return manager
+    }
+
+    /// Decrypt a file on the fake GitHub with the site's key.
+    private func decrypted(_ path: String, password: String = "crew-password-1") throws -> Data {
+        let siteKey = try XCTUnwrap(WebsiteCipher.decodeSiteKey(FakeGitHub.files[WebsiteCipher.sitePath]), "site isn't locked")
+        let file = try XCTUnwrap(FakeGitHub.files[path], "\(path) not on GitHub")
+        XCTAssertTrue(WebsiteCipher.isEncrypted(file), "\(path) should be encrypted")
+        return try WebsiteCipher(password: password, siteKey: siteKey).open(file)
+    }
+
+    private func decryptedJSON(_ path: String) throws -> [String: Any] {
+        try XCTUnwrap(JSONSerialization.jsonObject(with: try decrypted(path)) as? [String: Any])
+    }
+
+    private func decryptedLibrary() throws -> ShowLibraryIndex {
+        ShowLibraryIndex.decode(try decrypted(WebsitePayload.libraryIndexPath))
     }
 
     private func stacks(_ count: Int = 2) -> [CueStack] {
@@ -278,16 +297,19 @@ final class WebsitePublishingTests: XCTestCase {
         if case .failure(let error) = result { return XCTFail(error.localizedDescription) }
 
         XCTAssertEqual(FakeGitHub.requests.filter { $0.path.hasSuffix("/git/commits") && $0.method == "POST" }.count, 1)
-        let data = try json(WebsitePayload.dataPath)
+        let data = try decryptedJSON(WebsitePayload.dataPath)
         XCTAssertEqual((data["availableCueStacks"] as? [Any])?.count, 3)
+        XCTAssertEqual((data["show"] as? [String: Any])?["filename"] as? String, "WT_LHR_26_Fall.cuestack",
+                       "the show name travels inside the encrypted data")
         let metadata = try json(WebsitePayload.metadataPath)
-        XCTAssertEqual(metadata["filename"] as? String, "WT_LHR_26_Fall.cuestack")
-        XCTAssertEqual(metadata["totalCueStacks"] as? Int, 3)
-        XCTAssertEqual(metadata["showSlug"] as? String, "wt-lhr-26-fall")
-        XCTAssertEqual(FakeGitHub.files[WebsitePayload.showPath("wt-lhr-26-fall")], FakeGitHub.files[WebsitePayload.dataPath],
+        XCTAssertNil(metadata["filename"], "the public metadata names no show")
+        XCTAssertNil(metadata["showSlug"])
+        XCTAssertEqual(metadata["locked"] as? Bool, true)
+        XCTAssertNotNil(metadata["syncTimestamp"])
+        XCTAssertEqual(try decrypted(WebsitePayload.showPath("wt-lhr-26-fall")), try decrypted(WebsitePayload.dataPath),
                        "the library copy matches the current data")
 
-        let library = ShowLibraryIndex.decode(FakeGitHub.files[WebsitePayload.libraryIndexPath])
+        let library = try decryptedLibrary()
         XCTAssertEqual(library.current, "wt-lhr-26-fall")
         XCTAssertEqual(library.shows.map(\.slug), ["wt-lhr-26-fall", "nyc-keynote"], "existing shows are kept")
         XCTAssertEqual(library.shows[0].cueCount, 6)
@@ -318,11 +340,11 @@ final class WebsitePublishingTests: XCTestCase {
         } catch {}
 
         try await manager.renameShow(slug: "old-show", to: "Opening Night")
-        XCTAssertEqual(ShowLibraryIndex.decode(FakeGitHub.files[WebsitePayload.libraryIndexPath]).shows.first { $0.slug == "old-show" }?.name, "Opening Night")
+        XCTAssertEqual(try decryptedLibrary().shows.first { $0.slug == "old-show" }?.name, "Opening Night")
 
         try await manager.removeShow(slug: "old-show")
         XCTAssertNil(FakeGitHub.files[WebsitePayload.showPath("old-show")])
-        XCTAssertEqual(ShowLibraryIndex.decode(FakeGitHub.files[WebsitePayload.libraryIndexPath]).shows.map(\.slug), ["new-show"])
+        XCTAssertEqual(try decryptedLibrary().shows.map(\.slug), ["new-show"])
         XCTAssertNotNil(FakeGitHub.files[WebsitePayload.showPath("new-show")])
     }
 
@@ -334,6 +356,86 @@ final class WebsitePublishingTests: XCTestCase {
         await manager.checkConnection()
         XCTAssertEqual(manager.connection, .connected(login: "stage-manager"))
         XCTAssertEqual(manager.library.shows.map(\.slug), ["s"])
+    }
+
+    // MARK: Encryption
+
+    func testCipherRoundTripAndWrongPassword() throws {
+        let cipher = try WebsiteCipher.create(password: "opening night", iterations: 1_000)
+        let plain = Data(#"{"cues":[1,2,3]}"#.utf8)
+        let sealed = try cipher.seal(plain)
+        XCTAssertTrue(WebsiteCipher.isEncrypted(sealed))
+        XCTAssertFalse(String(decoding: sealed, as: UTF8.self).contains("cues"))
+        XCTAssertEqual(try cipher.open(sealed), plain)
+        XCTAssertEqual(try cipher.open(plain), plain, "unencrypted files from older builds pass through")
+
+        let reopened = try WebsiteCipher(password: "opening night", siteKey: cipher.siteKey)
+        XCTAssertEqual(try reopened.open(sealed), plain)
+        XCTAssertThrowsError(try WebsiteCipher(password: "closing night", siteKey: cipher.siteKey)) { error in
+            XCTAssertEqual(error as? WebsiteEncryptionError, .wrongPassword)
+        }
+        XCTAssertNotEqual(try cipher.seal(plain), sealed, "each file gets a fresh IV")
+    }
+
+    func testPublishWithoutViewerPasswordWritesNothing() async {
+        let manager = manager(viewerPassword: nil)
+        let result = await manager.publish(cueStacks: stacks(), selectedCueStackIndex: 0, highlightColors: [], filename: "Show.cuestack")
+        guard case .failure(let error) = result else { return XCTFail() }
+        XCTAssertTrue(error is WebsiteSyncError)
+        XCTAssertFalse(FakeGitHub.requests.contains { $0.method != "GET" })
+    }
+
+    func testFirstLockedPublishEncryptsShowsLeftReadableByOlderBuilds() async throws {
+        // An earlier build published a readable show and library.
+        let oldShow = Data(#"{"availableCueStacks":[{"name":"Secret stack"}]}"#.utf8)
+        FakeGitHub.files[WebsitePayload.showPath("nyc-keynote")] = oldShow
+        var existing = ShowLibraryIndex()
+        existing.publish(ShowLibraryEntry(slug: "nyc-keynote", name: "NYC Keynote", filename: "NYC Keynote.cuestack",
+                                          lastPublished: "2026-09-01T00:00:00Z", stackCount: 1, cueCount: 1), at: "2026-09-01T00:00:00Z")
+        FakeGitHub.files[WebsitePayload.libraryIndexPath] = try existing.encoded()
+
+        let manager = manager()
+        let result = await manager.publish(cueStacks: stacks(), selectedCueStackIndex: 0, highlightColors: [], filename: "New Show.cuestack")
+        if case .failure(let error) = result { return XCTFail(error.localizedDescription) }
+
+        XCTAssertEqual(FakeGitHub.requests.filter { $0.path.hasSuffix("/git/commits") && $0.method == "POST" }.count, 1)
+        XCTAssertEqual(try decrypted(WebsitePayload.showPath("nyc-keynote")), oldShow)
+        XCTAssertEqual(try decryptedLibrary().shows.map(\.slug), ["new-show", "nyc-keynote"])
+    }
+
+    func testChangingViewerPasswordReencryptsEverything() async throws {
+        let manager = manager()
+        _ = await manager.publish(cueStacks: stacks(), selectedCueStackIndex: 0, highlightColors: [], filename: "Old Show.cuestack")
+        _ = await manager.publish(cueStacks: stacks(), selectedCueStackIndex: 0, highlightColors: [], filename: "New Show.cuestack")
+        let before = try decrypted(WebsitePayload.showPath("old-show"))
+
+        try await manager.setViewerPassword("new-password-2")
+
+        XCTAssertThrowsError(try decrypted(WebsitePayload.dataPath), "the old password no longer opens the site")
+        XCTAssertEqual(try decrypted(WebsitePayload.showPath("old-show"), password: "new-password-2"), before)
+        XCTAssertNoThrow(try decrypted(WebsitePayload.dataPath, password: "new-password-2"))
+        XCTAssertEqual(ShowLibraryIndex.decode(try decrypted(WebsitePayload.libraryIndexPath, password: "new-password-2")).shows.count, 2)
+
+        // Publishing keeps working with the new password.
+        let result = await manager.publish(cueStacks: stacks(), selectedCueStackIndex: 0, highlightColors: [], filename: "New Show.cuestack")
+        if case .failure(let error) = result { return XCTFail(error.localizedDescription) }
+    }
+
+    func testAnotherMacJoinsWithTheSitesPasswordAndRejectsOthers() async throws {
+        _ = await manager().publish(cueStacks: stacks(), selectedCueStackIndex: 0, highlightColors: [], filename: "Show.cuestack")
+        let commitsBefore = FakeGitHub.requests.filter { $0.path.hasSuffix("/git/commits") }.count
+
+        let otherMac = manager(viewerPassword: nil)
+        do {
+            try await otherMac.setViewerPassword("a-wrong-guess")
+            XCTFail("a wrong password can't take over the site without the current one")
+        } catch {}
+        XCTAssertFalse(otherMac.hasViewerPassword)
+
+        try await otherMac.setViewerPassword("crew-password-1")
+        XCTAssertTrue(otherMac.hasViewerPassword)
+        XCTAssertEqual(FakeGitHub.requests.filter { $0.path.hasSuffix("/git/commits") }.count, commitsBefore, "joining writes nothing")
+        XCTAssertEqual(otherMac.library.shows.map(\.slug), ["show"])
     }
 
     // MARK: Token storage
