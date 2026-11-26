@@ -24,6 +24,9 @@ struct CueListView: View {
     @State private var timerTarget: TimerTarget?
     @State private var showColumns = false
     @State private var showConflicts = false
+    @State private var showJump = false
+    @State private var flashID: String?
+    @State private var scrollRequest: String?
     @State private var confirmBulkDelete = false
     @State private var search = ""
     @State private var scope: CueScope = .all
@@ -73,6 +76,7 @@ struct CueListView: View {
         .sheet(item: $timerTarget) { TimerEditor(cueID: $0.id).environmentObject(store).presentationDetents([.medium, .large]) }
         .sheet(isPresented: $showColumns) { ColumnsEditor().environmentObject(store) }
         .sheet(isPresented: $showConflicts) { ConflictsView().environmentObject(store) }
+        .sheet(isPresented: $showJump) { JumpView(onJump: jump).environmentObject(store) }
         .confirmationDialog("Delete \(selection.count) cues?", isPresented: $confirmBulkDelete, titleVisibility: .visible) {
             Button("Delete \(selection.count) Cues", role: .destructive) { bulk { await store.delete($0) } }
         } message: { Text("You can undo right after.") }
@@ -81,6 +85,17 @@ struct CueListView: View {
     // MARK: List
 
     private var list: some View {
+        ScrollViewReader { proxy in
+            rawList
+                .onChange(of: scrollRequest) { _, id in
+                    guard let id else { return }
+                    withAnimation(reduceMotion ? nil : .snappy) { proxy.scrollTo(id, anchor: .top) }
+                    scrollRequest = nil
+                }
+        }
+    }
+
+    private var rawList: some View {
         List(selection: $selection) {
             ForEach(cues) { cue in
                 row(for: cue)
@@ -129,6 +144,8 @@ struct CueListView: View {
         return CueRow(cue: cue, columns: sheet?.columns ?? [], descCol: descCol,
                       unsent: store.unsentCueIDs.contains(cue.id),
                       selected: selection.contains(cue.id), editing: isEditing,
+                      flash: flashID == cue.id,
+                      highlights: sheet?.highlightColors ?? [],
                       open: { col in target = EditTarget(cueID: cue.id, column: col) },
                       editWhen: { whenTarget = WhenTarget(id: cue.id) },
                       editTimer: { timerTarget = TimerTarget(id: cue.id) })
@@ -201,6 +218,11 @@ struct CueListView: View {
             .accessibilityElement(children: .combine)
         }
         ToolbarItemGroup(placement: .topBarTrailing) {
+            if !isEditing {
+                Button { showJump = true } label: { Image(systemName: "arrow.down.to.line.compact").frame(minWidth: 44, minHeight: 44) }
+                    .accessibilityLabel("Jump to a demo or cue")
+                    .keyboardShortcut("j", modifiers: .command)
+            }
             if store.canUndo && !isEditing {
                 Button { Task { await store.undo() } } label: { Image(systemName: "arrow.uturn.backward").frame(minWidth: 44, minHeight: 44) }
                     .accessibilityLabel("Undo \(store.undoStack.last?.label ?? "")")
@@ -250,6 +272,18 @@ struct CueListView: View {
 
     // MARK: Actions
 
+    /// Scrolls to a cue (clearing any search or filter first) and flashes it so it's easy to spot.
+    private func jump(to cueID: String) {
+        scope = .all; search = ""
+        Task {
+            try? await Task.sleep(nanoseconds: 200_000_000)     // let the full list come back first
+            scrollRequest = cueID
+            flashID = cueID
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            if flashID == cueID { flashID = nil }
+        }
+    }
+
     private func descText(_ cue: SheetCue) -> String { descCol < cue.values.count ? cue.values[descCol] : "" }
 
     private func insert(relativeTo cue: SheetCue, delta: Int) {
@@ -294,13 +328,21 @@ struct CueRow: View {
     let unsent: Bool
     let selected: Bool
     let editing: Bool
+    let flash: Bool
+    let highlights: [HighlightRule]
     let open: (Int) -> Void
     let editWhen: () -> Void
     let editTimer: () -> Void
 
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.colorScheme) private var scheme
     @ScaledMetric(relativeTo: .title3) private var numberWidth: CGFloat = 52
 
+    /// Whole-cue text color from the show's highlight rules (same rule as the Mac); nil = normal text.
+    private var tint: Color? {
+        guard let i = Highlight.ruleIndex(for: cue, rules: highlights) else { return nil }
+        return .highlight(hex: highlights[i].color, darkMode: scheme == .dark)
+    }
     private var number: String { cue.values.first ?? "" }
     private var description: String { descCol < cue.values.count ? cue.values[descCol] : "" }
     private var when: String? { When.text(in: description) }
@@ -331,7 +373,8 @@ struct CueRow: View {
         .padding(10)
         .background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous)
-            .strokeBorder(selected ? Theme.accent : Color.clear, lineWidth: 2))
+            .strokeBorder(selected || flash ? Theme.accent : Color.clear, lineWidth: 2))
+        .animation(.easeOut(duration: 0.25), value: flash)
         .overlay(alignment: .topTrailing) {
             if unsent {
                 Image(systemName: "arrow.up.circle.fill").font(.footnote).foregroundStyle(Color.orange).padding(6)
@@ -359,7 +402,7 @@ struct CueRow: View {
             Text(title.isEmpty ? "Add description" : title)
                 .font(.body.weight(.medium))
                 .strikethrough(cue.isStruckThrough)
-                .foregroundStyle(title.isEmpty ? Theme.textMuted : Theme.text)
+                .foregroundStyle(title.isEmpty ? Theme.textMuted : (tint ?? Theme.text))
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
                 .contentShape(Rectangle())
@@ -375,7 +418,7 @@ struct CueRow: View {
                     .background(Theme.accentFill, in: RoundedRectangle(cornerRadius: 4))
                 Text(when.isEmpty ? "tap to add" : when)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(when.isEmpty ? Theme.textMuted : Theme.text)
+                    .foregroundStyle(when.isEmpty ? Theme.textMuted : (tint ?? Theme.text))
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
             }
@@ -402,7 +445,7 @@ struct CueRow: View {
                 Button { open(chip.index) } label: {
                     HStack(spacing: 6) {
                         Text(chip.name.uppercased()).font(.caption2.weight(.bold)).foregroundStyle(Theme.accent)
-                        Text(chip.value).font(.subheadline).foregroundStyle(Theme.text).lineLimit(2)
+                        Text(chip.value).font(.subheadline).foregroundStyle(tint ?? Theme.text).lineLimit(2)
                     }
                     .padding(.horizontal, 12).frame(minHeight: 40)
                     .background(Theme.cardRaised, in: Capsule())

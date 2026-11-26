@@ -8,6 +8,13 @@ struct Sheet: Codable, Equatable {
     var cues: [SheetCue]
     var availableCueStacks: [StackSummary]
     var dataVersion: Int?
+    /// Keyword colors set on the Mac, in priority order (first match wins).
+    var highlightColors: [HighlightRule]?
+}
+
+struct HighlightRule: Codable, Equatable, Hashable {
+    var keyword: String
+    var color: String        // "RRGGBB"
 }
 
 struct SheetColumn: Codable, Equatable, Identifiable {
