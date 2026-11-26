@@ -110,8 +110,12 @@ struct EditMenuCommands: Commands {
                 .keyboardShortcut("c")
             Button("Paste") { appDelegate.paste() }
                 .keyboardShortcut("v")
+            // ⌘⌫, not the bare Delete key: a bare-key menu shortcut steals
+            // Backspace from every text field, including the Save panel's
+            // file name. The Delete key on its own still deletes selected
+            // cues in the cue sheet (ContentView's key handling).
             Button("Delete") { appDelegate.delete() }
-                .keyboardShortcut(.delete)
+                .keyboardShortcut(.delete, modifiers: .command)
             Divider()
             Button("Select All") { appDelegate.selectAll() }
                 .keyboardShortcut("a")

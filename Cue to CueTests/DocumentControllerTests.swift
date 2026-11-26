@@ -109,3 +109,53 @@ final class DocumentControllerTests: XCTestCase {
         XCTAssertNil(document.lastRecoveryURL)
     }
 }
+
+// MARK: - Loading another show, naming after an empty file
+
+@MainActor
+final class DocumentLoadingTests: XCTestCase {
+    private func makeDocument() -> (DataSyncManager, DocumentController) {
+        let data = DataSyncManager()
+        let editor = CueEditorController(data: data)
+        return (data, DocumentController(data: data, editor: editor))
+    }
+
+    private func show(_ stackCount: Int) -> SavedData {
+        SavedData(cueStacks: (0..<stackCount).map { i in
+            CueStack(name: "S\(i)", cues: (0..<5).map { Cue(values: ["\($0)"]) }, columns: [Column(name: "#", width: 40)])
+        }, highlightColors: [])
+    }
+
+    func testOpeningADifferentShowStartsAtTheTop() {
+        let (data, document) = makeDocument()
+        data.cueStacks = show(4).cueStacks
+        data.selectedCueStackIndex = 2
+        data.selectedCueIndex = 3
+        data.activeCueIndex = 3
+        document.applyLoadedData(show(3), from: URL(fileURLWithPath: "/tmp/other-show.cuestack"), persistAsLastSavedURL: false)
+        XCTAssertEqual(data.selectedCueStackIndex, 0)
+        XCTAssertEqual(data.selectedCueIndex, -1)
+        XCTAssertEqual(data.activeCueIndex, -1)
+    }
+
+    func testReloadingTheSameFileKeepsYourPlace() throws {
+        let (data, document) = makeDocument()
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("same-\(UUID().uuidString).cuestack")
+        try Data("{}".utf8).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        data.cueStacks = show(4).cueStacks
+        document.lastSavedURL = url
+        data.selectedCueStackIndex = 2
+        data.selectedCueIndex = 3
+        document.applyLoadedData(show(4), from: url, persistAsLastSavedURL: false)
+        XCTAssertEqual(data.selectedCueStackIndex, 2)
+        XCTAssertEqual(data.selectedCueIndex, 3)
+    }
+
+    func testNamesAfterAnEmptyFileAreClean() {
+        let (_, document) = makeDocument()
+        document.fileName = "Keynote.cuestack (empty — choose Save As to keep changes)"
+        XCTAssertEqual(document.fileStem, "Keynote")
+        XCTAssertEqual(document.suggestedDuplicateFilename(), "Copy of Keynote.cuestack")
+    }
+}

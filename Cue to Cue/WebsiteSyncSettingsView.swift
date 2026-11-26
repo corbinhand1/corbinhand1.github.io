@@ -428,13 +428,16 @@ struct WebsiteSyncSettingsView: View {
 
     private var publishingSection: some View {
         Section {
+            Toggle("Keep the website up to date as I edit", isOn: Binding(
+                get: { websiteSyncManager.isPublishOnChangeEnabled },
+                set: { websiteSyncManager.isPublishOnChangeEnabled = $0 }))
             Toggle("Publish automatically when I open a show", isOn: Binding(
                 get: { websiteSyncManager.isAutoSyncEnabled },
                 set: { websiteSyncManager.isAutoSyncEnabled = $0 }))
         } header: {
             Text("Publishing")
         } footer: {
-            Text("Opening a show replaces the website's current show. Leave this off to publish only when you choose.")
+            Text("With \u{201C}Keep up to date\u{201D} on, edits publish about 8 seconds after you stop typing, without interrupting you; viewers pick them up within a minute or so. The Publish button shows an orange dot when the website is behind, and a red one if a publish failed. Opening a show with the second option on replaces the website\u{2019}s current show.")
         }
     }
 

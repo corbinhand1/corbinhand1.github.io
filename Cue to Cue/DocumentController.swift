@@ -119,6 +119,14 @@ final class DocumentController: ObservableObject {
 
     /// File name without the .cuestack / .json extension.
     var fileStem: String {
+        // "Show.cuestack (empty — choose Save As…)" after opening an empty file.
+        if let range = fileName.range(of: " (empty") {
+            return Self.stem(of: String(fileName[..<range.lowerBound]))
+        }
+        return Self.stem(of: fileName)
+    }
+
+    private static func stem(of fileName: String) -> String {
         if fileName.hasSuffix(".cuestack") { return String(fileName.dropLast(9)) }
         if fileName.hasSuffix(".json") { return String(fileName.dropLast(5)) }
         return fileName
@@ -199,6 +207,15 @@ final class DocumentController: ObservableObject {
         isLoadingFromDisk = true
 
         let hasContent = !savedData.cueStacks.isEmpty
+        // A different show starts at its first stack with nothing live;
+        // reloading the same file (changed on disk) keeps your place.
+        let isDifferentFile = lastSavedURL?.standardizedFileURL != url.standardizedFileURL
+        if hasContent && isDifferentFile {
+            self.data.selectedCueStackIndex = 0
+            self.data.selectedCueIndex = -1
+            self.data.activeCueIndex = -1
+            editor.clearSelection()
+        }
         if hasContent {
             // Older builds copied IDs when duplicating/pasting; give every
             // stack, column and cue a unique ID so LAN sync can't hit the
@@ -389,7 +406,7 @@ final class DocumentController: ObservableObject {
             panel.directoryURL = url.deletingLastPathComponent()
         }
 
-        guard let window = NSApp.keyWindow ?? NSApp.windows.first else { return }
+        guard let window = Self.documentWindow else { return }
         panel.beginSheetModal(for: window) { response in
             guard response == .OK, let url = panel.url else { return }
 
@@ -551,7 +568,10 @@ final class DocumentController: ObservableObject {
             savePanel.message = "Save your current cue stack before opening another file."
         }
         savePanel.nameFieldStringValue = CueStackDocumentType.defaultSaveFilename(stem: fileStem)
-        guard let window = NSApp.keyWindow ?? NSApp.windows.first else {
+        if let url = lastSavedURL {
+            savePanel.directoryURL = url.deletingLastPathComponent()
+        }
+        guard let window = Self.documentWindow else {
             completion?(false)
             return
         }
@@ -726,8 +746,17 @@ final class DocumentController: ObservableObject {
 
     // MARK: - Window chrome (modified-dot, "Saved at HH:mm:ss")
 
+    /// The cue sheet window: save panels attach to it and its title shows
+    /// the file name (not whichever panel or Settings window is in front).
+    static var documentWindow: NSWindow? {
+        MainWindowCloseInterceptor.mainWindow
+            ?? NSApp.mainWindow
+            ?? NSApp.keyWindow
+            ?? NSApp.windows.first { $0.isVisible }
+    }
+
     func updateWindowChrome() {
-        guard let window = NSApplication.shared.windows.first else { return }
+        guard let window = Self.documentWindow else { return }
         window.isDocumentEdited = isDirty
 
         // Title format examples:

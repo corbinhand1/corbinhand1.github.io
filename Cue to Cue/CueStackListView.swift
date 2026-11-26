@@ -12,6 +12,9 @@ struct CueStackListView: View {
     @Binding var selectedCueStackIndex: Int
     @Binding var cueStackListWidth: CGFloat
     var hide: () -> Void = {}
+    /// Records an undo step after a stack is added, removed, renamed,
+    /// duplicated or moved.
+    var onEdit: () -> Void = {}
     @State private var isReordering = false
     @State private var editCueStackIndex: Int?
     @State private var pendingDeleteIndex: Int?
@@ -204,6 +207,7 @@ struct CueStackListView: View {
         editCueStackIndex = nil
         cueStacks.insert(newCueStack, at: 0)
         selectedCueStackIndex = 0
+        onEdit()
         DispatchQueue.main.async { editCueStackIndex = 0 }
     }
 
@@ -214,6 +218,7 @@ struct CueStackListView: View {
             cueStacks[index].name = "Cue Stack \(index + 1)"
         }
         editCueStackIndex = nil
+        onEdit()
         renameFocused = false
     }
 
@@ -240,6 +245,7 @@ struct CueStackListView: View {
             newSelected = oldSelected
         }
         selectedCueStackIndex = CueEditing.clampedStackIndex(newSelected, count: cueStacks.count)
+        onEdit()
     }
 
     private func renameCueStack(at index: Int) {
@@ -252,9 +258,11 @@ struct CueStackListView: View {
         if selectedCueStackIndex > index {
             selectedCueStackIndex += 1
         }
+        onEdit()
     }
 
     private func moveCueStacks(from source: IndexSet, to destination: Int) {
         selectedCueStackIndex = CueEditing.moveStacks(&cueStacks, from: source, to: destination, selected: selectedCueStackIndex)
+        onEdit()
     }
 }

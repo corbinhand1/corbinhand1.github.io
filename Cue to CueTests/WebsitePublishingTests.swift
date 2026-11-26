@@ -471,3 +471,18 @@ final class WebsitePublishingTests: XCTestCase {
         XCTAssertEqual(manager.connection, .notConfigured)
     }
 }
+
+// MARK: - Unpublished-changes tracking
+
+final class PublishFingerprintTests: XCTestCase {
+    func testFingerprintTracksWhatTheWebsiteShows() {
+        let stack = CueStack(name: "Main", cues: [Cue(values: ["1", "Doors"])], columns: [Column(name: "#", width: 40), Column(name: "Description", width: 300)])
+        let base = WebsiteSyncManager.fingerprint(cueStacks: [stack], highlightColors: [], filename: "Show.cuestack")
+        XCTAssertEqual(base, WebsiteSyncManager.fingerprint(cueStacks: [stack], highlightColors: [], filename: "Show.cuestack"))
+
+        var edited = stack
+        edited.cues[0].values[1] = "Doors & walk in"
+        XCTAssertNotEqual(base, WebsiteSyncManager.fingerprint(cueStacks: [edited], highlightColors: [], filename: "Show.cuestack"))
+        XCTAssertNotEqual(base, WebsiteSyncManager.fingerprint(cueStacks: [stack], highlightColors: [], filename: "Other.cuestack"))
+    }
+}

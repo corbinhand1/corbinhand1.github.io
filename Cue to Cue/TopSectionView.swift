@@ -66,10 +66,11 @@ struct TopSectionView: View {
                            help: "Users & Permissions (Window menu)") {
                     showUserManagement.toggle()
                 }
-                ToolButton(title: websiteSyncManager.isSyncing ? "Publishing" : "Publish",
-                           systemImage: websiteSyncManager.isSyncing ? "arrow.triangle.2.circlepath" : "icloud.and.arrow.up",
-                           help: "Publish to Website (\u{21E7}\u{2318}U)",
-                           tint: websiteSyncManager.isSyncing ? .orange : nil) {
+                ToolButton(title: publishTitle,
+                           systemImage: publishIcon,
+                           help: publishHelp,
+                           tint: websiteSyncManager.isSyncing ? .orange : nil,
+                           badge: publishBadge) {
                     // Same path as File ▸ Publish to Website (handled in ContentView).
                     NotificationCenter.default.post(name: .appDelegatePublishWebsite, object: nil)
                 }
@@ -84,7 +85,8 @@ struct TopSectionView: View {
             .onChange(of: websiteSyncManager.syncStatus) { _, status in
                 // Confirm a successful publish next to the button (failures
                 // get an alert with a way into Website settings).
-                if status == .success { showSyncSuccess() }
+                // Automatic publishes stay quiet; the button shows the state.
+                if status == .success && !websiteSyncManager.lastPublishWasAutomatic { showSyncSuccess() }
             }
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -355,6 +357,53 @@ struct TopSectionView: View {
 
     // MARK: - Sync Notification Views and Methods
     
+    // MARK: Publish button state
+
+    private var publishFailed: Bool {
+        if case .failed = websiteSyncManager.syncStatus { return true }
+        return false
+    }
+
+    private var publishIsCurrent: Bool {
+        websiteSyncManager.publishedFingerprint != nil && !websiteSyncManager.hasUnpublishedChanges && !publishFailed
+    }
+
+    private var publishTitle: String {
+        if websiteSyncManager.isSyncing { return "Publishing" }
+        return publishIsCurrent ? "Published" : "Publish"
+    }
+
+    private var publishIcon: String {
+        if websiteSyncManager.isSyncing { return "arrow.triangle.2.circlepath" }
+        return publishIsCurrent ? "checkmark.icloud" : "icloud.and.arrow.up"
+    }
+
+    /// Red after a failed publish, orange when the website is behind the show.
+    private var publishBadge: Color? {
+        if websiteSyncManager.isSyncing { return nil }
+        if publishFailed { return .red }
+        return websiteSyncManager.hasUnpublishedChanges ? .orange : nil
+    }
+
+    private var publishHelp: String {
+        var lines: [String] = []
+        if case .failed(let message) = websiteSyncManager.syncStatus {
+            lines.append("Last publish failed: \(message)")
+        } else if websiteSyncManager.hasUnpublishedChanges {
+            lines.append("The website doesn\u{2019}t have your latest changes yet.")
+        } else if publishIsCurrent {
+            lines.append("The website is up to date.")
+        }
+        if let date = websiteSyncManager.lastSyncTime {
+            lines.append("Last published \(date.formatted(date: .omitted, time: .shortened)).")
+        }
+        if websiteSyncManager.isPublishOnChangeEnabled {
+            lines.append("Publishes automatically after you edit.")
+        }
+        lines.append("Publish to Website (\u{21E7}\u{2318}U)")
+        return lines.joined(separator: "\n")
+    }
+
     private var syncNotificationOverlay: some View {
         Group {
             if showSyncNotification {
@@ -398,7 +447,7 @@ struct TopSectionView: View {
     }
     
     private func showSyncSuccess() {
-        syncNotificationMessage = "Sync completed"
+        syncNotificationMessage = "Published"
         syncNotificationType = .success
         showSyncNotification = true
         
@@ -607,6 +656,8 @@ struct ToolButton: View {
     let systemImage: String
     let help: String
     var tint: Color? = nil
+    /// Small status dot on the icon (e.g. unpublished changes).
+    var badge: Color? = nil
     let action: () -> Void
     @EnvironmentObject var settingsManager: SettingsManager
     @Environment(\.isEnabled) private var isEnabled
@@ -617,6 +668,15 @@ struct ToolButton: View {
                 Image(systemName: systemImage)
                     .font(.system(size: 12, weight: .semibold))
                     .frame(width: 16)
+                    .overlay(alignment: .topTrailing) {
+                        if let badge {
+                            Circle()
+                                .fill(badge)
+                                .frame(width: 7, height: 7)
+                                .offset(x: 3, y: -3)
+                                .accessibilityHidden(true)
+                        }
+                    }
                 Text(title)
                     .font(.system(size: 12, weight: .semibold))
                     .lineLimit(1)

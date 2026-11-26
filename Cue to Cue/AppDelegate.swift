@@ -208,6 +208,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private static let redoSelector = Selector(("redo:"))
 
     func undo() {
+        // A dialog or save panel in front: undo belongs to it.
+        guard MainWindowCloseInterceptor.cueSheetIsFrontmost else {
+            performStandardEditAction(Self.undoSelector)
+            return
+        }
         // When a cue cell is being edited, undo belongs to the text field,
         // not the cue-stack history.
         if isTextFieldEditing(),
@@ -218,6 +223,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     func redo() {
+        guard MainWindowCloseInterceptor.cueSheetIsFrontmost else {
+            performStandardEditAction(Self.redoSelector)
+            return
+        }
         if isTextFieldEditing(),
            performStandardEditAction(Self.redoSelector) {
             return
@@ -248,53 +257,53 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     func cut() {
-        // First try standard text field cut, then fall back to cue cut
-        if let firstResponder = NSApp.keyWindow?.firstResponder,
-           let textView = firstResponder as? NSTextView {
-            textView.cut(nil)
-        } else {
-            NotificationCenter.default.post(name: .appDelegateCut, object: nil)
+        // Text being edited, or a dialog / save panel in front of the cue
+        // sheet: the standard text action, never the cues behind it.
+        if isTextFieldEditing() || !MainWindowCloseInterceptor.cueSheetIsFrontmost {
+            performStandardEditAction(#selector(NSText.cut(_:)))
+            return
         }
+        NotificationCenter.default.post(name: .appDelegateCut, object: nil)
     }
     
     func performCopy() {
-        // First try standard text field copy, then fall back to cue copy
-        if let firstResponder = NSApp.keyWindow?.firstResponder,
-           let textView = firstResponder as? NSTextView {
-            textView.copy(nil)
-        } else {
-            NotificationCenter.default.post(name: .appDelegateCopy, object: nil)
+        // Text being edited, or a dialog / save panel in front of the cue
+        // sheet: the standard text action, never the cues behind it.
+        if isTextFieldEditing() || !MainWindowCloseInterceptor.cueSheetIsFrontmost {
+            performStandardEditAction(#selector(NSText.copy(_:)))
+            return
         }
+        NotificationCenter.default.post(name: .appDelegateCopy, object: nil)
     }
     
     func paste() {
-        // First try standard text field paste, then fall back to cue paste
-        if let firstResponder = NSApp.keyWindow?.firstResponder,
-           let textView = firstResponder as? NSTextView {
-            textView.paste(nil)
-        } else {
-            NotificationCenter.default.post(name: .appDelegatePaste, object: nil)
+        // Text being edited, or a dialog / save panel in front of the cue
+        // sheet: the standard text action, never the cues behind it.
+        if isTextFieldEditing() || !MainWindowCloseInterceptor.cueSheetIsFrontmost {
+            performStandardEditAction(#selector(NSText.paste(_:)))
+            return
         }
+        NotificationCenter.default.post(name: .appDelegatePaste, object: nil)
     }
     
     func delete() {
-        // First try standard text field delete, then fall back to cue delete
-        if let firstResponder = NSApp.keyWindow?.firstResponder,
-           let textView = firstResponder as? NSTextView {
-            textView.delete(nil)
-        } else {
-            NotificationCenter.default.post(name: .appDelegateDelete, object: nil)
+        // Text being edited, or a dialog / save panel in front of the cue
+        // sheet: the standard text action, never the cues behind it.
+        if isTextFieldEditing() || !MainWindowCloseInterceptor.cueSheetIsFrontmost {
+            performStandardEditAction(#selector(NSText.delete(_:)))
+            return
         }
+        NotificationCenter.default.post(name: .appDelegateDelete, object: nil)
     }
     
     func selectAll() {
-        // First try standard text field select all, then fall back to cue select all
-        if let firstResponder = NSApp.keyWindow?.firstResponder,
-           let textView = firstResponder as? NSTextView {
-            textView.selectAll(nil)
-        } else {
-            NotificationCenter.default.post(name: .appDelegateSelectAll, object: nil)
+        // Text being edited, or a dialog / save panel in front of the cue
+        // sheet: the standard text action, never the cues behind it.
+        if isTextFieldEditing() || !MainWindowCloseInterceptor.cueSheetIsFrontmost {
+            performStandardEditAction(#selector(NSText.selectAll(_:)))
+            return
         }
+        NotificationCenter.default.post(name: .appDelegateSelectAll, object: nil)
     }
     
     func toggleStrikeThrough() {
@@ -389,6 +398,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 /// closed first and the user then cancelled, the app would be left running
 /// with no window and a stale document.)
 struct MainWindowCloseInterceptor: NSViewRepresentable {
+    /// The cue sheet window, so menus and key handling can tell when it is
+    /// the one being used (and not a dialog or save panel in front of it).
+    static weak var mainWindow: NSWindow?
+
+    /// The cue sheet is what the user is working in: its window is key and
+    /// no sheet, save panel or modal dialog is in front of it.
+    static var cueSheetIsFrontmost: Bool {
+        guard let main = mainWindow else { return NSApp.modalWindow == nil }
+        return NSApp.keyWindow === main && main.attachedSheet == nil && NSApp.modalWindow == nil
+    }
+
     func makeNSView(context: Context) -> NSView {
         let view = InterceptorView()
         return view
@@ -399,6 +419,7 @@ struct MainWindowCloseInterceptor: NSViewRepresentable {
     private final class InterceptorView: NSView {
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
+            if let window { MainWindowCloseInterceptor.mainWindow = window }
             guard let closeButton = window?.standardWindowButton(.closeButton) else { return }
             closeButton.target = NSApp
             closeButton.action = #selector(NSApplication.terminate(_:))

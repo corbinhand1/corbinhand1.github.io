@@ -37,6 +37,10 @@ struct ContentView: View {
     @State private var showWebsitePanel = false
     @State private var showAIImport = false
     @State private var showFindReplace = false
+    /// Pending "publish on change" (Website ▸ Keep the website up to date).
+    @State private var autoPublishWork: DispatchWorkItem?
+    /// Don't retry an automatic publish of exactly the same show after it failed.
+    @State private var autoPublishFailedFingerprint: String?
     /// View ▸ Hide Cue Stacks (⌃⌘S) gives the cue sheet the whole width.
     @AppStorage("layout.showCueStacks") private var showCueStacks = true
     @State private var showRestoreSheet = false
@@ -144,6 +148,16 @@ struct ContentView: View {
                 .environmentObject(websiteSyncManager)
                 .frame(width: 640, height: 640)
             }
+            .onReceive(dataSyncManager.$cueStacks
+                .combineLatest(document.$fileName)
+                .debounce(for: .seconds(1), scheduler: RunLoop.main)) { stacks, name in
+                refreshPublishState(stacks: stacks, filename: name)
+            }
+            .onChange(of: websiteSyncManager.isSyncing) { _, syncing in
+                // Edits made while a publish was running go out next.
+                if !syncing { scheduleAutoPublish() }
+            }
+            .onChange(of: websiteSyncManager.isPublishOnChangeEnabled) { _, _ in scheduleAutoPublish() }
             .sheet(isPresented: $showFindReplace) {
                 FindReplaceView(stacks: dataSyncManager.cueStacks,
                                 selectedStackIndex: dataSyncManager.selectedCueStackIndex,
@@ -289,7 +303,8 @@ struct ContentView: View {
                                             cueStacks: $dataSyncManager.cueStacks,
                                             selectedCueStackIndex: $dataSyncManager.selectedCueStackIndex,
                                             cueStackListWidth: $cueStackListWidth,
-                                            hide: { withAnimation(.easeInOut(duration: 0.2)) { showCueStacks = false } }
+                                            hide: { withAnimation(.easeInOut(duration: 0.2)) { showCueStacks = false } },
+                                            onEdit: { editor.recordEdit() }
                                         )
                                         Spacer(minLength: 20)
                                     }
@@ -459,6 +474,48 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Website: unpublished changes and publish on change
+
+    private func websiteFilename(_ name: String) -> String {
+        name.isEmpty ? "Untitled.cuestack" : name
+    }
+
+    private func refreshPublishState(stacks: [CueStack], filename: String) {
+        websiteSyncManager.noteCurrentShow(WebsiteSyncManager.fingerprint(
+            cueStacks: stacks,
+            highlightColors: settingsManager.settings.highlightColors,
+            filename: websiteFilename(filename)))
+        scheduleAutoPublish()
+    }
+
+    /// Publishes a few seconds after editing stops, when the Website panel's
+    /// "Keep the website up to date" is on. Quiet: no alerts mid-show.
+    private func scheduleAutoPublish() {
+        autoPublishWork?.cancel()
+        autoPublishWork = nil
+        let site = websiteSyncManager
+        guard site.isPublishOnChangeEnabled, site.hasToken, site.hasViewerPassword,
+              site.hasUnpublishedChanges, !site.isSyncing,
+              site.currentFingerprint != autoPublishFailedFingerprint else { return }
+        let work = DispatchWorkItem {
+            // Wait until no cell is being typed in.
+            guard editingCueIndex == nil else { scheduleAutoPublish(); return }
+            guard site.hasUnpublishedChanges, !site.isSyncing else { return }
+            let attempted = site.currentFingerprint
+            Task { @MainActor in
+                let result = await site.publish(
+                    cueStacks: dataSyncManager.cueStacks,
+                    selectedCueStackIndex: dataSyncManager.selectedCueStackIndex,
+                    highlightColors: settingsManager.settings.highlightColors,
+                    filename: websiteFilename(document.fileName),
+                    automatic: true)
+                if case .failure = result { autoPublishFailedFingerprint = attempted }
+            }
+        }
+        autoPublishWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8, execute: work)
+    }
+
     private func updateWebServer() {
         let colors = settingsManager.settings.highlightColors
         if colors != dataSyncManager.highlightColors {
@@ -607,6 +664,10 @@ struct ContentView: View {
     }
     
     private func handleKeyDown(with event: NSEvent) -> Bool {
+        // Only for the cue sheet itself: never for keys typed in a dialog,
+        // panel, save sheet or the Settings window.
+        guard MainWindowCloseInterceptor.cueSheetIsFrontmost,
+              event.window == nil || event.window === MainWindowCloseInterceptor.mainWindow else { return false }
         // Safety net: if a cell editor closed without telling us, don't leave
         // arrow-key cue navigation disabled.
         if editingCueIndex != nil, !(NSApp.keyWindow?.firstResponder is NSTextView) {
@@ -639,6 +700,11 @@ struct ContentView: View {
             return true
         case 125: // Down arrow
             editor.advanceCue()
+            return true
+        case 51, 117: // Delete / Forward Delete, no modifiers: delete selected cues
+            let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
+            guard mods.isEmpty, !(NSApp.keyWindow?.firstResponder is NSTextView) else { return false }
+            editor.deleteSelectedCues()
             return true
         default:
             break

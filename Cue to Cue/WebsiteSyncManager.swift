@@ -9,6 +9,7 @@
 
 import Foundation
 import Combine
+import CryptoKit
 
 enum SyncNotificationType {
     case success
@@ -39,6 +40,8 @@ enum WebsiteSyncSettingsKeys {
     static let lastPublishedAt = "websiteLastPublishedAt"
     static let lastPublishedFile = "websiteLastPublishedFile"
     static let lastCommitURL = "websiteLastCommitURL"
+    static let publishedFingerprint = "websitePublishedFingerprint"
+    static let publishOnChange = "websitePublishOnChange"
 
     static let defaultRepoOwner = "corbinhand1"
     static let defaultRepoName = "corbinhand1.github.io"
@@ -70,6 +73,13 @@ final class WebsiteSyncManager: ObservableObject {
     @Published var lastCommitURL: URL?
     @Published var connection: ConnectionState = .unknown
     @Published var library = ShowLibraryIndex()
+    /// Fingerprint of the show as last published, and of the show as it is
+    /// now (ContentView keeps this current). They differ when the website
+    /// is behind the open show.
+    @Published private(set) var publishedFingerprint: String?
+    @Published private(set) var currentFingerprint: String?
+    /// The last publish was the automatic one (no toast for those).
+    @Published private(set) var lastPublishWasAutomatic = false
     @Published var isLoadingLibrary = false
     @Published var libraryError: String?
 
@@ -99,6 +109,7 @@ final class WebsiteSyncManager: ObservableObject {
         lastSyncTime = defaults.object(forKey: WebsiteSyncSettingsKeys.lastPublishedAt) as? Date
         lastSyncFilename = defaults.string(forKey: WebsiteSyncSettingsKeys.lastPublishedFile)
         lastCommitURL = defaults.string(forKey: WebsiteSyncSettingsKeys.lastCommitURL).flatMap(URL.init(string:))
+        publishedFingerprint = defaults.string(forKey: WebsiteSyncSettingsKeys.publishedFingerprint)
         if !hasToken { connection = .notConfigured }
     }
 
@@ -127,6 +138,37 @@ final class WebsiteSyncManager: ObservableObject {
     }
 
     var hasToken: Bool { tokenStore.readToken() != nil }
+
+    /// Publish edits on their own, a few seconds after editing stops.
+    var isPublishOnChangeEnabled: Bool {
+        get { defaults.bool(forKey: WebsiteSyncSettingsKeys.publishOnChange) }
+        set {
+            defaults.set(newValue, forKey: WebsiteSyncSettingsKeys.publishOnChange)
+            objectWillChange.send()
+        }
+    }
+
+    /// The open show differs from what was last published.
+    var hasUnpublishedChanges: Bool {
+        guard let currentFingerprint else { return false }
+        return currentFingerprint != publishedFingerprint
+    }
+
+    func noteCurrentShow(_ fingerprint: String) {
+        if currentFingerprint != fingerprint { currentFingerprint = fingerprint }
+    }
+
+    /// Identifies what the website shows: every stack's cues and columns,
+    /// the highlight colors and the file name (not which stack is selected).
+    nonisolated static func fingerprint(cueStacks: [CueStack], highlightColors: [HighlightColorSetting], filename: String) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        var hasher = SHA256()
+        hasher.update(data: (try? encoder.encode(cueStacks)) ?? Data())
+        hasher.update(data: (try? encoder.encode(highlightColors)) ?? Data())
+        hasher.update(data: Data(filename.utf8))
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
 
     /// Save (or clear, with nil/empty) the token. Stored in the Keychain.
     func setToken(_ token: String?) throws {
@@ -327,15 +369,19 @@ final class WebsiteSyncManager: ObservableObject {
 
     @discardableResult
     func publish(cueStacks: [CueStack], selectedCueStackIndex: Int,
-                 highlightColors: [HighlightColorSetting], filename: String) async -> Result<GitHubCommitResult, Error> {
+                 highlightColors: [HighlightColorSetting], filename: String,
+                 automatic: Bool = false) async -> Result<GitHubCommitResult, Error> {
         guard !cueStacks.isEmpty else {
             let message = "There are no cue stacks to publish."
             syncStatus = .failed(message)
             return .failure(NSError(domain: "WebsiteSync", code: 1, userInfo: [NSLocalizedDescriptionKey: message]))
         }
         isSyncing = true
+        lastPublishWasAutomatic = automatic
         syncStatus = .syncing
         defer { isSyncing = false }
+        let fingerprint = Self.fingerprint(cueStacks: cueStacks, highlightColors: highlightColors,
+                                           filename: filename.isEmpty ? "Untitled.cuestack" : filename)
 
         do {
             let github = try publisher()
@@ -353,6 +399,8 @@ final class WebsiteSyncManager: ObservableObject {
             let result = try await github.commit(changes, message: "Publish \(cleanName) from Cue to Cue")
 
             library = bundle.library
+            publishedFingerprint = fingerprint
+            defaults.set(fingerprint, forKey: WebsiteSyncSettingsKeys.publishedFingerprint)
             syncStatus = .success
             lastSyncTime = Date()
             lastSyncFilename = cleanName
