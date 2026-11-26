@@ -1,51 +1,107 @@
 import SwiftUI
 
+/// Which cue and column the editor should open on.
+struct EditTarget: Identifiable {
+    let cueID: String
+    var column: Int
+    var id: String { "\(cueID)#\(column)" }
+}
+
 struct SheetView: View {
     @EnvironmentObject var store: RemoteStore
-    @State private var editing: SheetCue?
+    @State private var target: EditTarget?
+    @State private var search = ""
+    @State private var pendingDelete: SheetCue?
+
+    private var cues: [SheetCue] {
+        guard let all = store.sheet?.cues else { return [] }
+        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return all }
+        return all.filter { $0.values.contains { $0.lowercased().contains(q) } }
+    }
 
     var body: some View {
         NavigationStack {
-            List {
-                if let sheet = store.sheet {
-                    ForEach(sheet.cues) { cue in
-                        Button { editing = cue } label: { CueRow(cue: cue, columns: sheet.columns) }
-                            .buttonStyle(.plain)
-                            .swipeActions {
-                                Button(role: .destructive) { Task { await store.delete(cue) } } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
+            ZStack(alignment: .bottomTrailing) {
+                Theme.background.ignoresSafeArea()
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(cues) { cue in
+                            CueCard(cue: cue, columns: store.sheet?.columns ?? [],
+                                    position: position(of: cue),
+                                    open: { col in target = EditTarget(cueID: cue.id, column: col) },
+                                    delete: { pendingDelete = cue })
+                        }
+                        if cues.isEmpty {
+                            ContentUnavailableView(search.isEmpty ? "No cues yet" : "No matches",
+                                                   systemImage: search.isEmpty ? "list.bullet.rectangle" : "magnifyingglass",
+                                                   description: Text(search.isEmpty ? "Tap the + button to add the first cue." : "Try a different search."))
+                                .foregroundStyle(Theme.textMuted)
+                                .padding(.top, 60)
+                        }
                     }
-                    if sheet.cues.isEmpty {
-                        ContentUnavailableView("No cues", systemImage: "list.bullet.rectangle",
-                                               description: Text("Tap + to add the first cue."))
-                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+                    .padding(.bottom, 110) // room for the add button
                 }
+                .refreshable { await store.refresh() }
+                addButton
             }
-            .listStyle(.plain)
-            .refreshable { await store.refresh() }
             .navigationTitle(store.sheet?.cueStackName ?? "Cues")
             .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search cues")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { stackMenu }
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 14) {
-                        Circle().fill(store.live ? Color.green : Color.orange)
-                            .frame(width: 9, height: 9)
-                            .accessibilityLabel(store.live ? "Live" : "Reconnecting")
-                        Button { Task { await store.addCue() } } label: { Image(systemName: "plus") }
-                    }
+                ToolbarItem(placement: .topBarTrailing) { liveBadge }
+            }
+            .toolbarBackground(Theme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .sheet(item: $target) { t in
+                CueEditor(start: t).environmentObject(store)
+            }
+            .confirmationDialog("Delete this cue?", isPresented: Binding(get: { pendingDelete != nil },
+                                                                         set: { if !$0 { pendingDelete = nil } }),
+                                titleVisibility: .visible) {
+                Button("Delete Cue", role: .destructive) {
+                    if let c = pendingDelete { Task { await store.delete(c) } }
                 }
-            }
-            .sheet(item: $editing) { cue in
-                CueEditor(cue: cue).environmentObject(store)
-            }
+            } message: { Text("This removes it from the show on your Mac. It can't be undone from here.") }
             .alert("Problem", isPresented: Binding(get: { store.error != nil },
                                                    set: { if !$0 { store.error = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: { Text(store.error ?? "") }
         }
+        .preferredColorScheme(.dark)
+        .tint(Theme.accent)
+    }
+
+    private func position(of cue: SheetCue) -> Int {
+        (store.sheet?.cues.firstIndex(where: { $0.id == cue.id }) ?? 0) + 1
+    }
+
+    private var addButton: some View {
+        Button {
+            Task { if let id = await store.addCue() { target = EditTarget(cueID: id, column: 1) } }
+        } label: {
+            Image(systemName: "plus")
+                .font(.title2.weight(.bold))
+                .foregroundStyle(Theme.onAccent)
+                .frame(width: 60, height: 60)
+                .background(Theme.accent, in: Circle())
+                .shadow(color: .black.opacity(0.5), radius: 8, y: 4)
+        }
+        .accessibilityLabel("Add cue")
+        .padding(20)
+    }
+
+    private var liveBadge: some View {
+        HStack(spacing: 6) {
+            Image(systemName: store.live ? "dot.radiowaves.left.and.right" : "wifi.exclamationmark")
+            Text(store.live ? "Live" : "Offline").font(.caption.weight(.semibold))
+        }
+        .foregroundStyle(store.live ? Color.green : Color.orange)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(store.live ? "Connected, live" : "Reconnecting")
     }
 
     private var stackMenu: some View {
@@ -55,85 +111,117 @@ struct SheetView: View {
                     Button {
                         Task { await store.selectStack(s.id) }
                     } label: {
-                        Label(s.name, systemImage: s.id == store.selectedStackID ? "checkmark" : "")
+                        if s.id == store.selectedStackID { Label(s.name, systemImage: "checkmark") }
+                        else { Text(s.name) }
                     }
                 }
             }
             Divider()
             Button("Sign out", role: .destructive) { store.signOut() }
-        } label: { Image(systemName: "line.3.horizontal.circle") }
+        } label: {
+            Image(systemName: "rectangle.stack").frame(minWidth: 44, minHeight: 44)
+        }
+        .accessibilityLabel("Switch cue stack")
     }
 }
 
-private struct CueRow: View {
+// MARK: - Cue card
+
+private struct CueCard: View {
     let cue: SheetCue
     let columns: [SheetColumn]
+    let position: Int
+    let open: (Int) -> Void
+    let delete: () -> Void
+
+    private var number: String { cue.values.first ?? "" }
+    private var title: String { cue.values.count > 1 ? cue.values[1] : "" }
+    /// Filled columns beyond # and Description, shown as tappable chips.
+    private var chips: [(index: Int, name: String, value: String)] {
+        cue.values.enumerated().compactMap { i, v in
+            guard i >= 2, !v.isEmpty else { return nil }
+            return (i, i < columns.count ? columns[i].name : "Col \(i + 1)", v)
+        }
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if cue.values.allSatisfy({ $0.isEmpty }) {
-                Text("Empty cue — tap to edit")
-                    .font(.subheadline).italic().foregroundStyle(.secondary)
+        HStack(alignment: .top, spacing: 12) {
+            // Cue number — tap to edit it directly.
+            Button { open(0) } label: {
+                Text(number.isEmpty ? "·" : number)
+                    .font(.system(.title3, design: .rounded).weight(.bold))
+                    .monospacedDigit()
+                    .foregroundStyle(number.isEmpty ? Theme.textMuted : Theme.accent)
+                    .frame(width: 52, height: Theme.minTarget)
+                    .background(Theme.cardRaised, in: RoundedRectangle(cornerRadius: 12))
             }
-            ForEach(Array(cue.values.enumerated()), id: \.offset) { i, v in
-                if !v.isEmpty {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(i < columns.count ? columns[i].name : "")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 70, alignment: .leading)
-                            .lineLimit(1)
-                        Text(v).font(i == 0 ? .headline : .subheadline)
+            .buttonStyle(PressStyle())
+            .accessibilityLabel("Cue number \(number.isEmpty ? "not set" : number). Edit")
+
+            VStack(alignment: .leading, spacing: 8) {
+                Button { open(1) } label: {
+                    Text(title.isEmpty ? "Add description" : title)
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(title.isEmpty ? Theme.textMuted : Theme.text)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(PressStyle())
+                .accessibilityLabel("Description: \(title.isEmpty ? "empty" : title). Edit")
+
+                if !chips.isEmpty {
+                    FlowLayout(spacing: 8) {
+                        ForEach(chips, id: \.index) { chip in
+                            Button { open(chip.index) } label: {
+                                HStack(spacing: 6) {
+                                    Text(chip.name.uppercased())
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(Theme.accent)
+                                    Text(chip.value)
+                                        .font(.subheadline)
+                                        .foregroundStyle(Theme.text)
+                                        .lineLimit(2)
+                                }
+                                .padding(.horizontal, 12)
+                                .frame(minHeight: 40)
+                                .background(Theme.cardRaised, in: Capsule())
+                            }
+                            .buttonStyle(PressStyle())
+                            .accessibilityLabel("\(chip.name): \(chip.value). Edit")
+                        }
                     }
                 }
             }
+
+            Menu {
+                Button { open(1) } label: { Label("Edit cue", systemImage: "pencil") }
+                Button(role: .destructive, action: delete) { Label("Delete cue", systemImage: "trash") }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.title3)
+                    .foregroundStyle(Theme.textMuted)
+                    .frame(width: 40, height: Theme.minTarget)
+            }
+            .accessibilityLabel("More actions for cue \(position)")
         }
-        .strikethrough(cue.isStruckThrough)
-        .opacity(cue.isStruckThrough ? 0.5 : 1)
-        .padding(.vertical, 4)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
+        .padding(10)
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 16))
+        .opacity(cue.isStruckThrough ? 0.45 : 1)
+        .overlay(alignment: .topLeading) {
+            if cue.isStruckThrough {
+                Text("Skipped").font(.caption2.weight(.bold)).foregroundStyle(Theme.textMuted)
+                    .padding(.horizontal, 6).padding(.top, 2)
+            }
+        }
     }
 }
 
-struct CueEditor: View {
-    @EnvironmentObject var store: RemoteStore
-    @Environment(\.dismiss) private var dismiss
-    let cue: SheetCue
-    @State private var draft: [String] = []
-    @State private var saving = false
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                ForEach(Array(draft.indices), id: \.self) { i in
-                    Section(store.sheet?.columns[safe: i]?.name ?? "Column \(i + 1)") {
-                        TextField("", text: $draft[i], axis: .vertical)
-                            .lineLimit(1...8)
-                    }
-                }
-            }
-            .navigationTitle("Edit Cue")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { Task { await save() } }.disabled(saving)
-                }
-            }
-            .onAppear { draft = cue.values }
-        }
+/// Brief dim on press so every tap target gives immediate feedback.
+struct PressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.6 : 1)
+            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
     }
-
-    private func save() async {
-        saving = true; defer { saving = false }
-        for i in draft.indices where i < cue.values.count && draft[i] != cue.values[i] {
-            guard await store.edit(cue: cue, column: i, value: draft[i]) else { return }
-        }
-        dismiss()
-    }
-}
-
-private extension Array {
-    subscript(safe i: Int) -> Element? { indices.contains(i) ? self[i] : nil }
 }

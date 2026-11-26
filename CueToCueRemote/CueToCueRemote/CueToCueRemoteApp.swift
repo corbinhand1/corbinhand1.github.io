@@ -10,6 +10,8 @@ struct CueToCueRemoteApp: App {
                 if store.isSignedIn { SheetView() } else { ConnectView() }
             }
             .environmentObject(store)
+            .preferredColorScheme(.dark)
+            .tint(Theme.accent)
             .task { await store.resume() }
         }
     }

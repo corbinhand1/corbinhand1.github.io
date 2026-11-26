@@ -84,9 +84,11 @@ struct API {
                                body: ["cueId": cueID, "columnIndex": column, "newValue": value], auth: true))
     }
 
-    func addCue(stackID: String, values: [String]) async throws {
-        try await send(request("/cues", method: "POST",
+    /// Returns the new cue's id.
+    func addCue(stackID: String, values: [String]) async throws -> String? {
+        let data = try await send(request("/cues", method: "POST",
                                body: ["cueStackId": stackID, "values": values, "timerValue": ""], auth: true))
+        return (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["cueId"] as? String
     }
 
     func deleteCue(id: String) async throws {

@@ -107,13 +107,15 @@ final class RemoteStore: ObservableObject {
         }
     }
 
-    func addCue() async {
-        guard let api, let sheet else { return }
+    /// Adds a blank cue at the end and returns its id so the editor can open on it.
+    func addCue() async -> String? {
+        guard let api, let sheet else { return nil }
         do {
-            try await api.addCue(stackID: sheet.cueStackId,
-                                 values: Array(repeating: "", count: sheet.columns.count))
+            let id = try await api.addCue(stackID: sheet.cueStackId,
+                                          values: Array(repeating: "", count: sheet.columns.count))
             await refresh()
-        } catch { self.error = Self.message(error) }
+            return id
+        } catch { self.error = Self.message(error); return nil }
     }
 
     func delete(_ cue: SheetCue) async {
