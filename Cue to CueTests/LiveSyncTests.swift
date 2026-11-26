@@ -294,3 +294,31 @@ final class LiveSyncStressTests: XCTestCase {
         }
     }
 }
+
+// MARK: - Viewer: browsing a stack on one device
+
+@MainActor
+final class ViewerStackBrowsingTests: XCTestCase {
+    func testStackByIDAndStackList() throws {
+        let data = DataSyncManager()
+        let timer = AuthoritativeTimerServer(startTicking: false)
+        let a = CueStack(name: "Main", cues: [Cue(values: ["1", "Doors"])], columns: [Column(name: "#", width: 40), Column(name: "Description", width: 300)])
+        let b = CueStack(name: "Breakout", cues: [Cue(values: ["1", "Walk-in"]), Cue(values: ["2", "Go"])], columns: [Column(name: "#", width: 40), Column(name: "Description", width: 300)])
+        data.cueStacks = [a, b]
+        data.selectedCueStackIndex = 0
+        data.syncWebClientWithMacOSApp()
+
+        let json = try XCTUnwrap(data.webClientJSON(forStackID: b.id.uuidString.lowercased(), timerServer: timer))
+        let sheet = try XCTUnwrap(JSONSerialization.jsonObject(with: json) as? [String: Any])
+        XCTAssertEqual(sheet["cueStackName"] as? String, "Breakout")
+        XCTAssertEqual((sheet["cues"] as? [[String: Any]])?.count, 2)
+
+        let list = try XCTUnwrap(sheet["availableCueStacks"] as? [[String: Any]])
+        XCTAssertEqual(list.map { $0["id"] as? String }, [a.id.uuidString, b.id.uuidString])
+        XCTAssertEqual(list.map { $0["cueCount"] as? Int }, [1, 2])
+
+        XCTAssertNil(data.webClientJSON(forStackID: UUID().uuidString, timerServer: timer))
+        // Browsing doesn't change what the Mac's viewers follow.
+        XCTAssertEqual(data.getWebClientCueStackIndex(), 0)
+    }
+}

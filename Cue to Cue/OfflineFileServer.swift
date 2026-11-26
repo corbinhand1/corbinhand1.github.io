@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import AppKit
 
 class OfflineFileServer {
     
@@ -91,22 +92,31 @@ class OfflineFileServer {
         )
     }
     
+    /// Devices that opened the old viewer installed a service worker that
+    /// could keep serving a stale copy of the page. Browsers re-check this
+    /// script, so serving a worker that clears its caches, unregisters itself
+    /// and reloads open pages moves every device to the current viewer.
+    static let retiringServiceWorker = """
+    self.addEventListener('install', () => self.skipWaiting());
+    self.addEventListener('activate', (event) => {
+        event.waitUntil((async () => {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((key) => caches.delete(key)));
+            await self.registration.unregister();
+            const pages = await self.clients.matchAll({ type: 'window' });
+            pages.forEach((page) => page.navigate(page.url));
+        })());
+    });
+    """
+
     func serveOfflineServiceWorker() -> HTTPResponse {
-        let serviceWorkerPath = Bundle.main.path(forResource: "offline-service-worker", ofType: "js")
-        if let path = serviceWorkerPath, let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-            return HTTPResponse(
-                status: .ok,
-                headers: ["Content-Type": "application/javascript; charset=utf-8"],
-                body: data
-            )
-        }
-        return HTTPResponse(
-            status: .notFound,
-            headers: ["Content-Type": "text/plain"],
-            body: "Service worker not found".data(using: .utf8) ?? Data()
+        HTTPResponse(
+            status: .ok,
+            headers: ["Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store"],
+            body: Data(Self.retiringServiceWorker.utf8)
         )
     }
-    
+
     func serveOfflineDataManager() -> HTTPResponse {
         let dataManagerPath = Bundle.main.path(forResource: "offline-data-manager", ofType: "js")
         if let path = dataManagerPath, let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
@@ -205,8 +215,9 @@ class OfflineFileServer {
     
     func serveDigital7MonoFont() -> HTTPResponse {
         // Try multiple ways to find the font file in the bundle
-        var fontData: Data?
-        
+        // It ships as a data asset in Assets.xcassets ("digital-7 (mono)").
+        var fontData: Data? = NSDataAsset(name: "digital-7 (mono)")?.data
+
         // Try the exact resource name first
         if let fontPath = Bundle.main.path(forResource: "digital-7 (mono)", ofType: "ttf") {
             fontData = try? Data(contentsOf: URL(fileURLWithPath: fontPath))

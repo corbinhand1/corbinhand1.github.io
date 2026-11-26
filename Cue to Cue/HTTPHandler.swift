@@ -69,6 +69,8 @@ class HTTPHandler {
             return serveHTML()
         case (.get, "/cues"):
             return serveJSON()
+        case (.get, let path) where path.hasPrefix("/stack/"):
+            return serveStackJSON(id: String(path.dropFirst("/stack/".count)))
         case (.get, "/offline.html"):
             return offlineFileServer.serveOfflineHTML()
         case (.get, "/offline-service-worker.js"):
@@ -89,6 +91,8 @@ class HTTPHandler {
             return offlineFileServer.serveDigital7MonoFont()
         case (.get, "/timer-state"):
             return serveTimerState()
+        case (.get, "/show-state"):
+            return serveShowState()
         case (.post, "/timer-command"):
             return handleTimerCommand(request)
         case (.post, "/select-cue-stack"):
@@ -141,7 +145,8 @@ class HTTPHandler {
         let htmlData = CompleteHTML.content.data(using: .utf8) ?? Data()
         return HTTPResponse(
             status: .ok,
-            headers: ["Content-Type": "text/html; charset=utf-8"],
+            // Always fetch the page fresh, so viewers get updates right away.
+            headers: ["Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store"],
             body: htmlData
         )
     }
@@ -166,6 +171,36 @@ class HTTPHandler {
         )
     }
     
+    /// Which cue is live (for viewers polling over HTTP when the WebSocket is down).
+    private func serveShowState() -> HTTPResponse {
+        let payload = onMainThread { dataSyncManager.buildShowStatePayload() } ?? [:]
+        let body = (try? JSONSerialization.data(withJSONObject: payload)) ?? Data("{}".utf8)
+        return HTTPResponse(
+            status: .ok,
+            headers: createCORSHeaders(["Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store"]),
+            body: body
+        )
+    }
+
+    /// A viewer browsing another stack (the Mac's live stack comes from /cues and the WebSocket).
+    private func serveStackJSON(id: String) -> HTTPResponse {
+        let jsonData = onMainThread {
+            dataSyncManager.webClientJSON(forStackID: id.removingPercentEncoding ?? id, timerServer: timerServer)
+        }
+        guard let jsonData else {
+            return HTTPResponse(
+                status: .notFound,
+                headers: createCORSHeaders(["Content-Type": "application/json; charset=utf-8"]),
+                body: createErrorJSON(message: "No cue stack with that id")
+            )
+        }
+        return HTTPResponse(
+            status: .ok,
+            headers: createCORSHeaders(["Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store"]),
+            body: jsonData
+        )
+    }
+
     private func serveCORS() -> HTTPResponse {
         return HTTPResponse(
             status: .ok,

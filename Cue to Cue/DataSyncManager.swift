@@ -380,10 +380,12 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
                     "color": colorSetting.color.toHex()
                 ]
             },
-            "availableCueStacks": stacks.map { stack in
+            "availableCueStacks": stacks.enumerated().map { index, stack in
                 [
+                    "id": stack.id.uuidString,
                     "name": stack.name,
-                    "index": stacks.firstIndex(of: stack) ?? -1
+                    "index": index,
+                    "cueCount": stack.cues.count
                 ]
             },
             "currentCueStackIndex": stackIndex,
@@ -400,6 +402,16 @@ class DataSyncManager: ObservableObject, @unchecked Sendable {
         ]
     }
     
+    /// One stack by id, for a viewer browsing a stack other than the one the
+    /// Mac is running (GET /stack/<id>). Read-only; doesn't change what other
+    /// viewers see. nil when no stack has that id.
+    func webClientJSON(forStackID id: String, timerServer: AuthoritativeTimerServer) -> Data? {
+        let stacks = cueStacks
+        guard let index = stacks.firstIndex(where: { $0.id.uuidString.caseInsensitiveCompare(id) == .orderedSame }) else { return nil }
+        let object = sheetJSONObject(stack: stacks[index], stackIndex: index, stacks: stacks, timerServer: timerServer)
+        return try? JSONSerialization.data(withJSONObject: object, options: [])
+    }
+
     func generateJSONResponseForWebClient(timerServer: AuthoritativeTimerServer) -> Data {
         if lastWebClientJSONVersion == dataVersion, let cached = lastWebClientJSON, !cached.isEmpty {
             return cached
