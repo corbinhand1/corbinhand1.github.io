@@ -69,8 +69,10 @@ struct TopSectionView: View {
                 ToolButton(title: websiteSyncManager.isSyncing ? "Publishing" : "Publish",
                            systemImage: websiteSyncManager.isSyncing ? "arrow.triangle.2.circlepath" : "icloud.and.arrow.up",
                            help: "Publish to Website (\u{21E7}\u{2318}U)",
-                           tint: websiteSyncManager.isSyncing ? .orange : nil,
-                           action: publishToWebsite)
+                           tint: websiteSyncManager.isSyncing ? .orange : nil) {
+                    // Same path as File ▸ Publish to Website (handled in ContentView).
+                    NotificationCenter.default.post(name: .appDelegatePublishWebsite, object: nil)
+                }
                     .disabled(websiteSyncManager.isSyncing)
                     .overlay(syncNotificationOverlay, alignment: .topTrailing)
                 ToolButton(title: "Settings", systemImage: "gearshape",
@@ -79,8 +81,10 @@ struct TopSectionView: View {
                 }
             }
             .frame(width: 104)
-            .onReceive(NotificationCenter.default.publisher(for: .appDelegatePublishWebsite)) { _ in
-                publishToWebsite()
+            .onChange(of: websiteSyncManager.syncStatus) { _, status in
+                // Confirm a successful publish next to the button (failures
+                // get an alert with a way into Website settings).
+                if status == .success { showSyncSuccess() }
             }
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -345,28 +349,6 @@ struct TopSectionView: View {
                     }
                     .frame(height: 22)
                 }
-            }
-        }
-    }
-
-    /// Publish the current show to the website (button and File menu ⇧⌘U).
-    private func publishToWebsite() {
-        guard !websiteSyncManager.isSyncing else { return }
-        // Commit any in-progress cell edit before publishing.
-        NSApp.keyWindow?.makeFirstResponder(nil)
-
-        websiteSyncManager.syncCueData(
-            cueStacks: dataSyncManager.cueStacks,
-            selectedCueStackIndex: dataSyncManager.selectedCueStackIndex,
-            filename: currentFileName,
-            settingsManager: settingsManager
-        ) { success, error in
-            if success {
-                showSyncSuccess()
-            } else {
-                let errorMessage = error ?? "Unknown error"
-                showSyncFailure(errorMessage)
-                print("❌ Sync failed: \(errorMessage)")
             }
         }
     }

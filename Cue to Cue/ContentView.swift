@@ -30,11 +30,11 @@ struct ContentView: View {
 
     // MARK: - Presentation
     @State private var showSettings = false
-    @State private var showWebsitePanel = false
     @Environment(\.openSettings) private var openSettingsWindow
     @State private var showConnectionMonitor = false
     @State private var showUserManagement = false
     @State private var showPlaylistEditor = false
+    @State private var showWebsitePanel = false
     @State private var showRestoreSheet = false
     @State private var showPrintSheet = false
     @State private var showCSVImportSheet = false
@@ -117,10 +117,6 @@ struct ContentView: View {
                 showSettings = false
                 openSettings(.general)
             }
-            .sheet(isPresented: $showWebsitePanel) {
-                WebsitePanel(isPresented: $showWebsitePanel)
-                    .environmentObject(websiteSyncManager)
-            }
             .sheet(isPresented: $showConnectionMonitor) {
                 connectionMonitorSheet
             }
@@ -134,6 +130,15 @@ struct ContentView: View {
                 PlaylistEditorView(isPresented: $showPlaylistEditor)
                     .environmentObject(dataSyncManager)
                     .environmentObject(timerServer)
+            }
+            .sheet(isPresented: $showWebsitePanel) {
+                WebsiteSyncSettingsView(
+                    publishCurrentShow: publishToWebsite,
+                    currentShowName: document.fileName,
+                    onClose: { showWebsitePanel = false }
+                )
+                .environmentObject(websiteSyncManager)
+                .frame(width: 640, height: 640)
             }
             .sheet(isPresented: $showCSVExportSheet) {
                 csvExportSheet
@@ -405,6 +410,34 @@ struct ContentView: View {
         dataSyncManager.recordMacCueValueChange(cueId: cueId, columnIndex: columnIndex, newValue: newValue)
     }
     
+    /// File › Publish to Website: publish the open show and add it to the
+    /// website's show library. Opens the Website panel if publishing isn't set up.
+    private func publishToWebsite() {
+        guard websiteSyncManager.hasToken else {
+            showWebsitePanel = true
+            return
+        }
+        // Commit any in-progress cell edit first.
+        NSApp.keyWindow?.makeFirstResponder(nil)
+        websiteSyncManager.syncCueData(
+            cueStacks: dataSyncManager.cueStacks,
+            selectedCueStackIndex: dataSyncManager.selectedCueStackIndex,
+            filename: document.fileName,
+            settingsManager: settingsManager
+        ) { success, error in
+            if !success, let error {
+                let alert = NSAlert()
+                alert.messageText = "Couldn't Publish to the Website"
+                alert.informativeText = error
+                alert.addButton(withTitle: "OK")
+                alert.addButton(withTitle: "Website Settings…")
+                if alert.runModal() == .alertSecondButtonReturn {
+                    showWebsitePanel = true
+                }
+            }
+        }
+    }
+
     private func updateWebServer() {
         let colors = settingsManager.settings.highlightColors
         if colors != dataSyncManager.highlightColors {
@@ -472,12 +505,13 @@ struct ContentView: View {
         .appDelegateNewFile, .appDelegateOpenFile, .appDelegateSaveFile,
         .appDelegateSaveFileAs, .appDelegateDuplicateFile,
         .appDelegateImportCSV, .appDelegateExportCSV,
+        .appDelegatePublishWebsite, .appDelegateShowWebsite,
         .appDelegateUndo, .appDelegateRedo,
         .appDelegateCut, .appDelegateCopy, .appDelegatePaste, .appDelegateDelete,
         .appDelegateSelectAll, .appDelegateToggleStrikeThrough,
         .appDelegateShowPreferences, .appDelegateUpdateWebClients,
         .appDelegateShowCommand, .appDelegateShowViewers, .appDelegateShowUsers,
-        .appDelegateShowShortcuts, .appDelegateShowWebsite,
+        .appDelegateShowShortcuts,
     ]
 
     private var menuCommands: AnyPublisher<Notification, Never> {
@@ -507,6 +541,8 @@ struct ContentView: View {
         case .appDelegateDuplicateFile: document.duplicateFile()
         case .appDelegateImportCSV: importCSV()
         case .appDelegateExportCSV: exportCSV()
+        case .appDelegatePublishWebsite: publishToWebsite()
+        case .appDelegateShowWebsite: showWebsitePanel = true
         // Edit
         case .appDelegateUndo: editor.undo()
         case .appDelegateRedo: editor.redo()
@@ -518,7 +554,6 @@ struct ContentView: View {
         case .appDelegateToggleStrikeThrough: editor.toggleStrikeThrough()
         // Other
         case .appDelegateShowPreferences: openSettings(.general)
-        case .appDelegateShowWebsite: showWebsitePanel = true
         case .appDelegateShowShortcuts: openSettings(.shortcuts)
         case .appDelegateShowViewers: showConnectionMonitor = true
         case .appDelegateShowUsers: showUserManagement = true

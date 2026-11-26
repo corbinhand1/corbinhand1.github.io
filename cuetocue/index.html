@@ -982,6 +982,22 @@
             max-width: 280px;
         }
 
+        /* Show library picker sits beside the cue stack picker */
+        .selector-group {
+            display: flex;
+            align-items: flex-end;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        .show-selector .cue-stack-dropdown {
+            max-width: 280px;
+        }
+
+        .current-show.archived .current-show-label {
+            color: #ff9f0a;
+        }
+
         .cue-stack-label {
             font-size: 0.8rem;
             margin-bottom: 8px;
@@ -1947,11 +1963,17 @@
             
             <!-- Bottom Row: Cue Stack Selector | Column Controls -->
             <div class="header-secondary">
-                <div class="cue-stack-selector">
-                    <div class="cue-stack-label">Cue Stack</div>
-                    <select class="cue-stack-dropdown" id="cueStackSelect">
-                        <option value="">Loading cue stacks...</option>
-                    </select>
+                <div class="selector-group">
+                    <div class="cue-stack-selector show-selector" id="showSelector" hidden>
+                        <div class="cue-stack-label">Show</div>
+                        <select class="cue-stack-dropdown" id="showSelect" aria-label="Show file"></select>
+                    </div>
+                    <div class="cue-stack-selector">
+                        <div class="cue-stack-label">Cue Stack</div>
+                        <select class="cue-stack-dropdown" id="cueStackSelect">
+                            <option value="">Loading cue stacks...</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="column-controls">
                     <div class="column-controls-group">
@@ -2109,6 +2131,9 @@
     <script>
         let cueData = null;
         let metadata = null;
+        // Show library (shows/index.json), published by the Mac app.
+        let showLibrary = null;
+        let viewingArchivedShow = false;
         let visibleColumns = new Set(); // Track which columns are visible
         
         // Color highlighting state
@@ -2159,25 +2184,57 @@
             
             try {
                 console.log('📡 Fetching cue data and metadata...');
-                const [cueResponse, metadataResponse] = await Promise.all([
-                    fetch(`cuetocue-data.json?v=${Date.now()}`),
-                    fetch(`metadata.json?v=${Date.now()}`)
-                ]);
-
-                console.log('📊 Response status:', {
-                    cueResponse: cueResponse.status,
-                    metadataResponse: metadataResponse.status,
-                    cueResponseOk: cueResponse.ok,
-                    metadataResponseOk: metadataResponse.ok
-                });
-
-                if (!cueResponse.ok || !metadataResponse.ok) {
-                    throw new Error(`Failed to load data - Cue: ${cueResponse.status}, Metadata: ${metadataResponse.status}`);
+                // The library is optional: sites published before it existed have none.
+                showLibrary = null;
+                try {
+                    const libraryResponse = await fetch(`shows/index.json?v=${Date.now()}`);
+                    if (libraryResponse.ok) {
+                        showLibrary = await libraryResponse.json();
+                    }
+                } catch (libraryError) {
+                    console.warn('Show library unavailable:', libraryError);
                 }
 
-                console.log('✅ Responses OK, parsing JSON...');
-                cueData = await cueResponse.json();
-                metadata = await metadataResponse.json();
+                const requestedSlug = getRequestedShowSlug();
+                const archivedEntry = (showLibrary && requestedSlug && requestedSlug !== showLibrary.current)
+                    ? (showLibrary.shows || []).find(show => show.slug === requestedSlug)
+                    : null;
+
+                if (archivedEntry) {
+                    const showResponse = await fetch(`shows/${encodeURIComponent(archivedEntry.slug)}.json?v=${Date.now()}`);
+                    if (!showResponse.ok) {
+                        throw new Error(`Failed to load show ${archivedEntry.slug}: ${showResponse.status}`);
+                    }
+                    cueData = await showResponse.json();
+                    metadata = {
+                        filename: archivedEntry.name,
+                        lastUpdated: archivedEntry.lastPublished,
+                        showSlug: archivedEntry.slug
+                    };
+                    viewingArchivedShow = true;
+                } else {
+                    const [cueResponse, metadataResponse] = await Promise.all([
+                        fetch(`cuetocue-data.json?v=${Date.now()}`),
+                        fetch(`metadata.json?v=${Date.now()}`)
+                    ]);
+
+                    console.log('📊 Response status:', {
+                        cueResponse: cueResponse.status,
+                        metadataResponse: metadataResponse.status,
+                        cueResponseOk: cueResponse.ok,
+                        metadataResponseOk: metadataResponse.ok
+                    });
+
+                    if (!cueResponse.ok || !metadataResponse.ok) {
+                        throw new Error(`Failed to load data - Cue: ${cueResponse.status}, Metadata: ${metadataResponse.status}`);
+                    }
+
+                    console.log('✅ Responses OK, parsing JSON...');
+                    cueData = await cueResponse.json();
+                    metadata = await metadataResponse.json();
+                    viewingArchivedShow = false;
+                }
+                updateShowSelector();
 
                 // Extract highlight colors from cue data
                 if (cueData && cueData.highlightColors) {
@@ -2221,6 +2278,65 @@
             }
         }
 
+        // ---- Show library ----
+
+        // ?show=<slug> in the address wins, then the last choice on this device.
+        function getRequestedShowSlug() {
+            const fromURL = new URLSearchParams(window.location.search).get('show');
+            if (fromURL) return fromURL;
+            try { return localStorage.getItem('selectedShow') || ''; } catch (e) { return ''; }
+        }
+
+        function setRequestedShowSlug(slug) {
+            try {
+                if (slug) localStorage.setItem('selectedShow', slug);
+                else localStorage.removeItem('selectedShow');
+                // Stack positions differ between shows.
+                localStorage.removeItem('selectedCueStack');
+            } catch (e) { /* storage unavailable */ }
+            const url = new URL(window.location.href);
+            if (slug) url.searchParams.set('show', slug); else url.searchParams.delete('show');
+            window.history.replaceState(null, '', url);
+        }
+
+        function formatShowDate(iso) {
+            const date = new Date(iso);
+            return isNaN(date) ? '' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function updateShowSelector() {
+            const container = document.getElementById('showSelector');
+            const select = document.getElementById('showSelect');
+            if (!container || !select) return;
+            const shows = (showLibrary && Array.isArray(showLibrary.shows)) ? showLibrary.shows : [];
+            if (shows.length === 0) {
+                container.hidden = true;
+                return;
+            }
+            container.hidden = false;
+            select.innerHTML = '';
+
+            const current = shows.find(show => show.slug === showLibrary.current);
+            const currentOption = document.createElement('option');
+            currentOption.value = '';
+            currentOption.textContent = current ? `${current.name} (current)` : 'Current show';
+            select.appendChild(currentOption);
+
+            shows.filter(show => show.slug !== showLibrary.current).forEach(show => {
+                const option = document.createElement('option');
+                option.value = show.slug;
+                const date = formatShowDate(show.lastPublished);
+                option.textContent = date ? `${show.name} · ${date}` : show.name;
+                select.appendChild(option);
+            });
+
+            select.value = viewingArchivedShow && metadata ? metadata.showSlug : '';
+            select.onchange = function() {
+                setRequestedShowSlug(this.value);
+                loadCueData();
+            };
+        }
+
         // Update display with loaded data
         function updateDisplay() {
             console.log('🎨 updateDisplay() called');
@@ -2238,6 +2354,11 @@
 
             console.log('📝 Updating header...');
             // Update header - both desktop and mobile versions
+            document.querySelectorAll('.current-show').forEach(block => {
+                block.classList.toggle('archived', viewingArchivedShow);
+                const label = block.querySelector('.current-show-label');
+                if (label) label.textContent = viewingArchivedShow ? 'Earlier Show' : 'Current Show';
+            });
             document.getElementById('currentShow').textContent = metadata.filename || 'Unknown';
             document.getElementById('lastUpdated').textContent = 
                 `Last updated: ${new Date(metadata.lastUpdated).toLocaleString()}`;
