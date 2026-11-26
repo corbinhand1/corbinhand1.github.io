@@ -31,18 +31,30 @@ struct WebsiteSyncSettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    statusCard
-                    librarySection
-                    connectionSection
-                }
-                .padding(20)
+            PanelHeader(systemImage: "icloud.and.arrow.up",
+                        title: "Website",
+                        subtitle: "Publish your shows to nebulacreative.org/cuetocue so anyone can follow along from anywhere.",
+                        tint: .blue)
+            Form {
+                currentShowSection
+                librarySection
+                if websiteSyncManager.hasToken { publishingSection }
+                accountSection
+                if websiteSyncManager.hasLegacyPlainTextToken { legacyTokenSection }
+            }
+            .formStyle(.grouped)
+            if let onClose {
+                PanelFooter(leading: {
+                    Button {
+                        NSWorkspace.shared.open(WebsiteSyncSettingsKeys.siteURL)
+                    } label: {
+                        Label("Open Website", systemImage: "safari")
+                    }
+                }, done: onClose)
             }
         }
-        .frame(minWidth: 560, minHeight: 520)
+        .frame(minWidth: 600, minHeight: 560)
+        .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
             let repo = websiteSyncManager.repository
             ownerDraft = repo.owner
@@ -71,65 +83,47 @@ struct WebsiteSyncSettingsView: View {
         }
     }
 
-    // MARK: - Header
+    // MARK: - Current show
 
-    private var header: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Website").font(.title2.weight(.semibold))
-                Link(WebsiteSyncSettingsKeys.siteURL.absoluteString.replacingOccurrences(of: "https://", with: ""),
-                     destination: WebsiteSyncSettingsKeys.siteURL)
-                    .font(.callout)
-            }
-            Spacer()
-            if let onClose {
-                Button("Done", action: onClose).keyboardShortcut(.cancelAction)
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-    }
-
-    // MARK: - Status
-
-    private var statusCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
+    private var currentShowSection: some View {
+        Section {
+            HStack(alignment: .center, spacing: 12) {
                 statusIcon
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(statusTitle).font(.headline)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(statusTitle).fontWeight(.semibold)
                     Text(statusDetail)
                         .font(.callout)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                     if let url = websiteSyncManager.lastCommitURL, case .success = websiteSyncManager.syncStatus {
                         Link("View the change on GitHub", destination: url).font(.callout)
                     }
                 }
-                Spacer(minLength: 0)
-            }
-            HStack(spacing: 10) {
+                Spacer(minLength: 8)
+                if websiteSyncManager.isSyncing {
+                    ProgressView().controlSize(.small)
+                }
                 if let publishCurrentShow {
                     Button {
                         publishCurrentShow()
                     } label: {
-                        Label(publishButtonTitle, systemImage: "icloud.and.arrow.up")
+                        Label("Publish", systemImage: "icloud.and.arrow.up")
                     }
                     .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                     .disabled(websiteSyncManager.isSyncing || !websiteSyncManager.hasToken)
-                    .help("File › Publish to Website (⇧⌘U)")
+                    .help(publishButtonTitle + " (\u{21E7}\u{2318}U)")
                 }
-                Button("Check Connection") {
-                    Task { await websiteSyncManager.checkConnection() }
-                }
-                .disabled(websiteSyncManager.isSyncing || !websiteSyncManager.hasToken)
-                Button("Open Website") { NSWorkspace.shared.open(WebsiteSyncSettingsKeys.siteURL) }
-                if websiteSyncManager.isSyncing { ProgressView().controlSize(.small) }
             }
+            .padding(.vertical, 4)
+        } header: {
+            Text("Current Show")
+        } footer: {
+            Text(websiteSyncManager.hasToken
+                 ? "Publishing makes this show the one the website opens by default. File \u{25B8} Publish to Website (\u{21E7}\u{2318}U) does the same."
+                 : "Add a GitHub token under GitHub Account to start publishing.")
         }
-        .padding(16)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color(NSColor.controlBackgroundColor)))
     }
 
     private var publishButtonTitle: String {
@@ -146,7 +140,7 @@ struct WebsiteSyncSettingsView: View {
             case .success: return ("checkmark.circle.fill", .green)
             case .idle:
                 switch websiteSyncManager.connection {
-                case .connected: return ("checkmark.circle.fill", .green)
+                case .connected: return currentShowEntry != nil ? ("checkmark.circle.fill", .green) : ("doc.badge.arrow.up", .secondary)
                 case .failed: return ("exclamationmark.triangle.fill", .orange)
                 case .notConfigured: return ("key.fill", .secondary)
                 case .checking, .unknown: return ("network", .secondary)
@@ -160,6 +154,12 @@ struct WebsiteSyncSettingsView: View {
             .accessibilityHidden(true)
     }
 
+    /// The library entry for the open show, matched by file name.
+    private var currentShowEntry: ShowLibraryEntry? {
+        guard let name = currentShowName, !name.isEmpty else { return nil }
+        return websiteSyncManager.library.shows.first { $0.filename == name }
+    }
+
     private var statusTitle: String {
         switch websiteSyncManager.syncStatus {
         case .syncing: return "Publishing…"
@@ -167,7 +167,11 @@ struct WebsiteSyncSettingsView: View {
         case .success: return "Published"
         case .idle:
             switch websiteSyncManager.connection {
-            case .connected: return "Connected"
+            case .connected:
+                if let name = currentShowName, !name.isEmpty {
+                    return (name as NSString).deletingPathExtension
+                }
+                return "Connected"
             case .checking: return "Checking connection…"
             case .notConfigured: return "Set up publishing"
             case .failed: return "Can't connect"
@@ -183,15 +187,22 @@ struct WebsiteSyncSettingsView: View {
         default: break
         }
         switch websiteSyncManager.connection {
-        case .connected(let login): lines.append("Signed in to GitHub as \(login) · \(websiteSyncManager.repository)")
+        case .connected:
+            // Account details live in the GitHub Account section; here, say
+            // whether this show is on the website.
+            if let entry = currentShowEntry {
+                let isCurrent = entry.slug == websiteSyncManager.library.current
+                lines.append((isCurrent ? "On the website as the current show · " : "In the website library · ") + publishedText(entry))
+            } else if currentShowName != nil, case .idle = websiteSyncManager.syncStatus {
+                lines.append("Not on the website yet.")
+            }
         case .failed(let message): if case .failed = websiteSyncManager.syncStatus {} else { lines.append(message) }
         case .notConfigured: lines.append("Add a GitHub token below to publish your show to the website.")
         default: break
         }
-        if let time = websiteSyncManager.lastSyncTime, let file = websiteSyncManager.lastSyncFilename {
-            lines.append("Last published \(file) \(time.formatted(.relative(presentation: .named))).")
-        } else if websiteSyncManager.hasToken {
-            lines.append("Nothing published from this Mac yet.")
+        if case .success = websiteSyncManager.syncStatus,
+           let time = websiteSyncManager.lastSyncTime, let file = websiteSyncManager.lastSyncFilename {
+            lines.append("Published \(file) \(time.formatted(.relative(presentation: .named))).")
         }
         return lines.joined(separator: "\n")
     }
@@ -199,11 +210,31 @@ struct WebsiteSyncSettingsView: View {
     // MARK: - Library
 
     private var librarySection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        Section {
+            if let error = websiteSyncManager.libraryError {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+            }
+            if websiteSyncManager.library.shows.isEmpty {
+                Text(websiteSyncManager.hasToken
+                     ? "No shows yet. Publish a show to start the library."
+                     : "Connect to GitHub to see published shows.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(websiteSyncManager.library.shows) { entry in
+                    libraryRow(entry)
+                }
+            }
+        } header: {
             HStack {
-                Text("Show Files on the Website").font(.headline)
+                Text("Show Library")
+                if !websiteSyncManager.library.shows.isEmpty {
+                    Text("\(websiteSyncManager.library.shows.count)")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
-                if websiteSyncManager.isLoadingLibrary { ProgressView().controlSize(.small) }
+                if websiteSyncManager.isLoadingLibrary { ProgressView().controlSize(.mini) }
                 Button {
                     Task { await websiteSyncManager.refreshLibrary() }
                 } label: {
@@ -214,47 +245,27 @@ struct WebsiteSyncSettingsView: View {
                 .accessibilityLabel(Text("Reload show list"))
                 .disabled(!websiteSyncManager.hasToken)
             }
-            Text("Every show you publish is kept here, so viewers can switch to earlier shows. The current show is the one the website opens by default.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if let error = websiteSyncManager.libraryError {
-                Text(error).font(.callout).foregroundColor(.orange)
-            }
-
-            if websiteSyncManager.library.shows.isEmpty {
-                Text(websiteSyncManager.hasToken
-                     ? "No shows in the library yet. Publish a show to start it."
-                     : "Connect to GitHub to see published shows.")
-                    .font(.callout)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                    .background(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.secondary.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [4])))
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(websiteSyncManager.library.shows) { entry in
-                        libraryRow(entry)
-                        if entry.id != websiteSyncManager.library.shows.last?.id { Divider() }
-                    }
-                }
-                .background(RoundedRectangle(cornerRadius: 10).fill(Color(NSColor.controlBackgroundColor)))
-            }
+        } footer: {
+            Text("Every show you publish stays here so viewers can switch to earlier shows from the website.")
         }
     }
 
     private func libraryRow(_ entry: ShowLibraryEntry) -> some View {
         let isCurrent = entry.slug == websiteSyncManager.library.current
         return HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
+            Image(systemName: "doc.text.fill")
+                .font(.title3)
+                .foregroundStyle(isCurrent ? Color.green : Color.secondary)
+                .frame(width: 22)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 8) {
                     if renamingSlug == entry.slug {
                         TextField("Show name", text: $renameDraft, onCommit: { commitRename(entry) })
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 260)
                     } else {
-                        Text(entry.name).font(.body.weight(.semibold))
+                        Text(entry.name).fontWeight(.medium)
                     }
                     if isCurrent {
                         Text("CURRENT")
@@ -265,40 +276,38 @@ struct WebsiteSyncSettingsView: View {
                             .foregroundColor(.green)
                     }
                 }
-                Text("\(entry.filename) · \(entry.stackCount) stacks · \(entry.cueCount) cues · \(publishedText(entry))")
+                Text("\(entry.stackCount) stacks · \(entry.cueCount) cues · \(publishedText(entry))")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
             if renamingSlug == entry.slug {
                 Button("Save") { commitRename(entry) }
+                    .keyboardShortcut(.defaultAction)
                 Button("Cancel") { renamingSlug = nil }
             } else {
-                Button {
-                    NSWorkspace.shared.open(siteURL(for: entry))
-                } label: { Image(systemName: "safari") }
-                    .buttonStyle(.borderless)
-                    .help("Open this show on the website")
-                    .accessibilityLabel(Text("Open \(entry.name) on the website"))
-                Button {
-                    renameDraft = entry.name
-                    renamingSlug = entry.slug
-                } label: { Image(systemName: "pencil") }
-                    .buttonStyle(.borderless)
-                    .help("Rename on the website")
-                    .accessibilityLabel(Text("Rename \(entry.name)"))
-                Button {
-                    pendingRemoval = entry
-                } label: { Image(systemName: "trash") }
-                    .buttonStyle(.borderless)
-                    .disabled(isCurrent)
-                    .help(isCurrent ? "Publish a different show before removing the current one" : "Remove from the website")
-                    .accessibilityLabel(Text("Remove \(entry.name) from the website"))
+                Menu {
+                    Button("Open on Website") { NSWorkspace.shared.open(siteURL(for: entry)) }
+                    Button("Rename\u{2026}") {
+                        renameDraft = entry.name
+                        renamingSlug = entry.slug
+                    }
+                    Divider()
+                    Button("Remove from Website\u{2026}", role: .destructive) { pendingRemoval = entry }
+                        .disabled(isCurrent)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help(isCurrent ? "Publish a different show before removing this one" : "Actions for \(entry.name)")
+                .accessibilityLabel(Text("Actions for \(entry.name)"))
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 2)
         .disabled(websiteSyncManager.isSyncing)
+        .help(entry.filename)
     }
 
     private func publishedText(_ entry: ShowLibraryEntry) -> String {
@@ -329,84 +338,135 @@ struct WebsiteSyncSettingsView: View {
         }
     }
 
-    // MARK: - Connection settings
+    // MARK: - Publishing options
 
-    private var connectionSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("GitHub Connection").font(.headline)
+    private var publishingSection: some View {
+        Section {
+            Toggle("Publish automatically when I open a show", isOn: Binding(
+                get: { websiteSyncManager.isAutoSyncEnabled },
+                set: { websiteSyncManager.isAutoSyncEnabled = $0 }))
+        } header: {
+            Text("Publishing")
+        } footer: {
+            Text("Opening a show replaces the website's current show. Leave this off to publish only when you choose.")
+        }
+    }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Token").font(.subheadline.weight(.medium))
-                if isEditingToken || !websiteSyncManager.hasToken {
+    // MARK: - GitHub account
+
+    private var accountSection: some View {
+        Section {
+            LabeledContent("Status") {
+                HStack(spacing: 8) {
+                    Circle().fill(connectionColor).frame(width: 8, height: 8).accessibilityHidden(true)
+                    Text(connectionText)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                    if websiteSyncManager.hasToken {
+                        Button("Check Again") {
+                            Task { await websiteSyncManager.checkConnection() }
+                        }
+                        .controlSize(.small)
+                        .disabled(websiteSyncManager.isSyncing)
+                    }
+                }
+            }
+
+            if isEditingToken || !websiteSyncManager.hasToken {
+                LabeledContent("Token") {
                     HStack {
-                        SecureField("Paste a GitHub token (starts with ghp_ or github_pat_)", text: $tokenDraft)
-                            .textFieldStyle(.roundedBorder)
+                        SecureField("", text: $tokenDraft, prompt: Text("ghp_\u{2026} or github_pat_\u{2026}"))
+                            .frame(minWidth: 220)
                         Button("Save") { saveToken() }
                             .disabled(tokenDraft.trimmingCharacters(in: .whitespaces).isEmpty)
                         if websiteSyncManager.hasToken {
                             Button("Cancel") { isEditingToken = false; tokenDraft = "" }
                         }
                     }
-                } else {
-                    HStack {
-                        Label("Token saved in your Keychain", systemImage: "lock.fill")
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Button("Replace…") { isEditingToken = true }
-                        Button("Remove", role: .destructive) {
-                            try? websiteSyncManager.setToken(nil)
-                        }
-                    }
                 }
                 if let tokenError {
-                    Text(tokenError).font(.caption).foregroundColor(.red)
+                    Text(tokenError).font(.caption).foregroundStyle(.red)
                 }
-                if websiteSyncManager.hasLegacyPlainTextToken {
-                    HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "exclamationmark.shield").foregroundColor(.orange).accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("A plain-text copy of the token is still in this app's preferences file. Older copies of Cue to Cue on this Mac use it to publish; removing it makes them stop publishing.")
-                                .font(.caption)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Button("Remove Plain-Text Copy") { websiteSyncManager.removeLegacyPlainTextToken() }
-                                .controlSize(.small)
-                        }
+            } else {
+                LabeledContent("Token") {
+                    HStack(spacing: 8) {
+                        Label("Saved in Keychain", systemImage: "lock.fill")
+                            .foregroundStyle(.secondary)
+                        Button("Replace\u{2026}") { isEditingToken = true }
+                            .controlSize(.small)
+                        Button("Remove", role: .destructive) { try? websiteSyncManager.setToken(nil) }
+                            .controlSize(.small)
                     }
-                    .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.1)))
                 }
-                Text("Create a classic token with the \u{201C}repo\u{201D} scope, or a fine-grained token with Contents: Read and write on the website repository.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Link("Create a token on GitHub", destination: URL(string: "https://github.com/settings/tokens")!)
-                    .font(.caption)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Repository").font(.subheadline.weight(.medium))
+            DisclosureGroup {
                 HStack {
-                    TextField("Owner", text: $ownerDraft).textFieldStyle(.roundedBorder)
-                    Text("/").foregroundColor(.secondary)
-                    TextField("Repository", text: $repoDraft).textFieldStyle(.roundedBorder)
+                    TextField("Owner", text: $ownerDraft)
+                    Text("/").foregroundStyle(.secondary)
+                    TextField("Repository", text: $repoDraft)
                     Button("Apply") {
                         websiteSyncManager.repository = GitHubRepository(owner: ownerDraft, name: repoDraft)
                         Task { await websiteSyncManager.checkConnection() }
                     }
                     .disabled(ownerDraft == websiteSyncManager.repository.owner && repoDraft == websiteSyncManager.repository.name)
                 }
-                Text("Files go in the repository's cuetocue folder: the current show, its details, and the shows library.")
+                .textFieldStyle(.roundedBorder)
+                Text("Files go in the repository's cuetocue folder.")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
+            } label: {
+                LabeledContent("Repository", value: "\(websiteSyncManager.repository)")
             }
+        } header: {
+            Text("GitHub Account")
+        } footer: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Use a classic token with the \u{201C}repo\u{201D} scope, or a fine-grained token with Contents: Read and write on the website repository.")
+                Link("Create a token on GitHub", destination: URL(string: "https://github.com/settings/tokens")!)
+            }
+        }
+    }
 
-            Toggle("Publish automatically when I open a show", isOn: Binding(
-                get: { websiteSyncManager.isAutoSyncEnabled },
-                set: { websiteSyncManager.isAutoSyncEnabled = $0 }))
-            Text("Opening a show file replaces the website's current show. Leave this off to publish only when you choose to.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+    private var connectionText: String {
+        switch websiteSyncManager.connection {
+        case .connected(let login): return "Connected as \(login)"
+        case .checking: return "Checking\u{2026}"
+        case .notConfigured: return "Not set up"
+        case .failed(let message): return message
+        case .unknown: return websiteSyncManager.hasToken ? "Not checked yet" : "Not set up"
+        }
+    }
+
+    private var connectionColor: Color {
+        switch websiteSyncManager.connection {
+        case .connected: return .green
+        case .failed: return .orange
+        default: return .secondary
+        }
+    }
+
+    // MARK: - Legacy token
+
+    private var legacyTokenSection: some View {
+        Section {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "exclamationmark.shield.fill")
+                    .font(.title3)
+                    .foregroundStyle(.orange)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("A plain-text copy of your token is still stored")
+                        .fontWeight(.medium)
+                    Text("Older copies of Cue to Cue on this Mac read it to publish. Removing it keeps the token only in your Keychain, and those older copies stop publishing.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                Button("Remove Copy") { websiteSyncManager.removeLegacyPlainTextToken() }
+            }
+            .padding(.vertical, 4)
         }
     }
 
