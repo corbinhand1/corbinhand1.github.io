@@ -15,6 +15,8 @@ struct CueEditor: View {
     @State private var baseline = ""
     @State private var saving = false
     @State private var savedFlash = false
+    @State private var timerTarget: TimerTarget?
+    @State private var confirmDelete = false
     @FocusState private var focused: Bool
 
     init(start: EditTarget) {
@@ -45,9 +47,12 @@ struct CueEditor: View {
             .toolbarBackground(Theme.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    if savedFlash { Label("Saved", systemImage: "checkmark.circle.fill")
-                        .font(.footnote.weight(.semibold)).foregroundStyle(.green) }
+                ToolbarItemGroup(placement: .topBarLeading) {
+                    toolsMenu
+                    if savedFlash {
+                        Label("Saved", systemImage: "checkmark.circle.fill")
+                            .font(.footnote.weight(.semibold)).foregroundStyle(Theme.success)
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { Task { await finish() } }
@@ -57,13 +62,59 @@ struct CueEditor: View {
             }
             .onAppear { load(); focused = true }
         }
-        .preferredColorScheme(.dark)
-        .tint(Theme.accent)
+                .sheet(item: $timerTarget) { TimerEditor(cueID: $0.id).environmentObject(store).presentationDetents([.medium, .large]) }
+        .confirmationDialog("Delete this cue?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Delete Cue", role: .destructive) { Task { await deleteCurrent() } }
+        } message: { Text("You can undo right after.") }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled(saving)
         // Swiping the sheet away still saves what was typed.
         .onDisappear { Task { await commit(silent: true) } }
+    }
+
+    // MARK: Tools
+
+    private var toolsMenu: some View {
+        Menu {
+            Button { Task { await insert(delta: 0) } } label: { Label("Insert Cue Above", systemImage: "arrow.up.to.line") }
+            Button { Task { await insert(delta: 1) } } label: { Label("Insert Cue Below", systemImage: "arrow.down.to.line") }
+            Button { Task { await duplicateCurrent() } } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
+            Button { timerTarget = TimerTarget(id: cueID) } label: { Label("Set Timer", systemImage: "timer") }
+            Button { Task { if let c = cue { await store.setStruck([c], !c.isStruckThrough) } } } label: {
+                Label(cue?.isStruckThrough == true ? "Restore Cue" : "Skip Cue", systemImage: "strikethrough") }
+            Divider()
+            Button(role: .destructive) { confirmDelete = true } label: { Label("Delete Cue", systemImage: "trash") }
+        } label: {
+            Image(systemName: "ellipsis.circle").frame(minWidth: 44, minHeight: 44)
+        }
+        .accessibilityLabel("Cue tools")
+    }
+
+    private func jump(to id: String, column col: Int? = nil) {
+        cueID = id
+        if let col { column = col }
+        load(); focused = true
+    }
+
+    private func insert(delta: Int) async {
+        guard await commit(), let i = index else { return }
+        if let id = await store.insertCue(at: i + delta, label: delta == 0 ? "Insert Above" : "Insert Below") {
+            jump(to: id, column: store.sheet?.descriptionColumn ?? 1)
+        }
+    }
+
+    private func duplicateCurrent() async {
+        guard await commit(), let c = cue else { return }
+        if let id = await store.duplicate(c) { jump(to: id) }
+    }
+
+    private func deleteCurrent() async {
+        guard let i = index, let c = cue else { return }
+        draft = baseline                       // nothing left to save on a cue we're deleting
+        let neighbor = cues.indices.contains(i + 1) ? cues[i + 1].id : (i > 0 ? cues[i - 1].id : nil)
+        await store.delete([c])
+        if let neighbor { jump(to: neighbor) } else { dismiss() }
     }
 
     private var title: String {
@@ -91,7 +142,7 @@ struct CueEditor: View {
                             .padding(.horizontal, 16)
                             .frame(minHeight: Theme.minTarget)
                             .foregroundStyle(i == column ? Theme.onAccent : Theme.text)
-                            .background(i == column ? Theme.accent : Theme.cardRaised, in: Capsule())
+                            .background(i == column ? Theme.accentFill : Theme.cardRaised, in: Capsule())
                         }
                         .buttonStyle(PressStyle())
                         .id(i)
@@ -138,7 +189,7 @@ struct CueEditor: View {
                 Label("Next field", systemImage: "arrow.right")
                     .font(.body.weight(.semibold))
                     .padding(.horizontal, 18).frame(minHeight: Theme.minTarget)
-                    .background(Theme.accent, in: Capsule())
+                    .background(Theme.accentFill, in: Capsule())
                     .foregroundStyle(Theme.onAccent)
             }
             .buttonStyle(PressStyle())

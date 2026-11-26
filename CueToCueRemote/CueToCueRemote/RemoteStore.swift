@@ -8,6 +8,8 @@ final class RemoteStore: ObservableObject {
     @AppStorage("username") var username = ""
 
     @AppStorage("faceIDEnabled") var faceIDEnabled = false
+    /// Admins can change columns; everyone with access to a stack can restructure its cues.
+    @AppStorage("isAdmin") var isAdmin = false
 
     @Published var token: String? = Keychain.get("token")
     /// Starts locked when Face ID protection is on, so the show isn't visible until you unlock.
@@ -21,6 +23,10 @@ final class RemoteStore: ObservableObject {
     @Published var error: String?
     /// Edits waiting to be sent to the Mac (saved on disk, so they survive relaunch).
     @Published private(set) var pending: [PendingEdit] = Outbox.loadPending()
+    @Published var toast: Toast?
+    @Published var undoStack: [HistoryEntry] = []
+    @Published var redoStack: [HistoryEntry] = []
+    var toastTask: Task<Void, Never>?
 
     var unsent: [PendingEdit] { pending.filter { $0.conflictRemote == nil } }
     var conflicts: [PendingEdit] { pending.filter { $0.conflictRemote != nil } }
@@ -33,7 +39,7 @@ final class RemoteStore: ObservableObject {
 
     var isSignedIn: Bool { token != nil && sheet != nil }
 
-    private var api: API? {
+    var api: API? {
         guard let url = API.normalize(serverAddress) else { return nil }
         return API(baseURL: url, token: token)
     }
@@ -46,7 +52,9 @@ final class RemoteStore: ObservableObject {
         guard let url = API.normalize(address) else { error = APIError.badURL.localizedDescription; return }
         busy = true; defer { busy = false }
         do {
-            let t = try await API(baseURL: url).login(username: username, password: password)
+            let login = try await API(baseURL: url).login(username: username, password: password)
+            let t = login.token
+            isAdmin = login.isAdmin
             Keychain.set(t, for: "token")
             token = t
             error = nil
@@ -179,9 +187,15 @@ final class RemoteStore: ObservableObject {
     /// the connection returns. `base` is the value you started from, used to
     /// notice if someone else changed the same cell meanwhile.
     @discardableResult
-    func edit(cue: SheetCue, column: Int, value: String, base: String? = nil) async -> Bool {
+    func edit(cue: SheetCue, column: Int, value: String, base: String? = nil, recordHistory: Bool = true) async -> Bool {
         guard let sheet else { return false }
         let baseValue = base ?? cell(cue, column)
+        if recordHistory && value != baseValue {
+            let name = column < sheet.columns.count ? sheet.columns[column].name : "Cell"
+            record("Edit \(name)",
+                   undo: { [weak self] in await self?.edit(cue: cue, column: column, value: baseValue, base: value, recordHistory: false) ?? false },
+                   redo: { [weak self] in await self?.edit(cue: cue, column: column, value: value, base: baseValue, recordHistory: false) ?? false })
+        }
         if let i = pending.firstIndex(where: { $0.cueID == cue.id && $0.column == column }) {
             pending[i].newValue = value
             if pending[i].conflictRemote == nil && value == pending[i].base { pending.remove(at: i) }
@@ -279,32 +293,13 @@ final class RemoteStore: ObservableObject {
         }
     }
 
-    /// Adds a blank cue at the end and returns its id so the editor can open on it.
-    func addCue() async -> String? {
-        guard let api, let sheet else { return nil }
-        do {
-            let id = try await api.addCue(stackID: sheet.cueStackId,
-                                          values: Array(repeating: "", count: sheet.columns.count))
-            await refresh()
-            return id
-        } catch { self.error = Self.message(error); return nil }
-    }
-
-    func delete(_ cue: SheetCue) async {
-        guard let api else { return }
-        do {
-            try await api.deleteCue(id: cue.id)
-            sheet?.cues.removeAll { $0.id == cue.id }
-        } catch { self.error = Self.message(error); await refresh() }
-    }
-
-    private func applyLocal(cueID: String, column: Int, value: String) {
+    func applyLocal(cueID: String, column: Int, value: String) {
         guard let i = sheet?.cues.firstIndex(where: { $0.id == cueID }),
               let n = sheet?.cues[i].values.count, column < n else { return }
         sheet?.cues[i].values[column] = value
     }
 
-    private static func message(_ error: Error) -> String {
+    static func message(_ error: Error) -> String {
         if let e = error as? LocalizedError, let d = e.errorDescription { return d }
         if (error as? URLError)?.code == .notConnectedToInternet { return "No internet connection." }
         if error is URLError { return "Can't reach the Mac. Is Cue to Cue running and the address right?" }

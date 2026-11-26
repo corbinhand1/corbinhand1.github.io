@@ -58,6 +58,9 @@ struct ConnectView: View {
                     .disabled(address.isEmpty || username.isEmpty || password.isEmpty || store.busy)
                 }
             }
+            .frame(maxWidth: 560)               // keep the form compact on iPad
+            .frame(maxWidth: .infinity)
+            .background(Theme.background.ignoresSafeArea())
             .navigationTitle("Cue to Cue Remote")
             .onAppear {
                 address = store.serverAddress

@@ -82,9 +82,7 @@ struct WhenEditor: View {
                 load(); focused = true
             }
         }
-        .preferredColorScheme(.dark)
-        .tint(Theme.accent)
-        .presentationDetents([.medium, .large])
+                .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .onDisappear { Task { await commit(silent: true) } }
     }

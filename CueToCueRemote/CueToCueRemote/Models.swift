@@ -34,6 +34,9 @@ struct LoginResult: Decodable {
     var success: Bool
     var token: String?
     var message: String?
+    var user: LoginUser?
 }
+
+struct LoginUser: Decodable { var isAdmin: Bool }
 
 struct ServerError: Decodable { var error: String? }

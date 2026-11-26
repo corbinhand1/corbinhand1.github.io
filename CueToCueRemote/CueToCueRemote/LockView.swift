@@ -18,7 +18,7 @@ struct LockView: View {
                 Label("Unlock with \(Biometrics.name)", systemImage: "faceid")
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: Theme.minTarget)
-                    .background(Theme.accent, in: Capsule())
+                    .background(Theme.accentFill, in: Capsule())
                     .foregroundStyle(Theme.onAccent)
             }
             .buttonStyle(PressStyle())

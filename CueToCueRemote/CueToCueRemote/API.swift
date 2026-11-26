@@ -59,14 +59,21 @@ struct API {
         return data
     }
 
-    func login(username: String, password: String) async throws -> String {
+    func login(username: String, password: String) async throws -> (token: String, isAdmin: Bool) {
         let data = try await send(request("/auth/login", method: "POST",
                                           body: ["username": username, "password": password]))
         let result = try JSONDecoder().decode(LoginResult.self, from: data)
         guard result.success, let token = result.token else {
             throw APIError.http(401, result.message ?? "Login failed.")
         }
-        return token
+        return (token, result.user?.isAdmin ?? false)
+    }
+
+    /// Structural edit (insert, move, strike, timer, delete, columns). Returns a new cue's id for inserts.
+    @discardableResult
+    func op(_ body: [String: Any]) async throws -> String? {
+        let data = try await send(request("/ops", method: "POST", body: body, auth: true))
+        return (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["cueId"] as? String
     }
 
     /// The stack the Mac is currently showing viewers (includes the stack list).
@@ -82,17 +89,6 @@ struct API {
     func edit(cueID: String, column: Int, value: String) async throws {
         try await send(request("/cues/\(cueID)", method: "PUT",
                                body: ["cueId": cueID, "columnIndex": column, "newValue": value], auth: true))
-    }
-
-    /// Returns the new cue's id.
-    func addCue(stackID: String, values: [String]) async throws -> String? {
-        let data = try await send(request("/cues", method: "POST",
-                               body: ["cueStackId": stackID, "values": values, "timerValue": ""], auth: true))
-        return (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["cueId"] as? String
-    }
-
-    func deleteCue(id: String) async throws {
-        try await send(request("/cues/\(id)", method: "DELETE", auth: true))
     }
 
     /// ws:// or wss:// URL for live change notifications.
