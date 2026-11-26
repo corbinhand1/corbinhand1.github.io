@@ -7,14 +7,22 @@ struct EditTarget: Identifiable {
     var id: String { "\(cueID)#\(column)" }
 }
 
+struct WhenTarget: Identifiable { let id: String }
+
 struct SheetView: View {
     @EnvironmentObject var store: RemoteStore
     @State private var target: EditTarget?
     @State private var search = ""
     @State private var pendingDelete: SheetCue?
+    @State private var whenTarget: WhenTarget?
+    @State private var onlyWhen = false
 
     private var cues: [SheetCue] {
-        guard let all = store.sheet?.cues else { return [] }
+        guard var all = store.sheet?.cues else { return [] }
+        if onlyWhen {
+            let col = store.sheet?.descriptionColumn ?? 1
+            all = all.filter { col < $0.values.count && When.text(in: $0.values[col]) != nil }
+        }
         let q = search.trimmingCharacters(in: .whitespaces).lowercased()
         guard !q.isEmpty else { return all }
         return all.filter { $0.values.contains { $0.lowercased().contains(q) } }
@@ -28,8 +36,10 @@ struct SheetView: View {
                     LazyVStack(spacing: 10) {
                         ForEach(cues) { cue in
                             CueCard(cue: cue, columns: store.sheet?.columns ?? [],
+                                    descCol: store.sheet?.descriptionColumn ?? 1,
                                     position: position(of: cue),
                                     open: { col in target = EditTarget(cueID: cue.id, column: col) },
+                                    editWhen: { whenTarget = WhenTarget(id: cue.id) },
                                     delete: { pendingDelete = cue })
                         }
                         if cues.isEmpty {
@@ -52,12 +62,28 @@ struct SheetView: View {
             .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search cues")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { stackMenu }
-                ToolbarItem(placement: .topBarTrailing) { liveBadge }
+                ToolbarItem(placement: .topBarTrailing) {
+                    HStack(spacing: 4) {
+                        Button { onlyWhen.toggle() } label: {
+                            Text("[ ]")
+                                .font(.system(.body, design: .monospaced).weight(.bold))
+                                .foregroundStyle(onlyWhen ? Theme.onAccent : Theme.accent)
+                                .frame(width: 44, height: 36)
+                                .background(onlyWhen ? Theme.accent : Color.clear, in: RoundedRectangle(cornerRadius: 8))
+                        }
+                        .accessibilityLabel("Show only cues with a when")
+                        .accessibilityAddTraits(onlyWhen ? .isSelected : [])
+                        liveBadge
+                    }
+                }
             }
             .toolbarBackground(Theme.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .sheet(item: $target) { t in
                 CueEditor(start: t).environmentObject(store)
+            }
+            .sheet(item: $whenTarget) { t in
+                WhenEditor(start: t.id).environmentObject(store)
             }
             .confirmationDialog("Delete this cue?", isPresented: Binding(get: { pendingDelete != nil },
                                                                          set: { if !$0 { pendingDelete = nil } }),
@@ -133,16 +159,20 @@ struct SheetView: View {
 private struct CueCard: View {
     let cue: SheetCue
     let columns: [SheetColumn]
+    let descCol: Int
     let position: Int
     let open: (Int) -> Void
+    let editWhen: () -> Void
     let delete: () -> Void
 
     private var number: String { cue.values.first ?? "" }
-    private var title: String { cue.values.count > 1 ? cue.values[1] : "" }
+    private var description: String { descCol < cue.values.count ? cue.values[descCol] : "" }
+    private var when: String? { When.text(in: description) }
+    private var title: String { When.stripped(description) }
     /// Filled columns beyond # and Description, shown as tappable chips.
     private var chips: [(index: Int, name: String, value: String)] {
         cue.values.enumerated().compactMap { i, v in
-            guard i >= 2, !v.isEmpty else { return nil }
+            guard i >= 1, i != descCol, i != 0, !v.isEmpty else { return nil }
             return (i, i < columns.count ? columns[i].name : "Col \(i + 1)", v)
         }
     }
@@ -162,7 +192,7 @@ private struct CueCard: View {
             .accessibilityLabel("Cue number \(number.isEmpty ? "not set" : number). Edit")
 
             VStack(alignment: .leading, spacing: 8) {
-                Button { open(1) } label: {
+                Button { open(descCol) } label: {
                     Text(title.isEmpty ? "Add description" : title)
                         .font(.body.weight(.medium))
                         .foregroundStyle(title.isEmpty ? Theme.textMuted : Theme.text)
@@ -172,6 +202,27 @@ private struct CueCard: View {
                 }
                 .buttonStyle(PressStyle())
                 .accessibilityLabel("Description: \(title.isEmpty ? "empty" : title). Edit")
+
+                if let when {
+                    Button(action: editWhen) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("WHEN").font(.caption2.weight(.heavy)).foregroundStyle(Theme.onAccent)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(Theme.accent, in: RoundedRectangle(cornerRadius: 4))
+                            Text(when.isEmpty ? "tap to add" : when)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(when.isEmpty ? Theme.textMuted : Theme.text)
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .background(Theme.card, in: RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.accent.opacity(0.8), lineWidth: 1.5))
+                    }
+                    .buttonStyle(PressStyle())
+                    .accessibilityLabel("When: \(when.isEmpty ? "empty" : when). Edit")
+                }
 
                 if !chips.isEmpty {
                     FlowLayout(spacing: 8) {
@@ -198,7 +249,8 @@ private struct CueCard: View {
             }
 
             Menu {
-                Button { open(1) } label: { Label("Edit cue", systemImage: "pencil") }
+                Button(action: editWhen) { Label(when == nil ? "Add [when]" : "Edit [when]", systemImage: "text.bubble") }
+                Button { open(descCol) } label: { Label("Edit cue", systemImage: "pencil") }
                 Button(role: .destructive, action: delete) { Label("Delete cue", systemImage: "trash") }
             } label: {
                 Image(systemName: "ellipsis")
