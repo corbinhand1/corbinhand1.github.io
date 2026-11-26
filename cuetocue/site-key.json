@@ -1,0 +1,11 @@
+{
+  "check" : {
+    "data" : "CdcvUKlZkKQfY4XH9LAG3S4I2X\/YWq5c1tcNbH\/tP2U6Q+1x",
+    "iv" : "6T7ZokvhOF5sqhdL",
+    "version" : 1
+  },
+  "iterations" : 600000,
+  "kdf" : "PBKDF2-SHA256",
+  "salt" : "o4vr1risd3QpKxiqEtmejg==",
+  "version" : 1
+}
