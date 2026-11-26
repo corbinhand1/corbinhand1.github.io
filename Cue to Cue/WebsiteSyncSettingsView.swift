@@ -283,7 +283,6 @@ struct WebsiteSyncSettingsView: View {
             Spacer(minLength: 8)
             if renamingSlug == entry.slug {
                 Button("Save") { commitRename(entry) }
-                    .keyboardShortcut(.defaultAction)
                 Button("Cancel") { renamingSlug = nil }
             } else {
                 Menu {

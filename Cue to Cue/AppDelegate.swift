@@ -443,7 +443,17 @@ enum WindowSnapshotter {
                     "settings": .appDelegateShowPreferences, "website": .appDelegateShowWebsite,
                     "shortcuts": .appDelegateShowShortcuts,
                 ]
-                if let name = names[panel] { NotificationCenter.default.post(name: name, object: nil) }
+                let commands: [String: (Notification.Name, Any?)] = [
+                    "playlist": (.appDelegateShowCommand, "countdownPlaylist"),
+                    "print": (Notification.Name("TriggerPrint"), nil),
+                    "export": (.appDelegateExportCSV, nil),
+                    "restore": (.appDelegateRestoreFromBackup, nil),
+                ]
+                if let name = names[panel] {
+                    NotificationCenter.default.post(name: name, object: nil)
+                } else if let (name, object) = commands[panel] {
+                    NotificationCenter.default.post(name: name, object: object)
+                }
             }
         }
         if let cue = env["CUE_SNAPSHOT_SELECT_CUE"].flatMap(Int.init) {
@@ -546,7 +556,8 @@ enum WindowSnapshotter {
         guard let window = target,
               let view = window.contentView,
               let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
-            NSLog("WindowSnapshotter: no window to capture")
+            NSLog("WindowSnapshotter: no window to capture. Windows: %@",
+                  NSApp.windows.map { "\(type(of: $0)) visible=\($0.isVisible) sheet=\($0.sheetParent != nil) frame=\($0.frame)" }.joined(separator: " | "))
             return
         }
         view.cacheDisplay(in: view.bounds, to: rep)

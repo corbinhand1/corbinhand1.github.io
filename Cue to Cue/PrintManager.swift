@@ -510,31 +510,17 @@ struct PrintSettingsView: View {
             footer
         }
         .frame(width: 1040, height: 700)
+        .background(Color(nsColor: .windowBackgroundColor))
         .onAppear(perform: loadPreferences)
     }
 
     // MARK: Header & Footer
 
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Print Cue Sheets")
-                    .font(.headline)
-                Text(documentName)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            Spacer()
-            Button(action: dismiss) {
-                Image(systemName: "xmark.circle.fill")
-                    .accessibilityLabel(Text("Close"))
-                    .help("Close")
-                    .foregroundColor(.secondary)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(16)
-        .background(Color(NSColor.controlBackgroundColor))
+        PanelHeader(systemImage: "printer",
+                    title: "Print Cue Sheets",
+                    subtitle: "Choose the stacks and columns for \u{201C}\(documentName)\u{201D}, check the preview, then print.",
+                    tint: .gray)
     }
 
     private var footer: some View {
@@ -561,7 +547,10 @@ struct PrintSettingsView: View {
             .buttonStyle(.borderedProminent)
             .disabled(selectedIndices.isEmpty)
         }
-        .padding(16)
+        .controlSize(.large)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(.bar)
     }
 
     // MARK: Summary

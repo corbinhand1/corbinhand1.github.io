@@ -58,8 +58,11 @@ struct PanelFooter<Leading: View>: View {
             HStack(spacing: 10) {
                 leading
                 Spacer()
+                // Esc closes. Not Return: panels can contain text fields, and
+                // Return while typing must not close the panel.
                 Button("Done", action: done)
-                    .keyboardShortcut(.defaultAction)
+                    .keyboardShortcut(.cancelAction)
+                    .buttonStyle(.borderedProminent)
                     .controlSize(.large)
             }
             .padding(.horizontal, 20)
