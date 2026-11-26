@@ -28,8 +28,7 @@ struct ContentView: View {
     @Binding var currentFileName: String
 
     @State private var scrollViewProxy: ScrollViewProxy?
-    @State private var stateHistory: [(columns: [Column], cues: [Cue], timestamp: TimeInterval)] = []
-    @State private var currentStateIndex = -1
+    @State private var undoHistory = CueUndoHistory()
     @State private var isReorderingCues = false
     @State private var editingCueIndex: Int?
     @State private var cueStackListWidth: CGFloat = 150 // Default width
@@ -158,6 +157,7 @@ struct ContentView: View {
 
     var body: some View {
         mainContentView
+            .background(MainWindowCloseInterceptor())
             .sheet(isPresented: $showSettings) {
                 SettingsView(settingsManager: settingsManager)
                     .environmentObject(websiteSyncManager)
@@ -416,8 +416,13 @@ struct ContentView: View {
             selectedIndices: $printSelectedCueStackIndices,
             fontSize: $printFontSize,
             cueStacks: dataSyncManager.cueStacks,
-            onPrint: {
-                self.performPrintAction()
+            documentName: displayFileName,
+            highlightColors: settingsManager.settings.highlightColors,
+            onPrint: { configuration in
+                self.runPrint(with: configuration)
+            },
+            onCancel: {
+                showPrintSheet = false
             }
         )
     }
@@ -505,8 +510,40 @@ struct ContentView: View {
     }
     
     private func setupAppDelegate() {
-        // Note: ContentView is a struct, so we can't store a direct reference
-        // Communication is handled through NotificationCenter instead
+        // Most communication goes through NotificationCenter; quitting needs a
+        // reply, so it uses a callback.
+        appDelegate.prepareForTermination = { completion in
+            self.prepareForQuit(completion)
+        }
+    }
+
+    /// Cmd-Q / close window: save to the current file, or ask about an
+    /// untitled document. `completion(true)` lets the app quit.
+    private func prepareForQuit(_ completion: @escaping (Bool) -> Void) {
+        guard isDirty else {
+            completion(true)
+            return
+        }
+        if let url = lastSavedURL {
+            // A failed save (or an external-change conflict) shows its own
+            // alert; cancel the quit so the user can resolve it.
+            completion(saveToURL(url))
+            return
+        }
+        let alert = NSAlert()
+        alert.messageText = "Do you want to save the changes to \u{201C}\(displayFileName)\u{201D}?"
+        alert.informativeText = "Your changes will be lost if you don't save them."
+        alert.addButton(withTitle: "Save…")
+        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "Don't Save")
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            saveFileAs(completion: completion)
+        case .alertSecondButtonReturn:
+            completion(false)
+        default:
+            completion(true)
+        }
     }
     
     private func setupAppDelegateNotifications() {
@@ -710,7 +747,15 @@ struct ContentView: View {
 
         let hasContent = !savedData.cueStacks.isEmpty
         if hasContent {
-            self.dataSyncManager.cueStacks = savedData.cueStacks
+            // Older builds copied IDs when duplicating/pasting; give every
+            // stack, column and cue a unique ID so LAN sync can't hit the
+            // wrong row.
+            self.dataSyncManager.cueStacks = CueEditing.repairingDuplicateIDs(savedData.cueStacks)
+            self.dataSyncManager.selectedCueStackIndex = CueEditing.clampedStackIndex(self.dataSyncManager.selectedCueStackIndex, count: savedData.cueStacks.count)
+            let loadedStack = self.dataSyncManager.selectedCueStackIndex
+            if self.dataSyncManager.selectedCueIndex >= savedData.cueStacks[loadedStack].cues.count {
+                self.dataSyncManager.selectedCueIndex = -1
+            }
             print("📂 Loaded \(savedData.cueStacks.count) cue stack(s) from \(url.lastPathComponent)")
         } else {
             print("⚠️ File decoded to empty cueStacks — keeping current in-memory data and NOT pointing autosave at this file.")
@@ -899,30 +944,31 @@ struct ContentView: View {
         }
     }
     
+    /// Delete the selected cue(s): the multi-selection when there is one,
+    /// otherwise the single selected cue.
     func deleteSelectedCues() {
-        guard isMultiSelectMode && !selectedCueIndices.isEmpty else { return }
-        let sortedIndices = Array(selectedCueIndices).sorted(by: >)
-        for index in sortedIndices {
-            if index < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count {
-                dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.remove(at: index)
-            }
-        }
-        if dataSyncManager.selectedCueIndex >= 0 {
-            let lowestDeletedIndex = sortedIndices.last ?? 0
-            if sortedIndices.contains(dataSyncManager.selectedCueIndex) {
-                dataSyncManager.selectedCueIndex = max(0, lowestDeletedIndex - 1)
-            } else if lowestDeletedIndex < dataSyncManager.selectedCueIndex {
-                let deletedCount = sortedIndices.filter { $0 < dataSyncManager.selectedCueIndex }.count
-                dataSyncManager.selectedCueIndex = dataSyncManager.selectedCueIndex - deletedCount
-            }
-        }
+        let stackIndex = dataSyncManager.selectedCueStackIndex
+        guard dataSyncManager.cueStacks.indices.contains(stackIndex),
+              let indices = getSelectedCueIndices(), !indices.isEmpty else { return }
+        var stack = dataSyncManager.cueStacks[stackIndex]
+        let newSelection = CueEditing.remove(indices: indices, from: &stack, selected: dataSyncManager.selectedCueIndex)
+        dataSyncManager.cueStacks[stackIndex] = stack
+        dataSyncManager.selectedCueIndex = newSelection
         clearCueSelection()
+        if newSelection >= 0 {
+            selectedCueIndices = [newSelection]
+            lastSelectedIndex = newSelection
+        }
         saveState()
         updateWebClients()
     }
-    
+
+    private var hasValidSelectedStack: Bool {
+        dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex)
+    }
+
     private func advanceCue() {
-        guard dataSyncManager.selectedCueIndex >= 0 else { return }
+        guard hasValidSelectedStack, dataSyncManager.selectedCueIndex >= 0 else { return }
         let cues = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues
         guard let nextIndex = cues.nextPlayableIndex(after: dataSyncManager.selectedCueIndex) else { return }
         selectCue(at: nextIndex)
@@ -930,7 +976,7 @@ struct ContentView: View {
     }
 
     private func previousCue() {
-        guard dataSyncManager.selectedCueIndex >= 0 else { return }
+        guard hasValidSelectedStack, dataSyncManager.selectedCueIndex >= 0 else { return }
         let cues = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues
         guard let previousIndex = cues.previousPlayableIndex(before: dataSyncManager.selectedCueIndex) else { return }
         selectCue(at: previousIndex)
@@ -1089,6 +1135,8 @@ struct ContentView: View {
     }
     
     private func highlightCue(at index: Int) {
+        guard hasValidSelectedStack,
+              dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.indices.contains(index) else { return }
         let cue = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues[index]
         if let timerValue = parseCountdownTime(cue.timerValue) {
             selectedCueTime = timerValue
@@ -1098,6 +1146,10 @@ struct ContentView: View {
     }
     
     func addCue() {
+        guard hasValidSelectedStack else {
+            NSSound.beep()
+            return
+        }
         let newCue = Cue(values: Array(repeating: "", count: dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count))
         dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.append(newCue)
         // Snapshot AFTER the mutation so each undo step reverses exactly one add.
@@ -1486,6 +1538,9 @@ struct ContentView: View {
             return
         }
 
+        // Whatever happens below, never leave the app with zero cue stacks.
+        defer { ensureDocumentHasAStack() }
+
         DocumentStore.shared.migrateLegacyLastSavedURLIfNeeded()
 
         let resolvedURL: URL?
@@ -1509,17 +1564,14 @@ struct ContentView: View {
             return
         }
 
-        // Phase 2: open-time conflict check. If our recorded mtime/size is
-        // older than the file we're about to load, something else updated
-        // the file while we weren't running. Surface that *before* applying
-        // it so the user knows what happened.
+        // If the file changed while the app wasn't running (iCloud, Dropbox,
+        // another Mac), the on-disk version is the only version: there are
+        // no in-memory edits to conflict with. Just load it. (This used to
+        // show the conflict alert, where "Keep My Version" would overwrite
+        // the show file with an empty document.)
         if let recorded = DocumentStore.shared.loadRecordedDiskState(),
            DocumentStore.shared.diskStateChanged(at: lastURL, since: recorded) {
-            print("⚠️ On-disk file is newer than our last recorded state. Showing open-time conflict sheet.")
-            documentChangedExternally = true
-            pendingConflictURL = lastURL
-            showConflictSheet = true
-            return
+            print("ℹ️ \(lastURL.lastPathComponent) changed while the app was closed. Loading the newer version.")
         }
 
         do {
@@ -1533,6 +1585,23 @@ struct ContentView: View {
             // file that we just failed to decode. Surface the issue to the
             // user so they can investigate the file or restore a backup.
             showOpenError(error: error)
+        }
+    }
+
+    /// First launch, a missing last file, or a failed load would otherwise
+    /// leave the window with no cue stacks at all. Install a blank stack
+    /// without touching the saved-file reference or marking the doc dirty.
+    private func ensureDocumentHasAStack() {
+        guard dataSyncManager.cueStacks.isEmpty else { return }
+        isLoadingFromDisk = true
+        let blank = SavedData.blankDocument(highlightColors: settingsManager.settings.highlightColors)
+        dataSyncManager.cueStacks = blank.cueStacks
+        dataSyncManager.selectedCueStackIndex = 0
+        dataSyncManager.selectedCueIndex = -1
+        resetUndoHistory()
+        dataSyncManager.syncWebClientWithMacOSApp()
+        DispatchQueue.main.async {
+            self.isLoadingFromDisk = false
         }
     }
 
@@ -1683,6 +1752,11 @@ struct ContentView: View {
     private func forceOverwriteAfterConflict() {
         let url = pendingConflictURL ?? lastSavedURL
         guard let url else { return }
+        // Never overwrite a show file with an empty document.
+        guard !dataSyncManager.cueStacks.isEmpty, url == lastSavedURL else {
+            reloadFromDiskAfterConflict()
+            return
+        }
         do {
             let result = try DocumentStore.shared.save(currentSavedData(), to: url)
             self.lastSavedURL = url
@@ -2013,64 +2087,54 @@ struct ContentView: View {
         return cleaned.isEmpty ? "Cue Stacks" : cleaned
     }
 
+    /// Record the document as it is now, after an edit. Call AFTER mutating.
     func saveState() {
-        guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex) else { return }
-        let currentStack = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex]
-
-        // Each snapshot must reflect the document AS THE USER SEES IT after a
-        // completed edit. Call saveState() only AFTER applying a mutation.
-        // Undo restores history[currentStateIndex - 1], stepping back one action.
-        let currentState = (columns: currentStack.columns, cues: currentStack.cues, timestamp: Date().timeIntervalSince1970)
-
-        if currentStateIndex >= 0, currentStateIndex < stateHistory.count {
-            let snapshot = stateHistory[currentStateIndex]
-            if snapshot.columns == currentState.columns && snapshot.cues == currentState.cues {
-                return
-            }
-        }
-
-        if currentStateIndex < stateHistory.count - 1 {
-            stateHistory = Array(stateHistory.prefix(upTo: currentStateIndex + 1))
-        }
-        stateHistory.append(currentState)
-        currentStateIndex += 1
-        print("💾 Undo snapshot #\(currentStateIndex) (\(currentState.cues.count) cues)")
+        undoHistory.record(dataSyncManager.cueStacks)
     }
 
     /// Establish a clean undo baseline after loading a file or resetting the
     /// document, so the first Cmd-Z only reverses edits made in this session.
     private func resetUndoHistory() {
-        stateHistory.removeAll(keepingCapacity: true)
-        currentStateIndex = -1
-        saveState()
+        undoHistory.reset(to: dataSyncManager.cueStacks)
     }
-    
+
     func undo() {
         guard !ContentViewLifecycleSetup.isPerformingUndoRedo else { return }
-        guard currentStateIndex > 0 else { return }
         ContentViewLifecycleSetup.isPerformingUndoRedo = true
         defer { ContentViewLifecycleSetup.isPerformingUndoRedo = false }
 
-        currentStateIndex -= 1
-        let previousState = stateHistory[currentStateIndex]
-        dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns = previousState.columns
-        dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues = previousState.cues
-        print("↩️ Undo to state #\(currentStateIndex) with \(previousState.cues.count) cues")
-        self.appDelegate.updateWebClients()
+        guard let state = undoHistory.undo(current: dataSyncManager.cueStacks) else {
+            NSSound.beep()
+            return
+        }
+        applyHistoryState(state)
     }
-    
+
     func redo() {
         guard !ContentViewLifecycleSetup.isPerformingUndoRedo else { return }
-        guard currentStateIndex < stateHistory.count - 1 else { return }
         ContentViewLifecycleSetup.isPerformingUndoRedo = true
         defer { ContentViewLifecycleSetup.isPerformingUndoRedo = false }
 
-        currentStateIndex += 1
-        let nextState = stateHistory[currentStateIndex]
-        dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns = nextState.columns
-        dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues = nextState.cues
-        print("↪️ Redo to state #\(currentStateIndex) with \(nextState.cues.count) cues")
-        self.appDelegate.updateWebClients()
+        guard let state = undoHistory.redo(current: dataSyncManager.cueStacks) else {
+            NSSound.beep()
+            return
+        }
+        applyHistoryState(state)
+    }
+
+    /// Restore a whole-document snapshot and keep selection indices valid.
+    private func applyHistoryState(_ state: [CueStack]) {
+        dataSyncManager.cueStacks = state
+        let stackIndex = CueEditing.clampedStackIndex(dataSyncManager.selectedCueStackIndex, count: state.count)
+        if stackIndex != dataSyncManager.selectedCueStackIndex {
+            dataSyncManager.selectedCueStackIndex = stackIndex
+        }
+        let cueCount = state.indices.contains(stackIndex) ? state[stackIndex].cues.count : 0
+        if dataSyncManager.selectedCueIndex >= cueCount {
+            dataSyncManager.selectedCueIndex = cueCount - 1
+        }
+        clearCueSelection()
+        appDelegate.updateWebClients()
     }
     
     func getHighlightColor(for cue: Cue) -> Color {
@@ -2098,90 +2162,36 @@ struct ContentView: View {
             }
             return dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues[index]
         }
-        if !cuesToCopy.isEmpty {
-            let transferCues = MultiCueTransfer(
-                cues: cuesToCopy,
-                columnCount: dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count
-            )
-            let encoder = JSONEncoder()
-            if let encodedCues = try? encoder.encode(transferCues) {
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setData(encodedCues, forType: .string)
-            }
-        }
+        CueClipboard.write(
+            cuesToCopy,
+            columnCount: dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count
+        )
     }
-    
+
     func copyCue(at index: Int) {
         copyCues(at: [index])
     }
-    
+
+    /// Paste after the selected cue, or at the end when nothing is selected
+    /// (so an empty stack can be pasted into).
     func paste(_ sender: Any?) {
-        if dataSyncManager.selectedCueIndex >= 0 {
-            pasteCues(after: dataSyncManager.selectedCueIndex)
-        }
+        pasteCues(after: dataSyncManager.selectedCueIndex >= 0 ? dataSyncManager.selectedCueIndex : nil)
     }
-    
-    func pasteCues(after index: Int) {
-        guard dataSyncManager.cueStacks.indices.contains(dataSyncManager.selectedCueStackIndex) else {
-            print("Selected cue stack index is out of range")
+
+    func pasteCues(after index: Int?) {
+        let stackIndex = dataSyncManager.selectedCueStackIndex
+        guard dataSyncManager.cueStacks.indices.contains(stackIndex) else { return }
+        guard let cues = CueClipboard.read(), !cues.isEmpty else {
+            NSSound.beep()
             return
         }
-        guard index >= 0 && index < dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.count else {
-            print("Selected cue index is out of range")
-            return
-        }
-        let pasteboard = NSPasteboard.general
-        if let data = pasteboard.data(forType: .string) {
-            let decoder = JSONDecoder()
-            if let transferCues = try? decoder.decode(MultiCueTransfer.self, from: data) {
-                let targetColumnCount = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count
-                var adjustedCues: [Cue] = []
-                for cue in transferCues.cues {
-                    var newCue = cue
-                    if newCue.values.count < targetColumnCount {
-                        while newCue.values.count < targetColumnCount {
-                            newCue.values.append("")
-                        }
-                    } else if newCue.values.count > targetColumnCount {
-                        newCue.values = Array(newCue.values.prefix(targetColumnCount))
-                    }
-                    adjustedCues.append(newCue)
-                }
-                dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.insert(contentsOf: adjustedCues, at: index + 1)
-                dataSyncManager.selectedCueIndex = index + adjustedCues.count
-                saveState()
-                self.appDelegate.updateWebClients()
-            } else if let transferCue = try? decoder.decode(TransferCue.self, from: data) {
-                let targetColumnCount = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count
-                var newCue = transferCue.cue
-                if newCue.values.count < targetColumnCount {
-                    while newCue.values.count < targetColumnCount {
-                        newCue.values.append("")
-                    }
-                } else if newCue.values.count > targetColumnCount {
-                    newCue.values = Array(newCue.values.prefix(targetColumnCount))
-                }
-                dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.insert(newCue, at: index + 1)
-                dataSyncManager.selectedCueIndex = index + 1
-                saveState()
-                self.appDelegate.updateWebClients()
-            } else if let decodedCue = try? decoder.decode(Cue.self, from: data) {
-                var newCue = decodedCue
-                let targetColumnCount = dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].columns.count
-                if newCue.values.count < targetColumnCount {
-                    while newCue.values.count < targetColumnCount {
-                        newCue.values.append("")
-                    }
-                } else if newCue.values.count > targetColumnCount {
-                    newCue.values = Array(newCue.values.prefix(targetColumnCount))
-                }
-                dataSyncManager.cueStacks[dataSyncManager.selectedCueStackIndex].cues.insert(newCue, at: index + 1)
-                dataSyncManager.selectedCueIndex = index + 1
-                saveState()
-                self.appDelegate.updateWebClients()
-            }
-        }
+        var stack = dataSyncManager.cueStacks[stackIndex]
+        guard let lastInserted = CueEditing.paste(cues, into: &stack, after: index) else { return }
+        dataSyncManager.cueStacks[stackIndex] = stack
+        dataSyncManager.selectedCueIndex = lastInserted
+        clearCueSelection()
+        saveState()
+        appDelegate.updateWebClients()
     }
     
     func pasteCue(at index: Int) {
@@ -2207,17 +2217,20 @@ struct ContentView: View {
     
     /// Call this function (for example, from your File > Print menu) to show the print options.
     func printCueStacks() {
-        // Don't preselect any cue stacks - let user choose manually
-        printSelectedCueStackIndices = Set<Int>()
+        if dataSyncManager.cueStacks.isEmpty {
+            printSelectedCueStackIndices = []
+        } else {
+            printSelectedCueStackIndices = [0]
+        }
         showPrintSheet = true
     }
     
     /// Called by the print settings sheet to perform printing.
-    func performPrintAction() {
-        // Gather the selected cue stacks.
-        let stacksToPrint = printSelectedCueStackIndices.sorted().map { dataSyncManager.cueStacks[$0] }
-        // Call the print function from PrintManager.swift.
-        performPrint(cueStacks: stacksToPrint, fontSize: printFontSize)
+    func runPrint(with configuration: PrintConfiguration) {
+        PrintLayoutBuilder.performPrint(
+            configuration: configuration,
+            allCueStacks: dataSyncManager.cueStacks
+        )
     }
 }
 

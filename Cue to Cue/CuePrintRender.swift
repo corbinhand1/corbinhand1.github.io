@@ -35,8 +35,8 @@ extension CueStackPaginatedView {
         context.setFillColor(NSColor.white.cgColor)
         context.fill(dirtyRect)
         
-        let contentWidth = bounds.width - 72 // 36pt margin on each side
-        var yPosition: CGFloat = 36.0 // Start 36pt from top
+        let contentWidth = bounds.width - (Self.sideMargin * 2)
+        var yPosition: CGFloat = Self.topMargin
         
         // For each cue stack
         for stackIndex in 0..<cueStacks.count {
@@ -51,12 +51,14 @@ extension CueStackPaginatedView {
             ]
             let stackName = NSAttributedString(string: cueStack.name, attributes: stackNameAttributes)
             let stackNameSize = stackName.size()
+            let stackBlockHeight = stackNameSize.height + 16.0
+            let stackY = placementStart(for: yPosition, blockHeight: stackBlockHeight)
             
-            if yPosition + stackNameSize.height >= dirtyRect.minY {
-                stackName.draw(at: NSPoint(x: 36.0, y: yPosition))
+            if stackY + stackNameSize.height >= dirtyRect.minY {
+                stackName.draw(at: NSPoint(x: Self.sideMargin, y: stackY))
             }
             
-            yPosition += stackNameSize.height + 16.0
+            yPosition = stackY + stackBlockHeight
             
             if useColumnLayout {
                 drawColumnLayout(stackIndex: stackIndex,
@@ -76,16 +78,77 @@ extension CueStackPaginatedView {
             }
             
             // Draw divider line if visible
-            if yPosition >= dirtyRect.minY && yPosition <= dirtyRect.maxY {
+            let dividerBlockHeight: CGFloat = 30.0
+            let dividerY = placementStart(for: yPosition, blockHeight: dividerBlockHeight)
+            if dividerY >= dirtyRect.minY && dividerY <= dirtyRect.maxY {
                 context.setStrokeColor(NSColor.lightGray.cgColor)
-                context.move(to: CGPoint(x: 36.0, y: yPosition))
-                context.addLine(to: CGPoint(x: bounds.width - 36.0, y: yPosition))
+                context.move(to: CGPoint(x: Self.sideMargin, y: dividerY))
+                context.addLine(to: CGPoint(x: bounds.width - Self.sideMargin, y: dividerY))
                 context.strokePath()
             }
             
-            yPosition += 30.0 // Space between stacks
+            yPosition = dividerY + dividerBlockHeight
+        }
+        
+        drawPageDecorations(in: dirtyRect)
+    }
+    
+    private func drawPageDecorations(in dirtyRect: NSRect) {
+        guard let context = NSGraphicsContext.current?.cgContext else { return }
+        
+        let slice = pageSliceHeight
+        let totalPages = numberOfPages
+        
+        for page in 1...totalPages {
+            let pageIndex = page - 1
+            let pageStart = pageSliceStart(for: pageIndex)
+            let pageBottom = pageStart + slice
+            guard dirtyRect.maxY >= pageStart && dirtyRect.minY <= pageBottom else { continue }
+            
+            // Safe print margins — paint over any content that bled into margin bands.
+            context.setFillColor(NSColor.white.cgColor)
+            context.fill(NSRect(x: 0, y: pageStart, width: bounds.width, height: Self.topMargin))
+            context.fill(NSRect(x: 0, y: pageStart, width: Self.sideMargin, height: slice))
+            context.fill(NSRect(x: bounds.width - Self.sideMargin, y: pageStart, width: Self.sideMargin, height: slice))
+            
+            let footerTop = pageBottom - Self.pageFooterReserve
+            context.fill(NSRect(x: 0, y: footerTop, width: bounds.width, height: Self.pageFooterReserve))
+
+            if page == 1 && showPrintDateTime {
+                let formatter = Self.printDateFormatter
+                let dateText = "Printed \(formatter.string(from: printDateTime))"
+                let dateAttributes: [NSAttributedString.Key: Any] = [
+                    .font: NSFont.systemFont(ofSize: max(9, fontSize - 2)),
+                    .foregroundColor: NSColor.gray
+                ]
+                let dateLabel = NSAttributedString(string: dateText, attributes: dateAttributes)
+                let dateSize = dateLabel.size()
+                let dateX = bounds.width - Self.sideMargin - dateSize.width
+                let dateY = pageStart + 8
+                dateLabel.draw(in: NSRect(x: dateX, y: dateY, width: dateSize.width, height: dateSize.height))
+            }
+
+            if showPageNumbers {
+                let text = "Page \(page) of \(totalPages)"
+                let attributes: [NSAttributedString.Key: Any] = [
+                    .font: NSFont.systemFont(ofSize: max(9, fontSize - 2)),
+                    .foregroundColor: NSColor.gray
+                ]
+                let label = NSAttributedString(string: text, attributes: attributes)
+                let size = label.size()
+                let x = (bounds.width - size.width) / 2
+                let y = footerTop + Self.pageNumberTopPaddingInFooter
+                label.draw(in: NSRect(x: x, y: y, width: size.width, height: size.height))
+            }
         }
     }
+
+    private static let printDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
     
     private func drawColumnLayout(stackIndex: Int,
                                   cueStack: CueStack,
@@ -96,7 +159,7 @@ extension CueStackPaginatedView {
                                   highlightColors: [HighlightColorSetting]) {
         guard !cueStack.columns.isEmpty else { return }
         
-        let contentX: CGFloat = 36.0 // Left margin
+        let contentX: CGFloat = Self.sideMargin
         var currentY = startY
         let includeTimeColumn = showTimeColumns[stackIndex] ?? true
         
@@ -112,13 +175,18 @@ extension CueStackPaginatedView {
             runningX += colWidth
             columnPositions.append(runningX)
         }
+
+        let timeColumnWidth = includeTimeColumn ? self.timeColumnWidth : 0
+        let timeX = contentX + width - timeColumnWidth
         
         let baseRowHeight: CGFloat = fontSize * 1.5 + 8.0
         
         // Header row
         if showHeaders {
-            if currentY + baseRowHeight >= dirtyRect.minY && currentY <= dirtyRect.maxY {
-                let headerBackground = NSRect(x: contentX, y: currentY, width: width, height: baseRowHeight)
+            let headerBlockHeight = baseRowHeight + 4.0
+            let headerY = placementStart(for: currentY, blockHeight: headerBlockHeight)
+            if headerY + baseRowHeight >= dirtyRect.minY && headerY <= dirtyRect.maxY {
+                let headerBackground = NSRect(x: contentX, y: headerY, width: width, height: baseRowHeight)
                 NSColor.lightGray.withAlphaComponent(0.2).setFill()
                 // Check if context exists before drawing using NSBezierPath
                 if NSGraphicsContext.current != nil {
@@ -139,12 +207,11 @@ extension CueStackPaginatedView {
                     ]
                     
                     let headerText = NSAttributedString(string: headerName, attributes: headerAttributes)
-                    headerText.draw(at: NSPoint(x: colX + 8.0, y: currentY + (baseRowHeight - headerText.size().height) / 2))
+                    headerText.draw(at: NSPoint(x: colX + 8.0, y: headerY + (baseRowHeight - headerText.size().height) / 2))
                 }
                 
                 // Time column header (if showing time)
                 if includeTimeColumn {
-                    let timeX = columnPositions.last ?? (contentX + width - 75.0)
                     let timeHeaderAttributes: [NSAttributedString.Key: Any] = [
                         .font: NSFont.boldSystemFont(ofSize: fontSize),
                         .foregroundColor: NSColor.black
@@ -152,50 +219,29 @@ extension CueStackPaginatedView {
                     
                     let timeHeader = NSAttributedString(string: "Time", attributes: timeHeaderAttributes)
                     let timeTextSize = timeHeader.size()
-                    timeHeader.draw(at: NSPoint(x: timeX + (75.0 - timeTextSize.width) - 4.0,
-                                                  y: currentY + (baseRowHeight - timeTextSize.height) / 2))
+                    timeHeader.draw(at: NSPoint(x: timeX + (timeColumnWidth - timeTextSize.width) - 4.0,
+                                                  y: headerY + (baseRowHeight - timeTextSize.height) / 2))
                 }
             }
             
-            currentY += baseRowHeight + 4.0 // Move below header
+            currentY = headerY + headerBlockHeight
         }
         
         // Draw each cue row
         for cueIndex in 0..<cueStack.cues.count {
             let cue = cueStack.cues[cueIndex]
-            let _ = currentY // Track row start position
-            
-            // Calculate the maximum height needed for this row
-            // Only Description column (index 1) can wrap, others are single-line
-            var maxRowHeight: CGFloat = baseRowHeight
-            
-            // Check Description column for wrapping height
-            if cueStack.columns.count > 1 && cue.values.count > 1 {
-                let value = cue.values[1] // Description column
-                let colWidth = columnWidths[1]
-                
-                let valueAttributes: [NSAttributedString.Key: Any] = [
-                    .font: NSFont.systemFont(ofSize: fontSize),
-                    .foregroundColor: NSColor.black,
-                    .paragraphStyle: getWrappingParagraphStyle(for: colWidth - 16.0)
-                ]
-                
-                let valueText = NSAttributedString(string: value, attributes: valueAttributes)
-                let textRect = valueText.boundingRect(with: NSSize(width: colWidth - 16.0, height: 1000), 
-                                                     options: [.usesLineFragmentOrigin])
-                
-                maxRowHeight = max(maxRowHeight, textRect.height + 8.0)
-            }
+            let maxRowHeight = measuredRowHeight(stackIndex: stackIndex, cueIndex: cueIndex)
+            let rowY = placementStart(for: currentY, blockHeight: maxRowHeight)
             
             // Skip drawing if this row is completely outside the dirty rect
-            if currentY + maxRowHeight < dirtyRect.minY || currentY > dirtyRect.maxY {
-                currentY += maxRowHeight
+            if rowY + maxRowHeight < dirtyRect.minY || rowY > dirtyRect.maxY {
+                currentY = rowY + maxRowHeight
                 continue
             }
             
             // Draw alternating row background
             if cueIndex % 2 != 0 {
-                let rowBackground = NSRect(x: contentX, y: currentY, width: width, height: maxRowHeight)
+                let rowBackground = NSRect(x: contentX, y: rowY, width: width, height: maxRowHeight)
                 NSColor.lightGray.withAlphaComponent(0.05).setFill()
                 if NSGraphicsContext.current != nil {
                     NSBezierPath(roundedRect: rowBackground, xRadius: 2.0, yRadius: 2.0).fill()
@@ -244,21 +290,20 @@ extension CueStackPaginatedView {
                     let textRect = valueText.boundingRect(with: NSSize(width: colWidth - 16.0, height: 1000), 
                                                          options: [.usesLineFragmentOrigin])
                     
-                    if currentY + textRect.height >= dirtyRect.minY && currentY <= dirtyRect.maxY {
-                        valueText.draw(in: NSRect(x: colX + 8.0, y: currentY + (maxRowHeight - textRect.height) / 2, 
+                    if rowY + textRect.height >= dirtyRect.minY && rowY <= dirtyRect.maxY {
+                        valueText.draw(in: NSRect(x: colX + 8.0, y: rowY + (maxRowHeight - textRect.height) / 2,
                                                 width: colWidth - 16.0, height: textRect.height))
                     }
                 } else {
                     // All other columns - draw single line with truncation
-                    if currentY + fontSize * 1.5 >= dirtyRect.minY && currentY <= dirtyRect.maxY {
-                        valueText.draw(at: NSPoint(x: colX + 8.0, y: currentY + (maxRowHeight - fontSize * 1.5) / 2))
+                    if rowY + fontSize * 1.5 >= dirtyRect.minY && rowY <= dirtyRect.maxY {
+                        valueText.draw(at: NSPoint(x: colX + 8.0, y: rowY + (maxRowHeight - fontSize * 1.5) / 2))
                     }
                 }
             }
             
             // Draw timer value (if showing time)
             if includeTimeColumn {
-                let timeX = columnPositions.last ?? (contentX + width - 75.0)
                 let timeAttributes: [NSAttributedString.Key: Any] = [
                     .font: NSFont.systemFont(ofSize: fontSize),
                     .foregroundColor: NSColor.black
@@ -266,15 +311,16 @@ extension CueStackPaginatedView {
                 
                 let timeValue = NSAttributedString(string: cue.timerValue, attributes: timeAttributes)
                 let timeSize = timeValue.size()
-                timeValue.draw(at: NSPoint(x: timeX + (75.0 - timeSize.width) - 4.0,
-                                            y: currentY + (maxRowHeight - timeSize.height) / 2))
+                timeValue.draw(at: NSPoint(x: timeX + (timeColumnWidth - timeSize.width) - 4.0,
+                                            y: rowY + (maxRowHeight - timeSize.height) / 2))
             }
             
-            currentY += maxRowHeight
+            currentY = rowY + maxRowHeight
         }
         
-        currentY += 16.0
-        yPos = currentY
+        let trailingSpacer: CGFloat = 16.0
+        let trailingY = placementStart(for: currentY, blockHeight: trailingSpacer)
+        yPos = trailingY + trailingSpacer
     }
     
     private func drawCompactLayout(cueStack: CueStack,
@@ -283,7 +329,7 @@ extension CueStackPaginatedView {
                                    dirtyRect: NSRect,
                                    yPos: inout CGFloat,
                                    highlightColors: [HighlightColorSetting]) {
-        let contentX: CGFloat = 36.0 // Left margin
+        let contentX: CGFloat = Self.sideMargin
         var currentY = startY
         let includeTimeColumn = showTimeColumns[cueStacks.firstIndex(where: { $0.name == cueStack.name }) ?? 0] ?? true
         

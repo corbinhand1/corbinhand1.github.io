@@ -67,6 +67,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         // Cleanup is handled by ContentView's WebServer
     }
 
+    // MARK: - Quit safety
+
+    /// Installed by ContentView. Saves (or asks to save) unsaved changes and
+    /// calls back with `true` when it is safe to quit.
+    var prepareForTermination: ((@escaping (Bool) -> Void) -> Void)?
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let prepare = prepareForTermination else { return .terminateNow }
+        // Reply asynchronously: replying from inside this call is not allowed.
+        DispatchQueue.main.async {
+            prepare { canQuit in
+                sender.reply(toApplicationShouldTerminate: canQuit)
+            }
+        }
+        return .terminateLater
+    }
+
+    /// Cue to Cue is a single-window app; closing the window quits (through
+    /// the same unsaved-changes check as Cmd-Q).
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        true
+    }
+
     func applicationDidBecomeActive(_ notification: Notification) {
         // Phase 2 of the file-safety audit: when the user comes back to the
         // app, we want to re-check whether anything changed our open file
@@ -307,5 +330,30 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         guard let firstFile = filenames.first else { return }
         let url = URL(fileURLWithPath: firstFile)
         openFileAtURL(url)
+    }
+}
+
+
+// MARK: - Main window close button
+
+/// Routes the main window's red close button through NSApp.terminate so the
+/// unsaved-changes check runs *before* the window disappears. (If the window
+/// closed first and the user then cancelled, the app would be left running
+/// with no window and a stale document.)
+struct MainWindowCloseInterceptor: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = InterceptorView()
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    private final class InterceptorView: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let closeButton = window?.standardWindowButton(.closeButton) else { return }
+            closeButton.target = NSApp
+            closeButton.action = #selector(NSApplication.terminate(_:))
+        }
     }
 }

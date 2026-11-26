@@ -13,6 +13,7 @@ struct CueStackListView: View {
     @Binding var cueStackListWidth: CGFloat
     @State private var isReordering = false
     @State private var editCueStackIndex: Int?
+    @State private var pendingDeleteIndex: Int?
     @EnvironmentObject var settingsManager: SettingsManager
 
     var body: some View {
@@ -22,6 +23,28 @@ struct CueStackListView: View {
         }
         .frame(width: cueStackListWidth)
         .background(Color.black.opacity(0.0))
+        .confirmationDialog(
+            deleteDialogTitle,
+            isPresented: Binding(
+                get: { pendingDeleteIndex != nil },
+                set: { if !$0 { pendingDeleteIndex = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                if let index = pendingDeleteIndex { deleteCueStack(at: index) }
+                pendingDeleteIndex = nil
+            }
+            Button("Cancel", role: .cancel) { pendingDeleteIndex = nil }
+        } message: {
+            Text("You can undo this with Edit → Undo.")
+        }
+    }
+
+    private var deleteDialogTitle: String {
+        guard let index = pendingDeleteIndex, cueStacks.indices.contains(index) else { return "Delete Cue Stack?" }
+        let stack = cueStacks[index]
+        return "Delete \"\(stack.name)\" and its \(stack.cues.count) cue\(stack.cues.count == 1 ? "" : "s")?"
     }
 
     private var header: some View {
@@ -99,13 +122,14 @@ struct CueStackListView: View {
                     }
                     .foregroundColor(.primary)
 
-                    Button(action: { deleteCueStack(at: index) }) {
+                    Button(action: { requestDeleteCueStack(at: index) }) {
                         HStack {
                             Image(systemName: "trash")
                             Text("Delete Cue Stack")
                         }
                     }
                     .foregroundColor(.primary)
+                    .disabled(cueStacks.count <= 1)
 
                     Button(action: { renameCueStack(at: index) }) {
                         HStack {
@@ -132,9 +156,29 @@ struct CueStackListView: View {
         cueStacks.append(newCueStack)
     }
 
+    /// Empty stacks are deleted straight away; stacks with cues ask first.
+    private func requestDeleteCueStack(at index: Int) {
+        guard cueStacks.indices.contains(index), cueStacks.count > 1 else { return }
+        if cueStacks[index].cues.isEmpty {
+            deleteCueStack(at: index)
+        } else {
+            pendingDeleteIndex = index
+        }
+    }
+
+    /// Never deletes the last stack: the rest of the app assumes one exists.
     private func deleteCueStack(at index: Int) {
+        guard cueStacks.indices.contains(index), cueStacks.count > 1 else { return }
+        editCueStackIndex = nil
+        let oldSelected = selectedCueStackIndex
         cueStacks.remove(at: index)
-        selectedCueStackIndex = min(selectedCueStackIndex, cueStacks.count - 1)
+        let newSelected: Int
+        if index < oldSelected {
+            newSelected = oldSelected - 1
+        } else {
+            newSelected = oldSelected
+        }
+        selectedCueStackIndex = CueEditing.clampedStackIndex(newSelected, count: cueStacks.count)
     }
 
     private func renameCueStack(at index: Int) {
@@ -142,21 +186,14 @@ struct CueStackListView: View {
     }
 
     private func duplicateCueStack(at index: Int) {
-        let original = cueStacks[index]
-        let duplicated = CueStack(name: "\(original.name) Copy", cues: original.cues, columns: original.columns)
-        cueStacks.append(duplicated)
+        guard cueStacks.indices.contains(index) else { return }
+        cueStacks.insert(CueEditing.duplicate(cueStacks[index]), at: index + 1)
+        if selectedCueStackIndex > index {
+            selectedCueStackIndex += 1
+        }
     }
 
     private func moveCueStacks(from source: IndexSet, to destination: Int) {
-        cueStacks.move(fromOffsets: source, toOffset: destination)
-        if let originalIndex = source.first {
-            if originalIndex == selectedCueStackIndex {
-                selectedCueStackIndex = destination - 1
-            } else if originalIndex < selectedCueStackIndex && destination > selectedCueStackIndex {
-                selectedCueStackIndex -= 1
-            } else if originalIndex > selectedCueStackIndex && destination <= selectedCueStackIndex {
-                selectedCueStackIndex += 1
-            }
-        }
+        selectedCueStackIndex = CueEditing.moveStacks(&cueStacks, from: source, to: destination, selected: selectedCueStackIndex)
     }
 }

@@ -71,10 +71,16 @@ struct SettingsView: View {
 
                 // Row Highlights settings tab
                 Form {
-                    ForEach($settingsManager.settings.highlightColors) { $highlightColor in
+                    ForEach(settingsManager.settings.highlightColors.indices, id: \.self) { index in
                         HStack {
-                            TextField("Keyword", text: $highlightColor.keyword)
-                            ColorPicker("Color", selection: $highlightColor.color)
+                            TextField("Keyword", text: $settingsManager.settings.highlightColors[index].keyword)
+                            ColorPicker("Color", selection: $settingsManager.settings.highlightColors[index].color)
+                            Button(action: { deleteHighlightColor(at: index) }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Remove highlight color")
                         }
                         .padding()
                     }
@@ -120,5 +126,10 @@ struct SettingsView: View {
         settingsManager.settings.highlightColors.append(newHighlightColor)
         newKeyword = ""
         newColor = .white
+    }
+
+    private func deleteHighlightColor(at index: Int) {
+        guard settingsManager.settings.highlightColors.indices.contains(index) else { return }
+        settingsManager.settings.highlightColors.remove(at: index)
     }
 }

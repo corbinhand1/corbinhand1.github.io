@@ -14,7 +14,9 @@ struct CueToCueApp: App {
     @State private var currentFileName: String = "Untitled"
 
     var body: some Scene {
-        WindowGroup {
+        // Single main window: every menu command and the LAN server are wired
+        // to one document, so a second window would be disconnected.
+        Window("Cue to Cue", id: "main") {
             ContentView(currentFileName: $currentFileName)
                 .environmentObject(appDelegate)
                 .environmentObject(settingsManager)
