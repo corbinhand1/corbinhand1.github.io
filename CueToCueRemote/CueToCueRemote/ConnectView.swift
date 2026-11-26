@@ -17,6 +17,7 @@ struct ConnectView: View {
                     ForEach(finder.found) { mac in
                         Button {
                             if let a = mac.address { address = a; pickedName = mac.name; Haptics.select() }
+                            else { finder.start() }          // not resolved yet: look again
                         } label: {
                             HStack {
                                 Label(mac.name, systemImage: "desktopcomputer").foregroundStyle(Theme.text)
@@ -25,7 +26,6 @@ struct ConnectView: View {
                                 else if mac.address == nil { ProgressView() }
                             }.frame(minHeight: 44)
                         }
-                        .disabled(mac.address == nil)
                     }
                     if finder.found.isEmpty {
                         HStack(spacing: 8) {
@@ -74,7 +74,14 @@ struct ConnectView: View {
                     }
                 }
                 if let e = store.error {
-                    Section { Text(e).foregroundStyle(.red) }
+                    Section {
+                        Text(e).foregroundStyle(Theme.danger)
+                        if e.contains("Local Network") {
+                            Button("Open Settings") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                            }.frame(minHeight: 44)
+                        }
+                    }
                 }
                 Section {
                     Button {

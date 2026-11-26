@@ -13,6 +13,7 @@ final class MacFinder: ObservableObject {
     @Published var found: [FoundMac] = []
     @Published var searching = false
     private var browser: NWBrowser?
+    private var resolved: [String: String] = [:]      // service name -> "ip:port", so we don't re-probe
 
     func start() {
         stop()
@@ -30,12 +31,19 @@ final class MacFinder: ObservableObject {
     func stop() { browser?.cancel(); browser = nil }
 
     private func update(_ results: Set<NWBrowser.Result>) async {
-        var out: [FoundMac] = []
-        for r in results {
-            guard case let .service(name, _, _, _) = r.endpoint else { continue }
-            out.append(FoundMac(name: name, address: await Self.resolve(r.endpoint)))
+        // Show every Mac right away, then fill in addresses as they resolve (with a few retries).
+        let services: [(String, NWEndpoint)] = results.compactMap {
+            if case let .service(name, _, _, _) = $0.endpoint { return (name, $0.endpoint) }
+            return nil
         }
-        found = out.sorted { $0.name < $1.name }
+        found = services.map { FoundMac(name: $0.0, address: resolved[$0.0]) }.sorted { $0.name < $1.name }
+        for (name, endpoint) in services where resolved[name] == nil {
+            for _ in 0..<4 {
+                if let addr = await Self.resolve(endpoint) { resolved[name] = addr; break }
+                try? await Task.sleep(nanoseconds: 700_000_000)
+            }
+            found = found.map { $0.name == name ? FoundMac(name: name, address: resolved[name]) : $0 }
+        }
     }
 
     /// Turns a Bonjour service into "ip:port" by opening (and immediately closing) a connection.

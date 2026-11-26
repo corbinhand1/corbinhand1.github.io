@@ -342,8 +342,22 @@ final class RemoteStore: ObservableObject {
 
     static func message(_ error: Error) -> String {
         if let e = error as? LocalizedError, let d = e.errorDescription { return d }
-        if (error as? URLError)?.code == .notConnectedToInternet { return "No internet connection." }
-        if error is URLError { return "Can't reach the Mac. Is Cue to Cue running and the address right?" }
+        if let e = error as? URLError {
+            switch e.code {
+            case .notConnectedToInternet, .dataNotAllowed:
+                return "Your iPhone says it can't reach the network. If you're on Wi-Fi, check Settings → Cue Remote → Local Network is on."
+            case .timedOut:
+                return "The Mac didn't answer. Check that Cue to Cue is open on the Mac and both are on the same Wi-Fi."
+            case .cannotConnectToHost, .networkConnectionLost:
+                return "Reached the Mac's address, but Cue to Cue's server isn't answering there. Make sure Cue to Cue is open and its web server is on."
+            case .cannotFindHost, .dnsLookupFailed:
+                return "Couldn't find that address. Check it, or pick your Mac from the list."
+            case .appTransportSecurityRequiresSecureConnection:
+                return "iOS blocked an unencrypted connection to that address."
+            default:
+                return "Can't reach the Mac (error \(e.code.rawValue)). Check Wi-Fi and Local Network access."
+            }
+        }
         return error.localizedDescription
     }
 }
