@@ -20,12 +20,12 @@
 </head>
 <body>
   <h1>JumpAloft Privacy Policy</h1>
-  <p>Last updated: 23 November 2026</p>
+  <p>Last updated: 27 November 2026</p>
   <p>
     JumpAloft is an iOS weather and planning app for skydivers. It has no accounts,
     no advertising and no tracking. This policy describes what the app sends, to
-    whom, and why. It matches the disclosure in JumpAloft Settings and the app’s
-    privacy manifest.
+    whom, and why. It matches the disclosure in JumpAloft Settings (About) and the
+    app’s privacy manifest.
   </p>
 
   <h2>What leaves your iPhone</h2>
@@ -55,11 +55,38 @@
       satellite images through the JumpAloft API, so those services do not see
       your device. Other maps in the app are Apple’s (MapKit).
     </li>
+    <li>
+      <strong>Loads and planes.</strong> Loads at a drop zone and the planes near
+      it come from the JumpAloft API, which reads the drop zone’s public load
+      board and public aircraft data. The app never receives the names on a board.
+      If you choose to follow your name on a board, that name (or the letters you
+      search with) is sent to the JumpAloft API to find your loads. It is kept
+      there only as a scrambled code tied to this copy of the app, never as the
+      name.
+    </li>
+    <li>
+      <strong>A signature request.</strong> If you ask someone to sign logbook
+      jumps by link or QR code, your first name and those jumps’ facts (date,
+      drop zone, altitude, freefall, type, equipment) are held on the JumpAloft
+      API for up to 24 hours under a random code. The signer’s name, number and
+      signature are held there only until your iPhone collects them. Then it is
+      all deleted. The rest of your logbook front (license, emergency contact and
+      so on) stays on your iPhone.
+    </li>
+    <li>
+      <strong>An install code.</strong> Requests to the JumpAloft API carry a
+      random install code made by the app (not taken from your device), the app
+      version, and whether the device is an iPhone or iPad, so installs can be
+      counted. The server keeps it with a location rounded to about 50 km, and
+      never your IP address. Deleting the app deletes the code. It is not tied to
+      an account and not used to track you.
+    </li>
   </ul>
 
-  <h2>Your device location</h2>
+  <h2>Your device location, and the barometer</h2>
   <p>
-    JumpAloft asks for location only while in use, and uses it only when you ask:
+    JumpAloft asks for location only when you use a feature that needs it, and
+    your device location is not sent to the JumpAloft API or any other service.
   </p>
   <ul>
     <li>
@@ -69,14 +96,22 @@
     <li>
       <strong>Cutaway Finder</strong>: during a search you start, your location
       points you to your canopy and records where you have searched, also with
-      the phone locked, until you pause or end the search or tap Found It. The
-      search track and your finds stay on your iPhone. They leave it only if you
-      share the search map yourself.
+      the phone locked, until you pause or end the search or tap Found It. A
+      search that nobody moves or tends stops by itself after half an hour or
+      four hours. The search track and your finds stay on your iPhone. They leave
+      it only if you share the search map yourself.
+    </li>
+    <li>
+      <strong>Detect My Jumps</strong> (optional, off until you turn it on): at
+      one of your saved drop zones, your iPhone’s barometer and location are read
+      to notice a climb and a fall and offer the jump for your logbook, also with
+      the phone locked. If you allow “Always” location and tap “Start on Its Own
+      When I Arrive”, iOS tells JumpAloft when you arrive at a saved drop zone,
+      so it can start watching without being opened. Nothing is recorded
+      anywhere else. The readings, the recorded flight and the jump stay on your
+      iPhone.
     </li>
   </ul>
-  <p>
-    Your device location is not sent to the JumpAloft API or any other service.
-  </p>
 
   <h2>What the JumpAloft API records</h2>
   <p>
@@ -91,9 +126,12 @@
 
   <h2>On your iPhone only</h2>
   <p>
-    Saved places, favorites, settings, Spot setups, reserve repack dates, cached
-    weather, Cutaway Finder searches and finds stay on your device. JumpAloft has
-    no account backend.
+    Saved places, favorites, settings, Spot setups, reserve repack and AAD dates,
+    cached weather, Cutaway Finder searches and finds, the load you mark as yours,
+    your call alerts, your logbook (its jumps, recorded flights, signatures and
+    front page) and any FlySight file you import stay on your device. A FlySight
+    file is read on the iPhone and is not uploaded. Alerts, reminders, Lock Screen
+    cards and widgets are made on your iPhone. JumpAloft has no account backend.
   </p>
 
   <h2>What JumpAloft does not do</h2>
@@ -114,8 +152,14 @@
 
   <h2>Children</h2>
   <p>
-    JumpAloft is a weather and skydiving planning tool. It does not knowingly
-    collect personal information from children; it has no accounts.
+    JumpAloft is a weather and skydiving planning tool for adults. It does not
+    knowingly collect personal information from children; it has no accounts.
+  </p>
+
+  <h2>Terms of Use</h2>
+  <p>
+    The Terms of Use are shown in the app the first time you open it and again
+    under Settings, About, Terms of Use.
   </p>
 
   <h2>Changes</h2>
