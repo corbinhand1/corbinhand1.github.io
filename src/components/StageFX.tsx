@@ -140,27 +140,33 @@ export const KabukiDrop: React.FC = () => {
       }
     : {};
 
-  // Lights Go wash, built AROUND the logo (no mask: Safari drops masks on fading, blended
-  // layers, which let the light hit the gobo). One beam in the space left of the logo, one
-  // right of it, and light on the fabric below it; every gradient is zero over the logo box.
+  // Lights Go: UPLIGHTS. A row of floor fixtures along the hem throws soft warm light up the
+  // velvet (amber alternating with a soft rose-gold), each with a bright pool at the floor.
+  // Fixtures under the logo throw short beams that stop below it, and the ones beside it are
+  // kept narrow enough not to spill onto it, so the gobo never changes. No masks, no blend modes.
   let washBg: string | undefined;
   if (geo && L) {
-    const Hk = geo.y + geo.h + 10;
-    const m = Math.max(24, L.w * 0.1);                 // clear margin around the logo
-    const leftEdge = L.x - m, rightEdge = L.x + L.w + m;
-    const beams: string[] = [];
-    const beam = (x0: number, x1: number) => {
-      const w = x1 - x0;
-      if (w < 30) return;
-      beams.push(`radial-gradient(ellipse ${w / 2}px ${Hk * 0.95}px at ${x0 + w / 2}px 0px, rgba(255,190,90,.36) 0%, rgba(255,150,40,.12) 55%, rgba(255,150,40,0) 100%)`);
-    };
-    beam(0, leftEdge);
-    beam(rightEdge, geo.vw);
-    const y0 = L.y + L.h + m;
-    if (y0 < Hk - 10) {
-      beams.push(`linear-gradient(to bottom, rgba(255,170,80,0) ${y0}px, rgba(255,170,80,.16) ${y0 + 40}px, rgba(255,150,40,.08) 100%)`);
+    const Hk = geo.y + geo.h + 10;                     // curtain height (hem position)
+    const m = Math.max(24, L.w * 0.08);                // clear margin around the logo
+    const logoL = L.x - m, logoR = L.x + L.w + m, logoBottom = L.y + L.h + m;
+    const n = Math.max(4, Math.min(9, Math.round(geo.vw / 200)));
+    const spacing = geo.vw / n;
+    const layers: string[] = [];
+    for (let i = 0; i < n; i++) {
+      const x = (i + 0.5) * spacing;
+      const rgb = i % 2 ? '255,150,135' : '255,172,92';   // rose-gold / amber
+      const under = x > logoL && x < logoR;
+      // under the logo: stop below it. Beside it: reach most of the way up, but stay out of its columns
+      const reach = under ? Math.max(0, Hk - logoBottom) : Hk * 0.82;
+      let rx = spacing * 0.55;
+      if (!under) rx = Math.min(rx, Math.max(18, x < logoL ? logoL - x : x - logoR));
+      if (reach > 12) {
+        layers.push(`radial-gradient(ellipse ${rx}px ${reach}px at ${x}px ${Hk}px, rgba(${rgb},.5) 0%, rgba(${rgb},.2) 38%, rgba(${rgb},.06) 70%, rgba(${rgb},0) 100%)`);
+      }
+      // the bright pool where the fixture meets the floor
+      layers.push(`radial-gradient(ellipse ${Math.max(16, rx * 0.55)}px 16px at ${x}px ${Hk}px, rgba(255,226,180,.55) 0%, rgba(${rgb},.18) 55%, rgba(${rgb},0) 100%)`);
     }
-    washBg = beams.join(', ');
+    washBg = layers.join(', ');
   }
 
   return (
@@ -192,10 +198,10 @@ export const KabukiDrop: React.FC = () => {
           position: absolute; inset: 0;
           background: radial-gradient(ellipse 34% 52% at var(--cx, 50%) var(--cy, 55%), rgba(255,200,170,.14), rgba(255,175,140,.05) 50%, rgba(0,0,0,0) 75%);
         }
-        .kabuki__wash { /* the stage beams hitting the velvet on "Go Lights" (background set inline, around the logo) */
-          position: absolute; inset: 0; opacity: 0; transition: opacity 3s ease-in-out;
+        .kabuki__wash { /* uplights on the velvet for "Lights Go" (background set inline, around the logo) */
+          position: absolute; inset: 0; opacity: 0; transition: opacity 3.5s ease-in-out;
         }
-        .kabuki__wash[data-on="true"] { opacity: .62; }
+        .kabuki__wash[data-on="true"] { opacity: .9; }
         /* the logo as a projected gobo: bent by the folds (SVG displacement), shaded by them (overlay),
            with a soft edge and a little light spill */
         .kabuki__gobo { position: absolute; max-width: none; transition: opacity .28s ease-in; }
