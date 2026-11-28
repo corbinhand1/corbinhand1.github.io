@@ -31,6 +31,40 @@ function pagePosition(el: HTMLElement) {
   return { x, y };
 }
 
+/**
+ * Bake the gobo once: the logo warped along vertical folds (each column of the logo is
+ * shifted sideways by a fixed, repeatable amount) and shaded by the folds. Returns a data URL.
+ * Done once per page load, so the distortion can never change while the cues run.
+ */
+const GOBO_SRC = '/assets/Nebula Logo Color Text.png';
+let bakedGobo: Promise<string> | null = null;
+function bakeGobo(): Promise<string> {
+  if (bakedGobo) return bakedGobo;
+  bakedGobo = new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const g = c.getContext('2d');
+      if (!g) { resolve(GOBO_SRC); return; }
+      const A = w * 0.012;                       // how far the folds push the light sideways
+      const f1 = (Math.PI * 2) / (w * 0.21), f2 = (Math.PI * 2) / (w * 0.087);
+      for (let x = 0; x < w; x++) {
+        const shift = A * (0.65 * Math.sin(x * f1 + 0.8) + 0.35 * Math.sin(x * f2 + 2.1));
+        // the light is brighter on the fold ridges, dimmer in the valleys
+        g.globalAlpha = 0.72 + 0.28 * Math.cos(x * f1 + 0.8);
+        const sx = Math.min(w - 1, Math.max(0, Math.round(x + shift)));
+        g.drawImage(img, sx, 0, 1, h, x, 0, 1, h);
+      }
+      try { resolve(c.toDataURL('image/png')); } catch { resolve(GOBO_SRC); }
+    };
+    img.onerror = () => resolve(GOBO_SRC);
+    img.src = GOBO_SRC;
+  });
+  return bakedGobo;
+}
+
 export const KabukiDrop: React.FC = () => {
   const rolling = useShowStore((s) => s.videoRolling);
   const lightsUp = useShowStore((s) => s.lightLevel > 0);
@@ -39,6 +73,8 @@ export const KabukiDrop: React.FC = () => {
   const [state, setState] = useState<'hung' | 'goboOut' | 'dropping' | 'gone'>(rolling ? 'gone' : 'hung');
   const ref = useRef<HTMLDivElement>(null);
   const [geo, setGeo] = useState<Geo | null>(null);
+  const [goboSrc, setGoboSrc] = useState<string | null>(null);
+  useEffect(() => { let live = true; bakeGobo().then((src) => { if (live) setGoboSrc(src); }); return () => { live = false; }; }, []);
 
   useEffect(() => {
     if (rolling) {
@@ -168,11 +204,11 @@ export const KabukiDrop: React.FC = () => {
           position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
         }
         .kabuki__gobo .g-light {
-          filter: url(#kabuki-folds) grayscale(1) brightness(2) sepia(.2) blur(.5px);
+          filter: grayscale(1) brightness(2) sepia(.2) blur(.5px);
           opacity: .42;
         }
         .kabuki__gobo .g-glow {
-          filter: url(#kabuki-folds) grayscale(1) brightness(2.2) sepia(.35) blur(6px);
+          filter: grayscale(1) brightness(2.2) sepia(.35) blur(6px);
           opacity: .12;
         }
         .kabuki--hung { animation: kabuki-in .5s ease-out both; }
@@ -187,21 +223,14 @@ export const KabukiDrop: React.FC = () => {
         }
         @media (prefers-reduced-motion: reduce) { .kabuki--drop .kabuki__drape, .kabuki--hung { animation: none; } }
       `}</style>
-      {/* horizontal-only waviness that follows the vertical folds */}
-      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
-        <filter id="kabuki-folds" x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.035 0.0008" numOctaves="2" seed="11" result="n" />
-          <feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="B" />
-        </filter>
-      </svg>
       <div className="kabuki__drape">
         <div className="kabuki__shadow" />
         <div className="kabuki__hotspot" />
         {/* Lights Go: front light on the drape. A smooth fade to a steady level (no flash) */}
         <div className="kabuki__wash" data-on={lightsUp ? 'true' : 'false'} style={washBg ? { background: washBg } : undefined} />
         <div className="kabuki__gobo" style={logoBox}>
-          <img className="g-glow" src="/assets/Nebula Logo Color Text.png" alt="" />
-          <img className="g-light" src="/assets/Nebula Logo Color Text.png" alt="" />
+          {goboSrc && <img className="g-glow" src={goboSrc} alt="" />}
+          {goboSrc && <img className="g-light" src={goboSrc} alt="" />}
         </div>
       </div>
     </div>
