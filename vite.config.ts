@@ -8,7 +8,24 @@ export default defineConfig(({ command, mode }) => {
   const isProd = command === 'build';
   
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      // The root index.html is the DEPLOYED (built) page, because `npm run deploy`
+      // copies dist/* over the repo root. The real source entry is src-index.html.
+      // Emit it as index.html so the deploy copy lands in the right place.
+      {
+        name: 'emit-src-index-as-index',
+        enforce: 'post',
+        generateBundle(_opts, bundle) {
+          const entry = bundle['src-index.html'];
+          if (entry) {
+            delete bundle['src-index.html'];
+            entry.fileName = 'index.html';
+            bundle['index.html'] = entry;
+          }
+        },
+      },
+    ],
     
     // Base path: root for dev, relative for production (GitHub Pages)
     base: isDev ? '/' : './',
@@ -17,10 +34,15 @@ export default defineConfig(({ command, mode }) => {
     server: {
       port: 5173,
       host: true,
-      open: true,
+      open: '/src-index.html',
       strictPort: false, // Allow port fallback for better UX
     },
     
+    // Do NOT copy public/ into dist. public/cuetocue holds a stale copy of the
+    // Cue to Cue viewer, and deploying it would overwrite the live /cuetocue/
+    // (which the Cue to Cue Mac app publishes to directly).
+    publicDir: false,
+
     // Build configuration
     build: {
       outDir: 'dist',
@@ -29,7 +51,7 @@ export default defineConfig(({ command, mode }) => {
       minify: 'terser',
       rollupOptions: {
         input: {
-          main: resolve(__dirname, 'index.html'),
+          main: resolve(__dirname, 'src-index.html'),
         },
         output: {
           assetFileNames: (assetInfo) => {

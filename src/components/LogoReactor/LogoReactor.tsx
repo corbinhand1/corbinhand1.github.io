@@ -11,7 +11,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useMotionValue, useMotionTemplate, animate } from 'framer-motion';
-import { useVideoStore } from '../../stores/videoStore';
+import { useShowStore } from '../../stores/showStore';
 
 type Phase = 'standby' | 'live';
 
@@ -63,7 +63,7 @@ const easeOutBack    = (t: number, s = 0.35) => 1 + (s + 1) * Math.pow(t - 1, 3)
 const easedLerp      = (a: number, b: number, t: number, ease = easeInOutCubic) => a + (b - a) * ease(clamp(t, 0, 1));
 
 export const LogoReactor: React.FC = () => {
-  const { isVideoRolling } = useVideoStore();
+  const isVideoRolling = useShowStore((s) => s.videoRolling);
   const [phase, setPhase] = useState<Phase>('standby');
 
   // Reduced motion
@@ -72,23 +72,10 @@ export const LogoReactor: React.FC = () => {
     []
   );
 
-  // Transition to LIVE on video start
+  // Follow the video cue both ways (replaying the show powers the logo back down)
   useEffect(() => {
-    if (isVideoRolling && phase === 'standby') setPhase('live');
-  }, [isVideoRolling, phase]);
-
-  // Subtle oscillator (live only) for tiny modulation (doesn't affect layout)
-  const [osc, setOsc] = useState(0);
-  useEffect(() => {
-    if (reduced || phase !== 'live') return;
-    const t0 = performance.now();
-    const loop = (t: number) => {
-      const dt = (t - t0) / 1000;
-      setOsc((Math.sin(dt * Math.PI * 2 * 0.12) + 1) / 2); // very slow
-      requestAnimationFrame(loop);
-    };
-    requestAnimationFrame(loop);
-  }, [phase, reduced]);
+    setPhase(isVideoRolling ? 'live' : 'standby');
+  }, [isVideoRolling]);
 
   // Particles (slow, independent, rare lane-changes)
   const PARTICLE_COUNT = 20;
@@ -138,17 +125,25 @@ export const LogoReactor: React.FC = () => {
     return () => { laneTimers.current.forEach(clearInterval); laneTimers.current = []; };
   }, [phase, reduced]);
 
-  // Timebase for orbits
+  // Timebase for orbits — one loop, cancelled when we leave LIVE.
+  // Throttled to ~30fps: the orbits are ultra slow, 60 React renders/s was wasted work.
   const [tSec, setTSec] = useState(0);
   useEffect(() => {
     if (reduced || phase !== 'live') return;
     const t0 = performance.now();
-    const loop = () => {
-      setTSec((performance.now() - t0) / 1000);
-      requestAnimationFrame(loop);
+    let raf = 0;
+    let last = 0;
+    const loop = (t: number) => {
+      if (t - last > 33) {
+        last = t;
+        setTSec((t - t0) / 1000);
+      }
+      raf = requestAnimationFrame(loop);
     };
-    requestAnimationFrame(loop);
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
   }, [phase, reduced]);
+  const osc = (Math.sin(tSec * Math.PI * 2 * 0.12) + 1) / 2; // very slow
 
   const speedFactor  = 1 + 0.05 * (osc - 0.5) * 2; // ≤ ±5%
   const radiusFactor = 1 + 0.005 * (osc - 0.5);    // ≤ ±0.5%

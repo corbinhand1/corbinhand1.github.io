@@ -1,9 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { CUE_LINES } from '../../config/timing';
-import { CONFETTI_BUTTON } from '../../config/design';
-import type { ConfettiButtonProps, ConfettiEffect } from '../../types/design';
+import { useShowStore } from '../../stores/showStore';
+import { sfx } from '../../lib/sfx';
 
 // Types for confetti effects
 interface LandingSpec {
@@ -14,15 +12,6 @@ interface LandingSpec {
   h: number;
   color: string;
   rot: number;
-}
-
-// Robust timing constants
-const ARM_DELAY_MS = 1500;
-
-function getGoConfettiMs(): number {
-  // robust find in case of capitalization differences
-  const cue = CUE_LINES.find(c => c.text.toLowerCase() === 'go confetti!' || c.text.toLowerCase() === 'go confetti');
-  return cue ? cue.t + ARM_DELAY_MS : 9000 + ARM_DELAY_MS; // fallback to known value if missing
 }
 
 // Confetti engine hook
@@ -66,36 +55,53 @@ function buildRainParticleOptions() {
  * 
  * Props:
  * - scheduleLandings: Function to schedule confetti landings
- * - clockMs: Current time in milliseconds
  * - onConfettiPressed: Callback when button is pressed
  */
 export const ConfettiButton: React.FC<{
   scheduleLandings: (items: LandingSpec[]) => void;
-  clockMs: number;
-  onConfettiPressed: () => void;
-}> = ({ scheduleLandings, clockMs, onConfettiPressed }) => {
+}> = ({ scheduleLandings }) => {
   const [count, setCount] = useState(0);
-  const [isActive, setIsActive] = useState(false);
   const fire = useConfettiEngine();
   const COLORS = ["#FFD166", "#EF476F", "#06D6A0", "#118AB2", "#FF9F1C", "#9B5DE5"];
 
-  // Derive armed state and reduced motion preference
-  const goConfettiAt = getGoConfettiMs();
-  const isArmed = clockMs >= goConfettiAt;
-  
+  const status = useShowStore((s) => s.status);
+  const callGo = useShowStore((s) => s.callGo);
+  const coverOpen = useShowStore((s) => s.coverOpen);
+  const setCoverOpen = useShowStore((s) => s.setCoverOpen);
+  const registerLaunch = useShowStore((s) => s.registerLaunch);
+  const lockedUntil = useShowStore((s) => s.lockedUntil);
+  const soundOn = useShowStore((s) => s.soundOn);
+
+  const launchMode = status === 'done';
+  const goLive = status === 'standby' || status === 'approach';
+
+  // Lockout countdown (fire marshal)
+  const [nowMs, setNowMs] = useState(Date.now());
+  const locked = lockedUntil > nowMs;
+  useEffect(() => {
+    if (lockedUntil <= Date.now()) return;
+    setNowMs(Date.now());
+    const id = window.setInterval(() => {
+      setNowMs(Date.now());
+      if (Date.now() >= lockedUntil) window.clearInterval(id);
+    }, 250);
+    return () => window.clearInterval(id);
+  }, [lockedUntil]);
+  const lockSecs = Math.max(0, Math.ceil((lockedUntil - nowMs) / 1000));
+
+  // Cover closes itself after a while if nobody presses anything
+  const idleRef = useRef<number | undefined>(undefined);
+  const bumpIdle = () => {
+    window.clearTimeout(idleRef.current);
+    idleRef.current = window.setTimeout(() => useShowStore.getState().setCoverOpen(false), 12000);
+  };
+  useEffect(() => () => window.clearTimeout(idleRef.current), []);
+
+  const isArmed = launchMode ? coverOpen && !locked : goLive;
+
   const reducedMotion = typeof window !== 'undefined'
     ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
     : false;
-
-  // Activate button when "GO Confetti!" cue is reached
-  useEffect(() => {
-    const goConfettiCue = CUE_LINES.find(c => c.text === "GO Confetti!");
-    // Add 1.5 seconds delay to account for typing animation + user reading time
-    const buttonTriggerTime = goConfettiCue!.t + 1500;
-    if (goConfettiCue && clockMs >= buttonTriggerTime && !isActive) {
-      setIsActive(true);
-    }
-  }, [clockMs, isActive]);
 
   function makeSpecs(
     total: number,
@@ -117,9 +123,7 @@ export const ConfettiButton: React.FC<{
   }
 
   function announce(msg: string) {
-    if ((window as any).stageManagerAnnounce) {
-      (window as any).stageManagerAnnounce(msg);
-    }
+    useShowStore.getState().announce(msg, 'SFX', 'chatter');
   }
 
   function startRain() {
@@ -215,14 +219,40 @@ export const ConfettiButton: React.FC<{
     },
   ];
 
-  // Click handler - keep existing logic unchanged
-  const handleConfettiClick = () => {
-    if (isArmed) {
-          effects[count % effects.length]();
-          setCount((c) => c + 1);
-          onConfettiPressed();
-        }
+  const EFFECT_SIZE = [1, 0.7, 1.1, 1.3, 1.9];
+  const fireEffect = (n: number) => {
+    const i = n % effects.length;
+    effects[i]();
+    sfx.thump(useShowStore.getState().soundOn, EFFECT_SIZE[i]);
+    setCount(n + 1);
   };
+
+  // "GO Confetti!" from the show caller fires the first burst
+  const countRef = useRef(count);
+  countRef.current = count;
+  useEffect(() => {
+    const onGo = () => fireEffect(countRef.current);
+    window.addEventListener('nebula:go-confetti', onGo);
+    return () => window.removeEventListener('nebula:go-confetti', onGo);
+  });
+
+  const handleClick = () => {
+    if (!launchMode) {
+      if (goLive) callGo();
+      return;
+    }
+    if (locked) return;
+    if (!coverOpen) {
+      setCoverOpen(true);
+      bumpIdle();
+      return;
+    }
+    fireEffect(count);
+    registerLaunch();
+    bumpIdle();
+  };
+
+  const label = launchMode ? (locked ? `LOCKED ${lockSecs}` : 'LAUNCH') : 'GO';
 
   return (
     <>
@@ -246,7 +276,7 @@ export const ConfettiButton: React.FC<{
       {/* ───────────────── Confetti Button Slot (prevents layout shift) ───────────────── */}
       <div className="relative w-full flex items-center justify-center">
         {/* Reserve a consistent slot height from page load; no layout jump */}
-        <div className="relative w-full flex items-center justify-center" style={{ overflow: 'visible' }}>
+        <div className="relative w-full flex items-center justify-center" style={{ overflow: 'visible', marginTop: 'clamp(18px, 2.4vw, 28px)' }}>
           <div
             className="relative"
             /* choose a single diameter; keep it square */
@@ -398,6 +428,50 @@ export const ConfettiButton: React.FC<{
               text-shadow: 0 1px 0 rgba(255,255,255,.32), 0 2px 2px rgba(0,0,0,.36), 0 -1px 0 rgba(255,255,255,.10);
             }
 
+            /* GO mode: green cue light */
+            .launch-btn[data-mode="go"][data-armed="true"] .cap {
+              background: radial-gradient(85% 85% at 34% 30%, #7dffae 0%, #19c45a 45%, #0e8a3c 72%, #08481f 100%);
+              box-shadow: inset 0 12px 22px rgba(255,255,255,.16), inset 0 -22px 44px rgba(0,0,0,.52), 0 0 0 4px rgba(40,255,120,.18), 0 10px 42px rgba(60,255,120,.28);
+            }
+            .launch-btn[data-mode="go"][data-armed="false"] .cap {
+              background: radial-gradient(80% 80% at 32% 28%, #2f5a3d 0%, #173823 42%, #0d2216 70%, #061109 100%);
+            }
+            .launch-btn[data-mode="go"] .aura { background: radial-gradient(circle at 50% 50%, rgba(60,255,120,.18) 0%, rgba(60,255,120,.10) 32%, rgba(60,255,120,0) 60%); }
+            .launch-btn[data-mode="go"] .label span { font-size: clamp(16px, 3.4vw, 26px); letter-spacing: .2em; }
+
+            /* Safety cover */
+            .cover-wrap {
+              position: absolute; inset: -9%; perspective: 520px; pointer-events: none; z-index: 2;
+              max-width: none; /* mobile CSS clamps * to 100%, which would shove the cover left */
+            }
+            .cover {
+              position: absolute; inset: 0; border-radius: 24%;
+              transform-origin: 50% 0%;
+              transition: transform .45s cubic-bezier(.3,1.4,.5,1), opacity .3s ease;
+              background: linear-gradient(160deg, rgba(255,120,120,.22) 0%, rgba(200,20,20,.16) 45%, rgba(120,0,0,.28) 100%);
+              border: 1.5px solid rgba(255,170,170,.45);
+              box-shadow: inset 0 2px 0 rgba(255,255,255,.25), inset 0 -10px 30px rgba(80,0,0,.35), 0 12px 30px rgba(0,0,0,.35);
+              backdrop-filter: blur(1.5px);
+              -webkit-backdrop-filter: blur(1.5px);
+            }
+            .cover-wrap[data-open="true"] .cover { transform: rotateX(118deg); opacity: .18; }
+            .cover-wrap[data-locked="true"] .cover { transition-duration: .18s; }
+            .cover-hinge {
+              position: absolute; left: 12%; right: 12%; top: -7px; height: 10px; border-radius: 4px;
+              background: repeating-linear-gradient(-45deg, #f5c400 0 7px, #111 7px 14px);
+              box-shadow: 0 2px 4px rgba(0,0,0,.5);
+            }
+            .cover-sheen {
+              position: absolute; inset: 0; border-radius: inherit;
+              background: linear-gradient(115deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 35%, rgba(255,255,255,0) 70%, rgba(255,255,255,.12) 100%);
+            }
+            .cover-text {
+              position: absolute; left: 0; right: 0; bottom: 9%; text-align: center;
+              font: 800 clamp(7px, 1.2vw, 10px)/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+              letter-spacing: .2em; color: rgba(255,220,220,.85);
+            }
+            .cover-wrap[data-open="true"] .cover-text { opacity: 0; }
+
             /* Interactions (armed only) */
             .launch-btn[data-armed="true"]:hover { transform: translateY(-1px) scale(1.02); }
             .launch-btn[data-armed="true"]:active { transform: translateY(1px) scale(.985); }
@@ -409,13 +483,14 @@ export const ConfettiButton: React.FC<{
 
           <button
             type="button"
-            aria-label="Launch confetti"
-            aria-disabled={!isArmed}
-            tabIndex={isArmed ? 0 : -1}
+            aria-label={launchMode ? (coverOpen ? 'Launch confetti' : 'Lift the safety cover') : 'GO — call the cue'}
+            aria-disabled={!(launchMode ? !locked : goLive)}
+            tabIndex={(launchMode ? !locked : goLive) ? 0 : -1}
             data-armed={isArmed ? 'true' : 'false'}
+            data-mode={launchMode ? 'launch' : 'go'}
             className="launch-btn"
-            onClick={() => { if (isArmed) handleConfettiClick(); }}
-            style={{ pointerEvents: isArmed ? 'auto' : 'none' }}
+            onClick={handleClick}
+            style={{ pointerEvents: (launchMode ? !locked : goLive) ? 'auto' : 'none' }}
           >
             {/* Layer order matters for realism */}
             <span className="bezel" aria-hidden />
@@ -427,10 +502,21 @@ export const ConfettiButton: React.FC<{
 
             {/* Centered label */}
             <span className="label">
-              <span className="shadow">LAUNCH</span>
-              <span className="face">LAUNCH</span>
+              <span className="shadow">{label}</span>
+              <span className="face">{label}</span>
             </span>
           </button>
+
+          {/* Safety cover (LAUNCH mode only). Hinged at the top; click to lift. */}
+          {launchMode && (
+            <div className="cover-wrap" aria-hidden data-open={coverOpen ? 'true' : 'false'} data-locked={locked ? 'true' : 'false'}>
+              <div className="cover">
+                <span className="cover-hinge" />
+                <span className="cover-sheen" />
+                <span className="cover-text">{locked ? 'LOCKED OUT' : 'LIFT COVER'}</span>
+              </div>
+            </div>
+          )}
           </div>
         </div>
       </div>

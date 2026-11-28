@@ -35,12 +35,16 @@ cd corbinhand1.github.io
 # Install dependencies
 npm install
 
-# Start development server
+# Start development server (opens /src-index.html)
 npm run dev
 
 # Build for production
 npm run build
 ```
+
+> **Note:** `src-index.html` is the real source entry. The root `index.html` is the
+> deployed build output (`npm run deploy` copies `dist/*` over the repo root), so never
+> edit it by hand. Vite emits `src-index.html` as `dist/index.html`.
 
 ### Project Structure
 
