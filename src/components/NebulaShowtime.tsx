@@ -10,7 +10,7 @@ import { ConfettiPile, scheduleLandings, sweepPile, pileSize } from './ConfettiP
 import { ShowFX, triggerHaze } from './ShowFX';
 import { CueCallout } from './CueCallout';
 import { KabukiDrop, CO2Jets, Ballyhoo } from './StageFX';
-import { Stagehand } from './Stagehand';
+import { Stagehand, SWEEP_MS } from './Stagehand';
 
 import { useShowStore } from '../stores/showStore';
 import { sfx } from '../lib/sfx';
@@ -181,13 +181,14 @@ const NebulaShowtime: React.FC = () => {
     if (pileSize() > 0) {
       sweepingRef.current = true;
       sweepPile();
-      sfx.sweep(st.soundOn);
+      // a swish per pass of the broom while he crosses
+      for (let k = 0; k < 3; k++) window.setTimeout(() => sfx.sweep(useShowStore.getState().soundOn), k * 1050);
       st.announce(['Sweeping. Again.', 'On it. Bring a bigger broom.', 'Confetti struck.', 'Found some in my shoe.'][Math.floor(Math.random() * 4)], 'CREW', 'chatter');
       window.setTimeout(() => {
         sweepingRef.current = false;
         setHasPile(false);
         setNoteIdx((i) => (i + 1) % CLEANUP_NOTES.length);
-      }, 1450);
+      }, SWEEP_MS + 50);
     } else {
       st.announce(everDone ? 'Nothing to sweep. Yet.' : 'Hold for cleanup until after the show.', 'SM', 'info');
       setNoteIdx((i) => (i + 1) % CLEANUP_NOTES.length);

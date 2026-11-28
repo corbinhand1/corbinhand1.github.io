@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Sweeper, sweepTiming, SWEEP_MS } from './Stagehand';
 
 /**
  * ConfettiPile — confetti that actually lands and piles up at the bottom.
  * Landings are queued and flushed once per frame so hundreds of pieces
- * don't re-render the whole page. Sweep with `sweepPile()`.
+ * don't re-render the whole page. Sweep with `sweepPile()`: the stagehand
+ * walks across with a push broom and the pile moves with his broom.
  */
 
 export interface LandingSpec {
@@ -66,7 +68,8 @@ export function sweepPile() {
 
 export const ConfettiPile: React.FC = () => {
   const [pieces, setPieces] = useState<Piece[]>([]);
-  const [sweeping, setSweeping] = useState(false);
+  const [sweep, setSweep] = useState<ReturnType<typeof sweepTiming> | null>(null);
+  const sweeping = !!sweep;
   const heights = useRef<number[]>(new Array(COLS).fill(0));
   const maxH = typeof window !== 'undefined' ? Math.round(Math.min(160, window.innerHeight * 0.18)) : 140;
 
@@ -97,7 +100,7 @@ export const ConfettiPile: React.FC = () => {
         return next;
       });
     };
-    sweepListener = () => setSweeping(true);
+    sweepListener = () => setSweep(sweepTiming());
     return () => {
       listener = null;
       sweepListener = null;
@@ -110,8 +113,8 @@ export const ConfettiPile: React.FC = () => {
       heights.current = new Array(COLS).fill(0);
       pieceCount = 0;
       setPieces([]);
-      setSweeping(false);
-    }, 1400);
+      setSweep(null);
+    }, SWEEP_MS);
     return () => clearTimeout(id);
   }, [sweeping]);
 
@@ -120,13 +123,7 @@ export const ConfettiPile: React.FC = () => {
   return (
     <>
       <style>{`
-        @keyframes pile-sweep { 0% { transform: translateX(0); } 20% { transform: translateX(0); } 100% { transform: translateX(115vw); } }
-        @keyframes broom-pass {
-          0%   { transform: translateX(-30vw) rotate(-8deg); }
-          20%  { transform: translateX(-8vw) rotate(6deg); }
-          100% { transform: translateX(112vw) rotate(-4deg); }
-        }
-        @keyframes broom-bob { 0%,100% { margin-bottom: 0; } 50% { margin-bottom: 8px; } }
+        @keyframes pile-push { from { transform: translateX(0); } to { transform: translateX(var(--end)); } }
       `}</style>
       <div
         className="fixed bottom-0 left-0 right-0 pointer-events-none"
@@ -135,7 +132,10 @@ export const ConfettiPile: React.FC = () => {
       >
         <div
           className="relative w-full h-full"
-          style={{ animation: sweeping ? 'pile-sweep 1.4s cubic-bezier(.5,0,.6,1) forwards' : undefined }}
+          style={sweep ? {
+            ['--end' as any]: `${sweep.pileEnd}px`,
+            animation: `pile-push ${sweep.pileDur}ms linear ${sweep.pileDelay}ms both`,
+          } : undefined}
         >
           {pieces.map((p) => (
             <div
@@ -155,11 +155,7 @@ export const ConfettiPile: React.FC = () => {
           ))}
         </div>
       </div>
-      {sweeping && (
-        <div className="fixed left-0 bottom-0 pointer-events-none" style={{ zIndex: 60, animation: 'broom-pass 1.4s cubic-bezier(.5,0,.6,1) forwards' }} aria-hidden>
-          <div style={{ fontSize: 'clamp(64px, 10vw, 120px)', lineHeight: 1, transform: 'scaleX(-1)', animation: 'broom-bob .25s ease-in-out infinite' }}>🧹</div>
-        </div>
-      )}
+      {sweep && <Sweeper timing={sweep} />}
     </>
   );
 };

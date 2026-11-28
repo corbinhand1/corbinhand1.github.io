@@ -33,8 +33,9 @@ type Side = 'right' | 'left'; // which side he stands on (right side pushes the 
 
 const T = { enter: 1500, push: 1700, thumbs: 1500, exit: 1300 };
 
-/** The character, drawn facing LEFT. Mirrored for the other side. */
-function Figure() {
+/** The character, drawn facing LEFT. Mirrored for the other side.
+ *  `broom` hands him a push broom held out in front, head on the deck. */
+export function Figure({ broom = false }: { broom?: boolean }) {
   return (
     <svg viewBox="0 0 64 104" className="sh-svg" aria-hidden>
       <defs>
@@ -64,6 +65,16 @@ function Figure() {
           <rect x="22" y="16.5" width="18" height="3" rx="1.5" fill="#2c2c33" />
           <rect x="20.5" y="15.8" width="4" height="4.4" rx="1" fill="#e8e2c8" />
           <path className="sh-lamp" d="M21 18 L-22 4 L-22 34 Z" fill="url(#sh-lamp)" />
+          {broom && (
+            <g className="sh-broom">
+              {/* handle: from behind his hands down to the head on the deck, out in front */}
+              <line x1="25" y1="40" x2="-6" y2="92" stroke="#a87444" strokeWidth="2.6" strokeLinecap="round" />
+              {/* head + bristles */}
+              <rect x="-19" y="90" width="24" height="4.6" rx="1.2" fill="#6e4524" stroke="#3d2513" strokeWidth=".8" />
+              <rect x="-18" y="94.4" width="22" height="3.6" rx=".6" fill="#d6bd7b" />
+              <path d="M-16 94.6 v3.2 M-12 94.6 v3.2 M-8 94.6 v3.2 M-4 94.6 v3.2 M0 94.6 v3.2" stroke="#a88d4c" strokeWidth=".6" />
+            </g>
+          )}
           {/* arm */}
           <g className="sh-arm">
             <path d="M30 34 L18 46" stroke="#3a3f4d" strokeWidth="6.5" strokeLinecap="round" />
@@ -240,3 +251,61 @@ export const Stagehand: React.FC = () => {
 };
 
 export default Stagehand;
+
+/* ======================================================================
+ * Sweeper — the same stagehand with a push broom. Walks left → right along
+ * the bottom of the window and shoves the confetti pile off-screen.
+ * ConfettiPile uses sweepTiming() so the pile moves exactly with his broom.
+ * ==================================================================== */
+export const SWEEP_MS = 3200;
+
+export function sweepTiming() {
+  const vw = document.documentElement.clientWidth;
+  const w = window.innerWidth < 768 ? 64 : 88;     // figure width (px)
+  const h = Math.round(w * 1.625);
+  const reach = w + Math.round((19 / 64) * w);     // broom tip, measured from his box's left edge
+  const s0 = -(reach + 12);                        // start: broom just off the left edge
+  const s1 = vw + 24;                              // end: he's fully off the right edge
+  const speed = (s1 - s0) / SWEEP_MS;              // px per ms
+  const pileDelay = (0 - (s0 + reach)) / speed;    // when the broom tip reaches the pile's left edge
+  return { w, h, s0, s1, pileDelay, pileDur: SWEEP_MS - pileDelay, pileEnd: s1 + reach };
+}
+
+export const Sweeper: React.FC<{ timing: ReturnType<typeof sweepTiming> }> = ({ timing }) => (
+  <div
+    className="sweeper"
+    aria-hidden
+    style={{
+      width: timing.w,
+      height: timing.h,
+      ['--s0' as any]: `${timing.s0}px`,
+      ['--s1' as any]: `${timing.s1}px`,
+      animationDuration: `${SWEEP_MS}ms`,
+    }}
+  >
+    <style>{`
+      .sweeper {
+        position: fixed; left: 0; bottom: 2px; z-index: 60; pointer-events: none; max-width: none;
+        animation: sweeper-walk linear forwards;
+      }
+      @keyframes sweeper-walk { from { transform: translateX(var(--s0)); } to { transform: translateX(var(--s1)); } }
+      .sweeper .sh-svg {
+        width: 100%; height: 100%; overflow: visible; transform: scaleX(-1); /* face the way he walks */
+        filter: drop-shadow(0 0 1.5px rgba(255,255,255,.55)) drop-shadow(0 0 10px rgba(160,190,255,.25));
+      }
+      .sweeper .sh-arm-up { display: none; }
+      .sweeper .sh-lamp { opacity: .85; }
+      .sweeper .sh-leg { transform-box: fill-box; transform-origin: 50% 0%; }
+      .sweeper .sh-leg--f { animation: sw-step .34s ease-in-out infinite alternate; }
+      .sweeper .sh-leg--b { animation: sw-step .34s ease-in-out infinite alternate-reverse; }
+      @keyframes sw-step { from { transform: rotate(-18deg); } to { transform: rotate(18deg); } }
+      .sweeper .sh-body { animation: sw-bob .17s ease-in-out infinite alternate; }
+      @keyframes sw-bob { from { transform: translateY(0); } to { transform: translateY(-1.5px); } }
+      /* scrub the broom back and forth as he walks */
+      .sweeper .sh-broom, .sweeper .sh-arm { animation: sw-scrub .17s ease-in-out infinite alternate; }
+      @keyframes sw-scrub { from { transform: translateX(0); } to { transform: translateX(-2.5px); } }
+      @media (prefers-reduced-motion: reduce) { .sweeper { display: none; } }
+    `}</style>
+    <Figure broom />
+  </div>
+);
