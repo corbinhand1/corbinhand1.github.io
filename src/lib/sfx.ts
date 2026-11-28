@@ -140,12 +140,18 @@ export const sfx = {
     tone(2093, 0.18, 0.7, 0.05, 'sine');
   },
 
-  /** Confetti cannon thump. Bigger = more boom. */
+  /** Confetti cannon. Bigger = more boom.
+   *  A real launcher is a sharp compressed-air POP, a mid thud, then paper rustle.
+   *  The pop and thud sit in the range laptop/phone speakers actually play, so it
+   *  cuts through the drum crash and the CO2; the low boom adds weight on bigger speakers. */
   thump(on: boolean, size = 1) {
     if (!on) return;
-    tone(140, 0, 0.4 + 0.15 * size, 0.35 * Math.min(size, 1.6), 'sine', 38);
-    noise(0, 0.25 + 0.1 * size, 0.3 * Math.min(size, 1.5), 'lowpass', 1800, 200);
-    noise(0.04, 0.5, 0.06, 'highpass', 4000); // paper flutter
+    const s = Math.min(size, 1.6);
+    noise(0, 0.045, 0.75 * Math.min(s, 1.3), 'highpass', 900);          // POP: sharp air transient
+    noise(0, 0.12, 0.45 * Math.min(s, 1.3), 'bandpass', 1600, 500);     // body of the pop
+    tone(220, 0, 0.18, 0.28 * s, 'triangle', 90);                       // mid thud
+    tone(140, 0, 0.4 + 0.15 * size, 0.3 * s, 'sine', 38);                // low boom
+    noise(0.06, 0.7, 0.07, 'highpass', 3500);                            // paper rustle
   },
 
   /** CO2 jet: a short, punchy blast (not a long hiss) */

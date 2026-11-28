@@ -88,7 +88,13 @@ export const KabukiDrop: React.FC = () => {
   const L = geo?.logo;
   const logoBox: React.CSSProperties = L ? { left: L.x, top: L.y, width: L.w, height: L.h } : { visibility: 'hidden' };
   const hot = geo && L
-    ? { ['--cx' as any]: `${((L.x + L.w / 2) / geo.vw) * 100}%`, ['--cy' as any]: `${((L.y + L.h / 2) / (geo.y + geo.h + 10)) * 100}%` }
+    ? {
+        ['--cx' as any]: `${((L.x + L.w / 2) / geo.vw) * 100}%`,
+        ['--cy' as any]: `${((L.y + L.h / 2) / (geo.y + geo.h + 10)) * 100}%`,
+        // the curtain light's gap is sized from the logo itself, so it fully clears the gobo
+        ['--rx' as any]: `${Math.round(L.w * 1.0)}px`,
+        ['--ry' as any]: `${Math.round(L.h * 1.2)}px`,
+      }
     : {};
 
   return (
@@ -127,8 +133,8 @@ export const KabukiDrop: React.FC = () => {
         .kabuki__wash[data-on="true"] { opacity: .8; }
         /* the wash goes around the logo, so the gobo keeps a steady brightness through the cue */
         .kabuki__wash {
-          -webkit-mask-image: radial-gradient(ellipse 30% 42% at var(--cx, 50%) var(--cy, 55%), rgba(0,0,0,.05) 0%, rgba(0,0,0,.05) 45%, #000 100%);
-                  mask-image: radial-gradient(ellipse 30% 42% at var(--cx, 50%) var(--cy, 55%), rgba(0,0,0,.05) 0%, rgba(0,0,0,.05) 45%, #000 100%);
+          -webkit-mask-image: radial-gradient(ellipse var(--rx, 30%) var(--ry, 42%) at var(--cx, 50%) var(--cy, 55%), rgba(0,0,0,0) 0%, rgba(0,0,0,0) 70%, #000 100%);
+                  mask-image: radial-gradient(ellipse var(--rx, 30%) var(--ry, 42%) at var(--cx, 50%) var(--cy, 55%), rgba(0,0,0,0) 0%, rgba(0,0,0,0) 70%, #000 100%);
         }
         /* the logo as a projected gobo: bent by the folds (SVG displacement), shaded by them (overlay),
            with a soft edge and a little light spill */
