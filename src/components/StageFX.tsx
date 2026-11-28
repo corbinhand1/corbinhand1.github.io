@@ -33,8 +33,7 @@ function pagePosition(el: HTMLElement) {
 
 export const KabukiDrop: React.FC = () => {
   const rolling = useShowStore((s) => s.videoRolling);
-  const lightLevel = useShowStore((s) => s.lightLevel);
-  const lightsUp = lightLevel > 0;
+  const lightsUp = useShowStore((s) => s.lightLevel > 0);
   const setKabukiOut = useShowStore((s) => s.setKabukiOut);
   // hung -> goboOut (gobo snaps out) -> dropping (released) -> gone
   const [state, setState] = useState<'hung' | 'goboOut' | 'dropping' | 'gone'>(rolling ? 'gone' : 'hung');
@@ -119,13 +118,18 @@ export const KabukiDrop: React.FC = () => {
           background: radial-gradient(ellipse 34% 52% at var(--cx, 50%) var(--cy, 55%), rgba(255,196,160,.20), rgba(255,170,130,.07) 50%, rgba(0,0,0,0) 75%);
         }
         .kabuki__wash { /* the stage beams hitting the velvet on "Go Lights" */
-          position: absolute; inset: 0; mix-blend-mode: screen; opacity: 0; transition: opacity 2.5s ease-out;
+          position: absolute; inset: 0; mix-blend-mode: screen; opacity: 0; transition: opacity 3s ease-in-out;
           background:
             radial-gradient(ellipse 22% 80% at 24% 0%, rgba(255,190,90,.30), rgba(255,150,40,.08) 55%, transparent 75%),
             radial-gradient(ellipse 22% 80% at 50% 0%, rgba(255,190,90,.24), rgba(255,150,40,.06) 55%, transparent 75%),
             radial-gradient(ellipse 22% 80% at 76% 0%, rgba(255,190,90,.30), rgba(255,150,40,.08) 55%, transparent 75%);
         }
-        .kabuki__wash[data-on="true"] { opacity: 1; }
+        .kabuki__wash[data-on="true"] { opacity: .8; }
+        /* the wash goes around the logo, so the gobo keeps a steady brightness through the cue */
+        .kabuki__wash {
+          -webkit-mask-image: radial-gradient(ellipse 30% 42% at var(--cx, 50%) var(--cy, 55%), rgba(0,0,0,.05) 0%, rgba(0,0,0,.05) 45%, #000 100%);
+                  mask-image: radial-gradient(ellipse 30% 42% at var(--cx, 50%) var(--cy, 55%), rgba(0,0,0,.05) 0%, rgba(0,0,0,.05) 45%, #000 100%);
+        }
         /* the logo as a projected gobo: bent by the folds (SVG displacement), shaded by them (overlay),
            with a soft edge and a little light spill */
         .kabuki__gobo { position: absolute; max-width: none; transition: opacity .28s ease-in; }
@@ -163,8 +167,8 @@ export const KabukiDrop: React.FC = () => {
       <div className="kabuki__drape">
         <div className="kabuki__shadow" />
         <div className="kabuki__hotspot" />
-        {/* Lights Go: front light on the drape. Flashes to full, then settles with the rig level */}
-        <div className="kabuki__wash" data-on={lightsUp ? 'true' : 'false'} style={lightsUp ? { opacity: 0.6 + 0.4 * lightLevel } : undefined} />
+        {/* Lights Go: front light on the drape. A smooth fade to a steady level (no flash) */}
+        <div className="kabuki__wash" data-on={lightsUp ? 'true' : 'false'} />
         <div className="kabuki__gobo" style={logoBox}>
           <img className="g-glow" src="/assets/Nebula Logo Color Text.png" alt="" />
           <img className="g-light" src="/assets/Nebula Logo Color Text.png" alt="" />
