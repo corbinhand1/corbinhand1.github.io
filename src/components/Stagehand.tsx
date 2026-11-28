@@ -80,16 +80,26 @@ export function Figure({ broom = false }: { broom?: boolean }) {
             <path d="M30 34 L18 46" stroke="#3a3f4d" strokeWidth="6.5" strokeLinecap="round" />
             <circle cx="17" cy="47" r="3.4" fill="#c99a78" />
           </g>
-          {/* thumbs-up: arm raised high and out, away from the stage, oversized fist + thumb */}
+          {/* thumbs-up: arm raised FORWARD (the way he faces), fist at head height in front of
+              him, curled fingers toward the front, thumb on top pointing up. Drawn facing left. */}
           <g className="sh-arm-up">
-            <path d="M37 32 L47 22 L51 13" stroke="#3a3f4d" strokeWidth="6.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            {/* fist */}
-            <rect x="46" y="4" width="11" height="10" rx="3.5" fill="#d8a885" stroke="#6b4530" strokeWidth="1.1" />
-            <path d="M47.5 7.5 h7 M47.5 10.5 h7" stroke="#6b4530" strokeWidth=".8" strokeLinecap="round" />
-            {/* thumb, pointing up */}
-            <rect x="53" y="-6" width="4.6" height="12" rx="2.3" fill="#d8a885" stroke="#6b4530" strokeWidth="1.1" />
+            {/* Real thumbs-up pose: upper arm hangs to the elbow at his side, forearm comes
+                forward LEVEL at chest height and goes straight into the side of the cuff. */}
+            <path d="M31 33 L30 46 L19 46" stroke="#3a3f4d" strokeWidth="6.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            {/* Classic thumbs-up icon, mirrored so the fingers point forward (the way he faces).
+                Drawn in a 100-unit box: cuff at the wrist, fist with four finger bumps on the
+                front edge, big rounded thumb on top, one thick outline. */}
+            <g transform="translate(20.68 34.8) scale(-0.17 0.17)">
+              <path
+                d="M28 45 C34 42 38 38 42 30 L44 12 C45 3 58 1 60 10 C62 18 60 26 62 33 L88 35
+                   C98 35 98 46 90 47 C99 48 99 59 91 60 C98 61 98 71 90 72 C96 74 94 84 85 84 L30 88 Z"
+                fill="#e8b996" stroke="#2a1a12" strokeWidth="5.5" strokeLinejoin="round"
+              />
+              {/* sleeve cuff */}
+              <rect x="4" y="40" width="26" height="52" rx="5" fill="#4a5060" stroke="#2a1a12" strokeWidth="5.5" />
+            </g>
             {/* glint */}
-            <path className="sh-glint" d="M63 -8 l1.4 3.4 3.4 1.4 -3.4 1.4 -1.4 3.4 -1.4 -3.4 -3.4 -1.4 3.4 -1.4 z" fill="#fff6c8" />
+            <path className="sh-glint" d="M6 28 l1.4 3.4 3.4 1.4 -3.4 1.4 -1.4 3.4 -1.4 -3.4 -3.4 -1.4 3.4 -1.4 z" fill="#fff6c8" />
           </g>
         </g>
         {/* front leg */}
@@ -229,10 +239,10 @@ export const Stagehand: React.FC = () => {
         .stagehand[data-phase="push"] .sh-arm { transform: rotate(38deg); }
 
         /* thumbs up */
-        .sh-arm-up { opacity: 0; transform-box: view-box; transform-origin: 58% 31%; }
+        .sh-arm-up { opacity: 0; transform-box: view-box; transform-origin: 48% 32%; }
         .stagehand[data-phase="thumbs"] .sh-arm { opacity: 0; }
         .stagehand[data-phase="thumbs"] .sh-arm-up { opacity: 1; animation: sh-thumb-pop .45s cubic-bezier(.3,1.6,.5,1) both; }
-        @keyframes sh-thumb-pop { from { transform: rotate(40deg) scale(.4); } to { transform: none; } }
+        @keyframes sh-thumb-pop { from { transform: rotate(-40deg) scale(.4); } to { transform: none; } }
         .sh-glint { opacity: 0; transform-box: fill-box; transform-origin: center; }
         .stagehand[data-phase="thumbs"] .sh-glint { animation: sh-glint .7s ease-out .35s both; }
         @keyframes sh-glint { 0% { opacity: 0; transform: scale(.2) rotate(0deg); } 40% { opacity: 1; transform: scale(1.3) rotate(45deg); } 100% { opacity: 0; transform: scale(.6) rotate(90deg); } }
