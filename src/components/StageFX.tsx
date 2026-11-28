@@ -149,14 +149,17 @@ export const KabukiDrop: React.FC = () => {
             radial-gradient(ellipse 62% 88% at var(--cx, 50%) var(--cy, 55%), rgba(0,0,0,0) 30%, rgba(0,0,0,.42) 72%, rgba(0,0,0,.78) 100%),
             linear-gradient(to bottom, rgba(0,0,0,.85) 0%, rgba(0,0,0,.35) 22%, rgba(0,0,0,0) 46%, rgba(0,0,0,0) 78%, rgba(0,0,0,.4) 100%);
         }
+        /* No blend modes anywhere in the curtain: when the Lights Go fade starts, browsers
+           (Safari especially) re-layer the page and a blended layer can lose its backdrop,
+           which made the gobo flash raw white. Plain transparency looks the same and can't flip. */
         .kabuki__hotspot {
-          position: absolute; inset: 0; mix-blend-mode: screen;
-          background: radial-gradient(ellipse 34% 52% at var(--cx, 50%) var(--cy, 55%), rgba(255,196,160,.20), rgba(255,170,130,.07) 50%, rgba(0,0,0,0) 75%);
+          position: absolute; inset: 0;
+          background: radial-gradient(ellipse 34% 52% at var(--cx, 50%) var(--cy, 55%), rgba(255,200,170,.14), rgba(255,175,140,.05) 50%, rgba(0,0,0,0) 75%);
         }
         .kabuki__wash { /* the stage beams hitting the velvet on "Go Lights" (background set inline, around the logo) */
-          position: absolute; inset: 0; mix-blend-mode: screen; opacity: 0; transition: opacity 3s ease-in-out;
+          position: absolute; inset: 0; opacity: 0; transition: opacity 3s ease-in-out;
         }
-        .kabuki__wash[data-on="true"] { opacity: .8; }
+        .kabuki__wash[data-on="true"] { opacity: .62; }
         /* the logo as a projected gobo: bent by the folds (SVG displacement), shaded by them (overlay),
            with a soft edge and a little light spill */
         .kabuki__gobo { position: absolute; max-width: none; transition: opacity .28s ease-in; }
@@ -165,12 +168,12 @@ export const KabukiDrop: React.FC = () => {
           position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
         }
         .kabuki__gobo .g-light {
-          filter: url(#kabuki-folds) grayscale(1) brightness(3) blur(.5px);
-          mix-blend-mode: overlay; opacity: .95;
+          filter: url(#kabuki-folds) grayscale(1) brightness(2) sepia(.2) blur(.5px);
+          opacity: .42;
         }
         .kabuki__gobo .g-glow {
           filter: url(#kabuki-folds) grayscale(1) brightness(2.2) sepia(.35) blur(6px);
-          mix-blend-mode: screen; opacity: .22;
+          opacity: .12;
         }
         .kabuki--hung { animation: kabuki-in .5s ease-out both; }
         @keyframes kabuki-in { from { opacity: 0; } to { opacity: 1; } }
