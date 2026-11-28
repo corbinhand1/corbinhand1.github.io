@@ -11,9 +11,11 @@ import { ShowFX, triggerHaze } from './ShowFX';
 import { CueCallout } from './CueCallout';
 import { KabukiDrop, CO2Jets, Ballyhoo } from './StageFX';
 import { Stagehand, SWEEP_MS } from './Stagehand';
+import { AudioMeter } from './AudioMeter';
 
 import { useShowStore } from '../stores/showStore';
 import { sfx } from '../lib/sfx';
+import { haptic } from '../lib/haptics';
 import { BRAND } from '../config/design';
 import { CLEANUP_NOTES } from '../config/chatter';
 
@@ -21,12 +23,14 @@ import { CLEANUP_NOTES } from '../config/chatter';
 function StageBeams() {
   const level = useShowStore((s) => s.lightLevel);
   const haze = useShowStore((s) => s.haze);
+  // The beams are upstage of the kabuki: they're only seen once it has dropped
+  const kabukiOut = useShowStore((s) => s.kabukiOut);
   const beams = [
     { delay: 0.0, rotate: -16, left: "-18vw", top: "-8vh", w: "90vw", h: "90vh" },
     { delay: 0.06, rotate: -5, left: "-8vw", top: "-6vh", w: "90vw", h: "90vh" },
     { delay: 0.1, rotate: 7, left: "12vw", top: "-10vh", w: "90vw", h: "90vh" },
   ];
-  const on = level > 0;
+  const on = level > 0 && kabukiOut;
   // Haze makes the beams read much stronger, like the real thing
   const opacity = on ? Math.min(1, 0.1 + level * 0.6 + (haze ? 0.3 : 0)) : 0;
   return (
@@ -130,7 +134,7 @@ function SoundToggle() {
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: 1.4, duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-      onClick={toggleSound}
+      onClick={() => { haptic('tap'); toggleSound(); }}
       className="fixed bottom-6 left-[7.5rem] md:bottom-8 md:left-24 z-[9998] group"
       aria-label={soundOn ? 'Mute comms audio' : 'Turn on comms audio'}
       aria-pressed={soundOn}
@@ -176,6 +180,7 @@ const NebulaShowtime: React.FC = () => {
   }, []);
 
   const onNote = () => {
+    haptic('tap');
     if (sweepingRef.current) return;
     const st = useShowStore.getState();
     if (pileSize() > 0) {
@@ -255,6 +260,7 @@ const NebulaShowtime: React.FC = () => {
       </div>
 
       <StageManager />
+      <AudioMeter />
       <CO2Jets />
       <ShowFX />
       <SoundToggle />

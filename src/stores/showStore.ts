@@ -33,11 +33,12 @@ export type CallStatus =
   | 'executing' // cue fired, waiting for the next standby
   | 'done';     // show is up; LAUNCH mode
 
-export const CUES: { dept: Dept; op: string }[] = [
-  { dept: 'Lights', op: 'the LD' },
-  { dept: 'Video', op: 'the video op' },
-  { dept: 'Audio', op: 'the A1' },
-  { dept: 'Confetti', op: 'the SFX tech' },
+/** `name` is what gets called on headset: "Standby <name>." then "<name> Go!" */
+export const CUES: { dept: Dept; name: string; op: string }[] = [
+  { dept: 'Lights', name: 'Lights', op: 'the LD' },
+  { dept: 'Video', name: 'Kabuki & Video', op: 'the video op' },
+  { dept: 'Audio', name: 'Audio', op: 'the A1' },
+  { dept: 'Confetti', name: 'Confetti', op: 'the SFX tech' },
 ];
 
 // Timing (ms)
@@ -89,6 +90,7 @@ interface ShowState {
   // effects driven by cues
   lightLevel: number;
   videoRolling: boolean;
+  kabukiOut: boolean;     // the kabuki has fallen out of frame: the stage behind is revealed
   audioUp: boolean;
   audioStartedAt: number; // performance.now() of Go Audio (drives the drum roll + meter); 0 = not started
   ballyhooAt: number;     // Date.now() when the moving lights last went into a ballyhoo
@@ -120,6 +122,7 @@ interface ShowState {
   setBlackout: (on: boolean) => void;
   ballyhoo: () => void;
   setStageShift: (px: number) => void;
+  setKabukiOut: (out: boolean) => void;
 }
 
 function grade(dept: Dept, op: string, delta: number): { text: string; tone: Tone } {
@@ -194,9 +197,9 @@ export const useShowStore = create<ShowState>((set, get) => {
       finishShow();
       return;
     }
-    const { dept } = CUES[i];
+    const { dept, name } = CUES[i];
     set({ status: 'standby', cueIndex: i });
-    announce(`Standby ${dept}.`, 'SM', 'cue');
+    announce(`Standby ${name}.`, 'SM', 'cue');
     sfx.standby(get().soundOn);
 
     // The Confetti mark lands exactly on the drum roll's hit
@@ -222,7 +225,7 @@ export const useShowStore = create<ShowState>((set, get) => {
       later(() => {
         if (myRun !== runId || get().status !== 'approach' || get().cueIndex !== i) return;
         set((s) => ({ status: 'executing', results: [...s.results, { dept, deltaMs: null }] }));
-        announce(dept === 'Confetti' ? 'GO Confetti. (Right on the hit.)' : `Go ${dept}. (I got it.)`, 'ASM', 'chatter');
+        announce(dept === 'Confetti' ? `${name} Go. (Right on the hit.)` : `${name} Go. (I got it.)`, 'ASM', 'chatter');
         sfx.go(get().soundOn);
         fireCue(dept);
         later(() => runCue(i + 1, myRun), T.betweenCues);
@@ -242,6 +245,7 @@ export const useShowStore = create<ShowState>((set, get) => {
 
     lightLevel: 0,
     videoRolling: false,
+    kabukiOut: false,
     audioUp: false,
     audioStartedAt: 0,
     ballyhooAt: 0,
@@ -271,6 +275,7 @@ export const useShowStore = create<ShowState>((set, get) => {
         results: [],
         lightLevel: 0,
         videoRolling: false,
+        kabukiOut: false,
         audioUp: false,
         audioStartedAt: 0,
         coverOpen: false,
@@ -293,10 +298,10 @@ export const useShowStore = create<ShowState>((set, get) => {
         announce('Hold… not yet.', 'SM', 'warn');
         return;
       }
-      const { dept, op } = CUES[s.cueIndex];
+      const { dept, name, op } = CUES[s.cueIndex];
       set((st) => ({ status: 'executing', results: [...st.results, { dept, deltaMs: delta }] }));
       sfx.go(s.soundOn);
-      announce(dept === 'Confetti' ? 'GO Confetti!' : `Go ${dept}!`, 'YOU', 'cue');
+      announce(`${name} Go!`, 'YOU', 'cue');
       const g = grade(dept, op, delta);
       announce(g.text, 'SM', g.tone);
       if (g.tone === 'good' && Math.abs(delta) <= 60) sfx.ding(s.soundOn);
@@ -342,6 +347,7 @@ export const useShowStore = create<ShowState>((set, get) => {
     setHaze: (on) => set({ haze: on }),
     setBlackout: (on) => set({ blackout: on }),
     setStageShift: (px) => set({ stageShift: px }),
+    setKabukiOut: (out) => set({ kabukiOut: out }),
     ballyhoo: () => {
       set({ ballyhooAt: Date.now() });
       announce('Ballyhoo!', 'LX', 'chatter');

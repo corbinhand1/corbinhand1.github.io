@@ -13,7 +13,7 @@ export const CueCallout: React.FC = () => {
   const status = useShowStore((s) => s.status);
   const cueIndex = useShowStore((s) => s.cueIndex);
   const results = useShowStore((s) => s.results.length);
-  const dept = CUES[Math.min(cueIndex, CUES.length - 1)].dept.toUpperCase();
+  const dept = CUES[Math.min(cueIndex, CUES.length - 1)].name.toUpperCase();
   const travelMs = T.approach / (T.barMarkPct / 100);
   const firstCue = cueIndex === 0 && results === 0;
 

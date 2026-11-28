@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { haptic } from '../../lib/haptics';
 
 /**
  * AboutEthosOverlay Component
@@ -38,7 +39,7 @@ export const AboutEthosOverlay: React.FC = () => {
           duration: 0.8, 
           ease: [0.4, 0, 0.2, 1] 
         }}
-        onClick={() => setIsOpen(true)}
+        onClick={() => { haptic('tap'); setIsOpen(true); }}
         className="fixed bottom-6 left-6 z-[9998] group sm:bottom-6 sm:left-6 md:bottom-8 md:left-8"
         aria-label="About Nebula Creative"
         aria-expanded={isOpen}

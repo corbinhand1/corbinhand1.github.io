@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { useShowStore } from '../../stores/showStore';
 import { sfx } from '../../lib/sfx';
-import { AudioMeter } from '../AudioMeter';
+import { haptic } from '../../lib/haptics';
 
 // Types for confetti effects
 interface LandingSpec {
@@ -241,17 +241,21 @@ export const ConfettiButton: React.FC<{
 
   const handleClick = () => {
     if (!launchMode) {
-      if (goLive) callGo();
+      if (goLive) { haptic('press'); callGo(); }
       return;
     }
     if (locked) return;
     if (!coverOpen) {
+      haptic('tap');
       setCoverOpen(true);
       bumpIdle();
       return;
     }
+    const big = count % effects.length === 4; // MEGA EXPLOSION
     fireEffect(count);
     registerLaunch();
+    // the press that brings in the fire marshal gets the heavy buzz too
+    haptic(big || useShowStore.getState().lockedUntil > Date.now() ? 'heavy' : 'thump');
     bumpIdle();
   };
 
@@ -520,9 +524,6 @@ export const ConfettiButton: React.FC<{
               </div>
             </div>
           )}
-
-          {/* L/R audio meters either side of the button */}
-          <AudioMeter />
           </div>
         </div>
       </div>

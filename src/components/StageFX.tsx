@@ -2,6 +2,11 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useShowStore } from '../stores/showStore';
 import { sfx } from '../lib/sfx';
 
+/** Go Video timeline: gobo out, a beat, then the drop falls out of frame */
+export const KABUKI = { GOBO_OUT: 280, BEAT: 220, FALL: 740 };
+/** When the stage behind is fully revealed (ms after Go Video) */
+export const KABUKI_REVEAL_MS = KABUKI.GOBO_OUT + KABUKI.BEAT + KABUKI.FALL;
+
 const reducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -28,19 +33,29 @@ function pagePosition(el: HTMLElement) {
 
 export const KabukiDrop: React.FC = () => {
   const rolling = useShowStore((s) => s.videoRolling);
-  const lightsUp = useShowStore((s) => s.lightLevel > 0);
-  const [state, setState] = useState<'hung' | 'dropping' | 'gone'>(rolling ? 'gone' : 'hung');
+  const lightLevel = useShowStore((s) => s.lightLevel);
+  const lightsUp = lightLevel > 0;
+  const setKabukiOut = useShowStore((s) => s.setKabukiOut);
+  // hung -> goboOut (gobo snaps out) -> dropping (released) -> gone
+  const [state, setState] = useState<'hung' | 'goboOut' | 'dropping' | 'gone'>(rolling ? 'gone' : 'hung');
   const ref = useRef<HTMLDivElement>(null);
   const [geo, setGeo] = useState<Geo | null>(null);
 
   useEffect(() => {
     if (rolling) {
-      setState((s) => (s === 'hung' ? 'dropping' : s));
-      const id = window.setTimeout(() => setState('gone'), reducedMotion() ? 0 : 750);
-      return () => clearTimeout(id);
+      if (reducedMotion()) { setState('gone'); return; }
+      // Go Video: gobo out first, a beat, then release the drop
+      setState((s) => (s === 'hung' ? 'goboOut' : s));
+      const { GOBO_OUT, BEAT, FALL } = KABUKI;
+      const t1 = window.setTimeout(() => setState((s) => (s === 'goboOut' ? 'dropping' : s)), GOBO_OUT + BEAT);
+      const t2 = window.setTimeout(() => setState('gone'), GOBO_OUT + BEAT + FALL);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
     setState('hung'); // replay: re-hang the drop
   }, [rolling]);
+
+  // Tell the rest of the show when the stage behind is revealed (beams + logo wait for this)
+  useEffect(() => { setKabukiOut(state === 'gone'); }, [state, setKabukiOut]);
 
   useLayoutEffect(() => {
     if (state === 'gone') return;
@@ -67,57 +82,93 @@ export const KabukiDrop: React.FC = () => {
 
   if (state === 'gone') return null;
 
-  const BOTTOM = 10; // how far below the logo wrapper the hem sits (unchanged)
   const box: React.CSSProperties = geo
-    ? { left: -geo.x, top: -geo.y, width: geo.vw, height: geo.y + geo.h + BOTTOM }
+    ? { left: -geo.x, top: -geo.y, width: geo.vw, height: geo.y + geo.h + 10 }
     : { visibility: 'hidden' };
-  // The printed logo sits exactly where it did on the old (logo-sized) drop
-  const logoBox: React.CSSProperties = geo?.logo
-    ? { left: geo.logo.x, top: geo.logo.y, width: geo.logo.w, height: geo.logo.h }
-    : { visibility: 'hidden' };
+  // the gobo sits exactly over the real logo; the hotspot is centred on it
+  const L = geo?.logo;
+  const logoBox: React.CSSProperties = L ? { left: L.x, top: L.y, width: L.w, height: L.h } : { visibility: 'hidden' };
+  const hot = geo && L
+    ? { ['--cx' as any]: `${((L.x + L.w / 2) / geo.vw) * 100}%`, ['--cy' as any]: `${((L.y + L.h / 2) / (geo.y + geo.h + 10)) * 100}%` }
+    : {};
 
   return (
-    <div ref={ref} className={`kabuki ${state === 'dropping' ? 'kabuki--drop' : 'kabuki--hung'}`} style={box} aria-hidden>
+    <div ref={ref} className={`kabuki ${state === 'dropping' ? 'kabuki--drop' : 'kabuki--hung'} ${state === 'hung' ? '' : 'kabuki--gobo-out'}`} style={{ ...box, ...hot }} aria-hidden>
       <style>{`
         .kabuki {
-          position: absolute; z-index: 40; pointer-events: none; max-width: none;
-          border-radius: 0 0 10px 10px; transform-origin: 50% 100%;
-          background:
-            linear-gradient(to bottom, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 82%, rgba(0,0,0,.5) 100%),
-            repeating-linear-gradient(90deg, rgba(0,0,0,.38) 0px, rgba(255,255,255,.07) 13px, rgba(0,0,0,.38) 27px),
-            linear-gradient(90deg, #3c0710, #7a1222 50%, #3c0710);
-          box-shadow: 0 18px 40px rgba(0,0,0,.55), inset 0 0 40px rgba(0,0,0,.5);
+          position: absolute; z-index: 40; pointer-events: none; max-width: none; overflow: hidden;
+          /* a soft shadow where the hem meets the deck */
+          filter: drop-shadow(0 14px 18px rgba(0,0,0,.55));
         }
-        .kabuki::before { /* the pipe it hangs from, at the top of the window */
-          content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px;
-          background: linear-gradient(#9aa3ad, #3c434b); box-shadow: 0 2px 5px rgba(0,0,0,.6);
+        /* the drape itself: everything inside falls together */
+        .kabuki__drape {
+          position: absolute; inset: 0; will-change: transform;
+          /* Real velvet: Unsplash photo by Liana S (@cherstve_pechivo), Unsplash License (free, no attribution required) */
+          background: #2a040b url('/assets/curtain-velvet.jpg') center 30% / cover no-repeat;
+        }
+        /* stage lighting: front-of-house hotspot on the logo, falloff to the sides and up into the flies,
+           and the fabric getting darker toward the floor */
+        .kabuki__shadow {
+          position: absolute; inset: 0;
+          background:
+            radial-gradient(ellipse 62% 88% at var(--cx, 50%) var(--cy, 55%), rgba(0,0,0,0) 30%, rgba(0,0,0,.42) 72%, rgba(0,0,0,.78) 100%),
+            linear-gradient(to bottom, rgba(0,0,0,.85) 0%, rgba(0,0,0,.35) 22%, rgba(0,0,0,0) 46%, rgba(0,0,0,0) 78%, rgba(0,0,0,.4) 100%);
+        }
+        .kabuki__hotspot {
+          position: absolute; inset: 0; mix-blend-mode: screen;
+          background: radial-gradient(ellipse 34% 52% at var(--cx, 50%) var(--cy, 55%), rgba(255,196,160,.20), rgba(255,170,130,.07) 50%, rgba(0,0,0,0) 75%);
         }
         .kabuki__wash { /* the stage beams hitting the velvet on "Go Lights" */
           position: absolute; inset: 0; mix-blend-mode: screen; opacity: 0; transition: opacity 2.5s ease-out;
           background:
-            radial-gradient(ellipse 30% 75% at 22% 0%, rgba(255,193,7,.45), rgba(255,152,0,.12) 55%, transparent 75%),
-            radial-gradient(ellipse 30% 75% at 50% 0%, rgba(255,193,7,.40), rgba(255,152,0,.10) 55%, transparent 75%),
-            radial-gradient(ellipse 30% 75% at 78% 0%, rgba(255,193,7,.45), rgba(255,152,0,.12) 55%, transparent 75%);
+            radial-gradient(ellipse 22% 80% at 24% 0%, rgba(255,190,90,.30), rgba(255,150,40,.08) 55%, transparent 75%),
+            radial-gradient(ellipse 22% 80% at 50% 0%, rgba(255,190,90,.24), rgba(255,150,40,.06) 55%, transparent 75%),
+            radial-gradient(ellipse 22% 80% at 76% 0%, rgba(255,190,90,.30), rgba(255,150,40,.08) 55%, transparent 75%);
         }
         .kabuki__wash[data-on="true"] { opacity: 1; }
-        .kabuki__logo { position: absolute; display: flex; align-items: center; justify-content: center; max-width: none; }
-        .kabuki__logo img {
-          width: 100%; height: 100%; object-fit: contain;
-          filter: grayscale(1) brightness(1.9) contrast(.85); opacity: .5; mix-blend-mode: screen;
+        /* the logo as a projected gobo: bent by the folds (SVG displacement), shaded by them (overlay),
+           with a soft edge and a little light spill */
+        .kabuki__gobo { position: absolute; max-width: none; transition: opacity .28s ease-in; }
+        .kabuki--gobo-out .kabuki__gobo { opacity: 0; } /* gobo cue out before the drop */
+        .kabuki__gobo img {
+          position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
         }
-        .kabuki--hung { animation: kabuki-in .6s cubic-bezier(.2,.9,.3,1.2) both; }
-        @keyframes kabuki-in { from { transform: translateY(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
-        .kabuki--drop { animation: kabuki-drop .7s cubic-bezier(.55,0,1,.45) forwards; }
-        @keyframes kabuki-drop {
-          0%   { transform: translateY(0) scaleY(1); opacity: 1; }
-          12%  { transform: translateY(1.5%) scaleY(1.02); opacity: 1; }
-          100% { transform: translateY(85%) scaleY(.12); opacity: 0; }
+        .kabuki__gobo .g-light {
+          filter: url(#kabuki-folds) grayscale(1) brightness(3) blur(.5px);
+          mix-blend-mode: overlay; opacity: .95;
         }
-        @media (prefers-reduced-motion: reduce) { .kabuki--drop, .kabuki--hung { animation: none; } }
+        .kabuki__gobo .g-glow {
+          filter: url(#kabuki-folds) grayscale(1) brightness(2.2) sepia(.35) blur(6px);
+          mix-blend-mode: screen; opacity: .22;
+        }
+        .kabuki--hung { animation: kabuki-in .5s ease-out both; }
+        @keyframes kabuki-in { from { opacity: 0; } to { opacity: 1; } }
+        /* Released from the pipe: a split-second sag, then free fall straight down out of frame */
+        .kabuki--drop .kabuki__drape { animation: kabuki-fall .7s linear forwards; }
+        /* release sag (ease-out), then free fall: distance grows with time squared (ease-in quad) */
+        @keyframes kabuki-fall {
+          0%   { transform: translateY(0);    animation-timing-function: cubic-bezier(.2,.7,.4,1); }
+          10%  { transform: translateY(1.4%); animation-timing-function: cubic-bezier(.55,.085,.68,.53); }
+          100% { transform: translateY(103%); }
+        }
+        @media (prefers-reduced-motion: reduce) { .kabuki--drop .kabuki__drape, .kabuki--hung { animation: none; } }
       `}</style>
-      <div className="kabuki__wash" data-on={lightsUp ? 'true' : 'false'} />
-      <div className="kabuki__logo" style={logoBox}>
-        <img src="/assets/Nebula Logo Color Text.png" alt="" />
+      {/* horizontal-only waviness that follows the vertical folds */}
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
+        <filter id="kabuki-folds" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.035 0.0008" numOctaves="2" seed="11" result="n" />
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="B" />
+        </filter>
+      </svg>
+      <div className="kabuki__drape">
+        <div className="kabuki__shadow" />
+        <div className="kabuki__hotspot" />
+        {/* Lights Go: front light on the drape. Flashes to full, then settles with the rig level */}
+        <div className="kabuki__wash" data-on={lightsUp ? 'true' : 'false'} style={lightsUp ? { opacity: 0.6 + 0.4 * lightLevel } : undefined} />
+        <div className="kabuki__gobo" style={logoBox}>
+          <img className="g-glow" src="/assets/Nebula Logo Color Text.png" alt="" />
+          <img className="g-light" src="/assets/Nebula Logo Color Text.png" alt="" />
+        </div>
       </div>
     </div>
   );

@@ -64,6 +64,7 @@ const easedLerp      = (a: number, b: number, t: number, ease = easeInOutCubic) 
 
 export const LogoReactor: React.FC = () => {
   const isVideoRolling = useShowStore((s) => s.videoRolling);
+  const kabukiOut = useShowStore((s) => s.kabukiOut);
   const [phase, setPhase] = useState<Phase>('standby');
 
   // Reduced motion
@@ -72,10 +73,14 @@ export const LogoReactor: React.FC = () => {
     []
   );
 
-  // Follow the video cue both ways (replaying the show powers the logo back down)
+  // Follow the video cue both ways (replaying the show powers the logo back down).
+  // On Go Video the kabuki goes first: the logo stays dark until the drop is gone,
+  // then illuminates slowly.
   useEffect(() => {
-    setPhase(isVideoRolling ? 'live' : 'standby');
-  }, [isVideoRolling]);
+    if (!isVideoRolling || !kabukiOut) { setPhase('standby'); return; }
+    const id = window.setTimeout(() => setPhase('live'), reduced ? 0 : 150);
+    return () => clearTimeout(id);
+  }, [isVideoRolling, kabukiOut, reduced]);
 
   // Particles (slow, independent, rare lane-changes)
   const PARTICLE_COUNT = 20;
@@ -159,8 +164,9 @@ export const LogoReactor: React.FC = () => {
   // Live targets
   const LIVE = { b: 1, s: 1, blur: 0, o: 1, scale: 1 };
   // Adobe-ish ramp
-  const RAMP_EASE: [number, number, number, number] = [0.22, 1, 0.23, 1];
-  const RAMP_DUR = 0.9; // 900ms – deliberate, non-snappy
+  // Slow theatrical fade-up: starts gently, keeps building, settles at full
+  const RAMP_EASE: [number, number, number, number] = [0.45, 0, 0.25, 1];
+  const RAMP_DUR = 3.2; // seconds
 
   // Motion values (start from standby so first paint is correct)
   const mvB    = useMotionValue(STANDBY.b);

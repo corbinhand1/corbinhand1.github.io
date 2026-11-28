@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShowStore, CUES, T, type Tone } from '../../stores/showStore';
+import { haptic } from '../../lib/haptics';
 
 /**
  * StageManager — the headset log, plus the cue bar for calling the show.
@@ -33,7 +34,7 @@ function CueBar() {
   const cueIndex = useShowStore((s) => s.cueIndex);
   const callGo = useShowStore((s) => s.callGo);
   const calling = status === 'standby' || status === 'approach';
-  const dept = CUES[Math.min(cueIndex, CUES.length - 1)].dept;
+  const dept = CUES[Math.min(cueIndex, CUES.length - 1)].name;
   const firstCue = useShowStore((s) => s.cueIndex === 0 && s.results.length === 0);
   const travelMs = T.approach / (T.barMarkPct / 100);
 
@@ -50,9 +51,9 @@ function CueBar() {
         >
           <button
             type="button"
-            onClick={callGo}
+            onClick={() => { haptic('press'); callGo(); }}
             className="cuebar-btn w-full mt-2 text-left rounded-xl p-2 border border-white/10 bg-black/20"
-            aria-label={`Call Go ${dept}`}
+            aria-label={`Call ${dept} Go`}
           >
             <div className="flex items-baseline justify-between font-mono text-[10px] sm:text-[11px] tracking-wider uppercase">
               <span className={status === 'approach' ? 'text-amber-200' : `text-amber-300 ${firstCue ? 'sm-flash' : ''}`}>
@@ -134,7 +135,7 @@ export const StageManager: React.FC = () => {
             {status === 'done' && (
               <motion.button
                 type="button"
-                onClick={startShow}
+                onClick={() => { haptic('tap'); startShow(); }}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="sm-replay text-[10px] sm:text-[11px] font-mono uppercase tracking-wider text-white/80 hover:text-white rounded-full border border-white/15 hover:border-white/40 bg-white/5 px-2.5 py-1"

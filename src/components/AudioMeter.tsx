@@ -3,7 +3,7 @@ import { useShowStore } from '../stores/showStore';
 import { ENV_FPS, ENV_L, ENV_R } from '../config/drumRoll';
 
 /**
- * AudioMeter — stereo LED meters either side of the big button, like a console strip.
+ * AudioMeter — a slim stereo LED meter bridge on the left edge of the screen.
  * Dark except while the drum roll is playing: they follow its real loudness (measured
  * from the file), slam into the red on the hit, then fall back to dark when it ends.
  * Visual only, so visitors see audio "go" even with sound muted.
@@ -98,13 +98,19 @@ export const AudioMeter: React.FC = () => {
   return (
     <>
       <style>{`
-        .meter-pair { position: absolute; inset: 0; pointer-events: none; }
+        .meter-pair {
+          position: fixed; z-index: 45; pointer-events: none;
+          left: max(clamp(6px, 1.4vw, 22px), env(safe-area-inset-left));
+          top: 50%; transform: translateY(-50%);
+          height: clamp(150px, 34vh, 300px);
+          display: flex; gap: 4px; padding: 6px 5px 5px; border-radius: 8px;
+          background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.06);
+          backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+        }
         .meter-strip {
-          position: absolute; top: 8%; height: 84%; width: clamp(9px, 1.1vw, 13px);
+          position: relative; height: 100%; width: clamp(7px, .8vw, 11px);
           display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: none;
         }
-        .meter-strip--l { right: calc(100% + 9% + clamp(10px, 1.6vw, 22px)); }
-        .meter-strip--r { left: calc(100% + 9% + clamp(10px, 1.6vw, 22px)); }
         .meter-col {
           flex: 1; width: 100%; display: flex; flex-direction: column; gap: 2px; padding: 2px;
           border-radius: 4px; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.08);
