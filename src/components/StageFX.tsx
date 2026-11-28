@@ -65,18 +65,28 @@ export const KabukiDrop: React.FC = () => {
       // the real logo image, so the printed one sits exactly on top of it
       const img = parent.querySelector('img[alt="Nebula Creative Logo"]') as HTMLImageElement | null;
       const lp = img ? pagePosition(img) : null;
+      // Before the logo image loads its width is 0 (height is set by CSS). Never measure it as
+      // 0 wide: derive the width from the height and the logo's shape (1.5 : 1).
+      let lw = img?.offsetWidth ?? 0;
+      const lh = img?.offsetHeight ?? 0;
+      if (img && !lw && lh) {
+        const aspect = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1.5;
+        lw = Math.round(lh * aspect);
+      }
+      // offsetLeft is from the image's left edge; if it has no width yet it sits at the centre
+      const lx = lp ? (img!.offsetWidth ? lp.x : lp.x - lw / 2) : 0;
       setGeo({
         x, y, w: parent.offsetWidth, h: parent.offsetHeight, vw: document.documentElement.clientWidth,
-        logo: img && lp ? { x: lp.x, y: lp.y, w: img.offsetWidth, h: img.offsetHeight } : null,
+        logo: img && lp && lw && lh ? { x: lx, y: lp.y, w: lw, h: lh } : null,
       });
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(parent);
     const img = parent.querySelector('img[alt="Nebula Creative Logo"]');
-    if (img) ro.observe(img);
+    if (img) { ro.observe(img); img.addEventListener('load', measure); }
     window.addEventListener('resize', measure);
-    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+    return () => { ro.disconnect(); img?.removeEventListener('load', measure); window.removeEventListener('resize', measure); };
   }, [state]);
 
   if (state === 'gone') return null;
@@ -91,11 +101,31 @@ export const KabukiDrop: React.FC = () => {
     ? {
         ['--cx' as any]: `${((L.x + L.w / 2) / geo.vw) * 100}%`,
         ['--cy' as any]: `${((L.y + L.h / 2) / (geo.y + geo.h + 10)) * 100}%`,
-        // the curtain light's gap is sized from the logo itself, so it fully clears the gobo
-        ['--rx' as any]: `${Math.round(L.w * 1.0)}px`,
-        ['--ry' as any]: `${Math.round(L.h * 1.2)}px`,
       }
     : {};
+
+  // Lights Go wash, built AROUND the logo (no mask: Safari drops masks on fading, blended
+  // layers, which let the light hit the gobo). One beam in the space left of the logo, one
+  // right of it, and light on the fabric below it; every gradient is zero over the logo box.
+  let washBg: string | undefined;
+  if (geo && L) {
+    const Hk = geo.y + geo.h + 10;
+    const m = Math.max(24, L.w * 0.1);                 // clear margin around the logo
+    const leftEdge = L.x - m, rightEdge = L.x + L.w + m;
+    const beams: string[] = [];
+    const beam = (x0: number, x1: number) => {
+      const w = x1 - x0;
+      if (w < 30) return;
+      beams.push(`radial-gradient(ellipse ${w / 2}px ${Hk * 0.95}px at ${x0 + w / 2}px 0px, rgba(255,190,90,.36) 0%, rgba(255,150,40,.12) 55%, rgba(255,150,40,0) 100%)`);
+    };
+    beam(0, leftEdge);
+    beam(rightEdge, geo.vw);
+    const y0 = L.y + L.h + m;
+    if (y0 < Hk - 10) {
+      beams.push(`linear-gradient(to bottom, rgba(255,170,80,0) ${y0}px, rgba(255,170,80,.16) ${y0 + 40}px, rgba(255,150,40,.08) 100%)`);
+    }
+    washBg = beams.join(', ');
+  }
 
   return (
     <div ref={ref} className={`kabuki ${state === 'dropping' ? 'kabuki--drop' : 'kabuki--hung'} ${state === 'hung' ? '' : 'kabuki--gobo-out'}`} style={{ ...box, ...hot }} aria-hidden>
@@ -123,19 +153,10 @@ export const KabukiDrop: React.FC = () => {
           position: absolute; inset: 0; mix-blend-mode: screen;
           background: radial-gradient(ellipse 34% 52% at var(--cx, 50%) var(--cy, 55%), rgba(255,196,160,.20), rgba(255,170,130,.07) 50%, rgba(0,0,0,0) 75%);
         }
-        .kabuki__wash { /* the stage beams hitting the velvet on "Go Lights" */
+        .kabuki__wash { /* the stage beams hitting the velvet on "Go Lights" (background set inline, around the logo) */
           position: absolute; inset: 0; mix-blend-mode: screen; opacity: 0; transition: opacity 3s ease-in-out;
-          background:
-            radial-gradient(ellipse 22% 80% at 24% 0%, rgba(255,190,90,.30), rgba(255,150,40,.08) 55%, transparent 75%),
-            radial-gradient(ellipse 22% 80% at 50% 0%, rgba(255,190,90,.24), rgba(255,150,40,.06) 55%, transparent 75%),
-            radial-gradient(ellipse 22% 80% at 76% 0%, rgba(255,190,90,.30), rgba(255,150,40,.08) 55%, transparent 75%);
         }
         .kabuki__wash[data-on="true"] { opacity: .8; }
-        /* the wash goes around the logo, so the gobo keeps a steady brightness through the cue */
-        .kabuki__wash {
-          -webkit-mask-image: radial-gradient(ellipse var(--rx, 30%) var(--ry, 42%) at var(--cx, 50%) var(--cy, 55%), rgba(0,0,0,0) 0%, rgba(0,0,0,0) 70%, #000 100%);
-                  mask-image: radial-gradient(ellipse var(--rx, 30%) var(--ry, 42%) at var(--cx, 50%) var(--cy, 55%), rgba(0,0,0,0) 0%, rgba(0,0,0,0) 70%, #000 100%);
-        }
         /* the logo as a projected gobo: bent by the folds (SVG displacement), shaded by them (overlay),
            with a soft edge and a little light spill */
         .kabuki__gobo { position: absolute; max-width: none; transition: opacity .28s ease-in; }
@@ -174,7 +195,7 @@ export const KabukiDrop: React.FC = () => {
         <div className="kabuki__shadow" />
         <div className="kabuki__hotspot" />
         {/* Lights Go: front light on the drape. A smooth fade to a steady level (no flash) */}
-        <div className="kabuki__wash" data-on={lightsUp ? 'true' : 'false'} />
+        <div className="kabuki__wash" data-on={lightsUp ? 'true' : 'false'} style={washBg ? { background: washBg } : undefined} />
         <div className="kabuki__gobo" style={logoBox}>
           <img className="g-glow" src="/assets/Nebula Logo Color Text.png" alt="" />
           <img className="g-light" src="/assets/Nebula Logo Color Text.png" alt="" />
