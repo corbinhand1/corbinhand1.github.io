@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useShowStore } from '../stores/showStore';
 import { CHATTER, SM_REPLIES } from '../config/chatter';
 import { sfx } from '../lib/sfx';
+import { startStageMove, stageGagUsed } from './Stagehand';
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -198,6 +199,7 @@ function useKeyboard() {
         buf = (buf + e.key.toLowerCase()).slice(-12);
         if (buf.endsWith('places')) { buf = ''; triggerHaze(); }
         else if (buf.endsWith('blackout')) { buf = ''; triggerBlackout(); }
+        else if (buf.endsWith('ballyhoo')) { buf = ''; useShowStore.getState().ballyhoo(); }
       }
     };
     window.addEventListener('keydown', onKey);
@@ -210,7 +212,13 @@ function useHeadsetChatter() {
   const done = useShowStore((s) => s.status === 'done');
   useEffect(() => {
     if (!done) return;
-    const order = [...CHATTER].sort(() => Math.random() - 0.5);
+    // The "move the stage" line always goes first: it kicks off the stagehand gag
+    const isStageLine = (l: { text: string }) => /a little to the left/i.test(l.text);
+    // First time the show is up, the stage line leads; after the gag has run it's retired
+    const order = [
+      ...(stageGagUsed() ? [] : CHATTER.filter(isStageLine)),
+      ...CHATTER.filter((l) => !isStageLine(l)).sort(() => Math.random() - 0.5),
+    ];
     let i = 0;
     let t: number;
     const next = (first = false) => {
@@ -219,6 +227,10 @@ function useHeadsetChatter() {
         const line = order[i++ % order.length];
         const st = useShowStore.getState();
         st.announce(line.text, line.who, 'chatter');
+        if (isStageLine(line)) {
+          startStageMove();
+          return next(); // no SM reply: the stagehand is the reply
+        }
         if (Math.random() < 0.6) {
           window.setTimeout(() => {
             useShowStore.getState().announce(SM_REPLIES[Math.floor(Math.random() * SM_REPLIES.length)], 'SM', 'info');

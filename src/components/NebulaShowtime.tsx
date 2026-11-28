@@ -8,6 +8,9 @@ import { AboutEthosOverlay } from './AboutEthosOverlay';
 import { LogoReactor } from './LogoReactor';
 import { ConfettiPile, scheduleLandings, sweepPile, pileSize } from './ConfettiPile';
 import { ShowFX, triggerHaze } from './ShowFX';
+import { CueCallout } from './CueCallout';
+import { KabukiDrop, CO2Jets, Ballyhoo } from './StageFX';
+import { Stagehand } from './Stagehand';
 
 import { useShowStore } from '../stores/showStore';
 import { sfx } from '../lib/sfx';
@@ -128,7 +131,7 @@ function SoundToggle() {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: 1.4, duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
       onClick={toggleSound}
-      className="fixed bottom-6 left-[7.5rem] md:bottom-8 md:left-24 z-[9998] group !p-0"
+      className="fixed bottom-6 left-[7.5rem] md:bottom-8 md:left-24 z-[9998] group"
       aria-label={soundOn ? 'Mute comms audio' : 'Turn on comms audio'}
       aria-pressed={soundOn}
       title={soundOn ? 'Comms audio on' : 'Comms audio off'}
@@ -150,6 +153,7 @@ function SoundToggle() {
 /* -------------------- MAIN COMPONENT -------------------- */
 const NebulaShowtime: React.FC = () => {
   const status = useShowStore((s) => s.status);
+  const stageShift = useShowStore((s) => s.stageShift);
   const startShow = useShowStore((s) => s.startShow);
   const [everDone, setEverDone] = useState(false);
   const [noteIdx, setNoteIdx] = useState(() => Math.floor(Math.random() * CLEANUP_NOTES.length));
@@ -206,6 +210,7 @@ const NebulaShowtime: React.FC = () => {
       <BlackLayer />
       <Noise />
       <StageBeams />
+      <Ballyhoo />
 
       <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 md:pr-[18.5rem] lg:pr-[21rem] xl:pr-6 relative nebula-stage">
         <motion.div
@@ -214,9 +219,15 @@ const NebulaShowtime: React.FC = () => {
           transition={{ duration: 0.8 }}
           style={{ textAlign: 'center', maxWidth: '56rem', width: '100%', position: 'relative', zIndex: 10 }}
         >
+          {/* The "stage": everything here moves when the stagehand pushes it */}
+          <div
+            className="relative mx-auto"
+            style={{ width: 'fit-content', maxWidth: '100%', transform: `translateX(${stageShift}px)`, transition: 'transform 1.6s cubic-bezier(.55,.05,.35,1)' }}
+          >
           <header className="mb-4 sm:mb-6 relative z-20 text-center">
-            <div onClick={onLogoTap}>
+            <div onClick={onLogoTap} className="relative inline-block">
               <LogoReactor />
+              <KabukiDrop />
             </div>
           </header>
           <main>
@@ -225,7 +236,10 @@ const NebulaShowtime: React.FC = () => {
 
           <div className="relative z-20">
             <ConfettiButton scheduleLandings={scheduleLandings} />
+            {status !== 'done' && <CueCallout />}
             <ContactButton show={everDone} />
+          </div>
+          <Stagehand />
           </div>
         </motion.div>
 
@@ -240,6 +254,7 @@ const NebulaShowtime: React.FC = () => {
       </div>
 
       <StageManager />
+      <CO2Jets />
       <ShowFX />
       <SoundToggle />
       <AboutEthosOverlay />

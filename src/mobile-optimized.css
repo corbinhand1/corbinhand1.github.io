@@ -8,6 +8,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Clip sideways overflow at the page edge (the stagehand walks on from off-screen)
+   without clipping anything that's actually on screen. */
+html, body {
+  overflow-x: clip;
+}
+
 /* Global body styles */
 body {
   background-color: #111827;

@@ -34,6 +34,7 @@ function CueBar() {
   const callGo = useShowStore((s) => s.callGo);
   const calling = status === 'standby' || status === 'approach';
   const dept = CUES[Math.min(cueIndex, CUES.length - 1)].dept;
+  const firstCue = useShowStore((s) => s.cueIndex === 0 && s.results.length === 0);
   const travelMs = T.approach / (T.barMarkPct / 100);
 
   return (
@@ -54,7 +55,7 @@ function CueBar() {
             aria-label={`Call Go ${dept}`}
           >
             <div className="flex items-baseline justify-between font-mono text-[10px] sm:text-[11px] tracking-wider uppercase">
-              <span className={status === 'approach' ? 'text-amber-200' : 'text-red-300'}>
+              <span className={status === 'approach' ? 'text-amber-200' : `text-amber-300 ${firstCue ? 'sm-flash' : ''}`}>
                 ● Standby {dept}
               </span>
               <span className="text-white/40 hidden sm:inline">space = GO</span>
@@ -106,6 +107,9 @@ export const StageManager: React.FC = () => {
     >
       <style>{`
         @keyframes cue-sweep { from { width: 0%; } to { width: 100%; } }
+        @keyframes sm-flash-kf { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.15; } }
+        .sm-flash { animation: sm-flash-kf .5s steps(1, end) infinite; }
+        @media (prefers-reduced-motion: reduce) { .sm-flash { animation: none; } }
         .cuebar-btn { min-height: 0 !important; padding: 8px !important; }
       `}</style>
       <div

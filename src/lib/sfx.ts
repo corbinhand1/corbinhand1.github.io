@@ -1,12 +1,15 @@
 /**
- * sfx — tiny WebAudio synth for comms sounds. No audio files.
+ * sfx — tiny WebAudio synth for comms sounds, plus the one real clip (drum roll).
  * Every call takes `on` so callers don't need to check the toggle themselves.
  * Muted by default; the AudioContext is only created after a user gesture.
  */
+import { DRUM_ROLL_URL } from '../config/drumRoll';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
-let murmur: { src: AudioBufferSourceNode; gain: GainNode } | null = null;
+let drumRoll: AudioBuffer | null = null;
+let drumRollLoading: Promise<void> | null = null;
+let drumRollSrc: AudioBufferSourceNode | null = null;
 
 function ac(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -72,21 +75,54 @@ function noise(start: number, dur: number, vol: number, filter: BiquadFilterType
 }
 
 export const sfx = {
-  /** Create/resume the context. Call from a user gesture. */
+  /** Create/resume the context. Call from a user gesture. Also preloads the drum roll. */
   unlock() {
-    ac();
+    const c = ac();
+    if (c && !drumRoll && !drumRollLoading) {
+      drumRollLoading = fetch(DRUM_ROLL_URL)
+        .then((r) => r.arrayBuffer())
+        .then((b) => c.decodeAudioData(b))
+        .then((buf) => { drumRoll = buf; })
+        .catch(() => { drumRollLoading = null; });
+    }
   },
 
-  /** Headset key click */
+  /** Drum roll for "Go Audio". Pre-decoded so it starts with no lag (the confetti syncs to its hit). */
+  drumRoll(on: boolean) {
+    if (!on) return;
+    const c = ac();
+    if (!c || !master) return;
+    if (!drumRoll) {
+      // Not decoded yet: fall back to a plain element (may start a few ms late)
+      const el = new Audio(DRUM_ROLL_URL);
+      el.volume = 0.9;
+      el.play().catch(() => {});
+      return;
+    }
+    drumRollSrc?.stop();
+    const src = c.createBufferSource();
+    src.buffer = drumRoll;
+    const g = c.createGain();
+    g.gain.value = 1.4;
+    src.connect(g).connect(master);
+    src.start();
+    drumRollSrc = src;
+  },
+
+  stopDrumRoll() {
+    drumRollSrc?.stop();
+    drumRollSrc = null;
+  },
+
+  /** Soft UI tick (no static) */
   click(on: boolean) {
     if (!on) return;
-    noise(0, 0.03, 0.25, 'highpass', 2500);
+    tone(1200, 0, 0.04, 0.06, 'sine');
   },
 
   /** Two-tone standby blip */
   standby(on: boolean) {
     if (!on) return;
-    noise(0, 0.025, 0.15, 'highpass', 2500);
     tone(880, 0.03, 0.09, 0.08, 'square');
     tone(660, 0.13, 0.11, 0.08, 'square');
   },
@@ -94,7 +130,6 @@ export const sfx = {
   /** Rising GO chirp */
   go(on: boolean) {
     if (!on) return;
-    noise(0, 0.025, 0.2, 'highpass', 2500);
     tone(600, 0.02, 0.09, 0.12, 'triangle', 1300);
   },
 
@@ -113,6 +148,13 @@ export const sfx = {
     noise(0.04, 0.5, 0.06, 'highpass', 4000); // paper flutter
   },
 
+  /** CO2 jet: a short, punchy blast (not a long hiss) */
+  co2(on: boolean, size = 1) {
+    if (!on) return;
+    noise(0, 0.5 + 0.2 * size, 0.22 * Math.min(size, 1.4), 'bandpass', 5000, 1400);
+    tone(90, 0, 0.25, 0.12, 'sine', 45);
+  },
+
   /** Broom swish */
   sweep(on: boolean) {
     if (!on) return;
@@ -129,31 +171,6 @@ export const sfx = {
     }
   },
 
-  /** Low crowd/room murmur loop while the show is up */
-  setMurmur(on: boolean) {
-    const c = on ? ac() : ctx;
-    if (!c || !master) return;
-    if (on && !murmur) {
-      const src = c.createBufferSource();
-      src.buffer = noiseBuffer(c, 4, true);
-      src.loop = true;
-      const bq = c.createBiquadFilter();
-      bq.type = 'bandpass';
-      bq.frequency.value = 420;
-      bq.Q.value = 0.7;
-      const g = c.createGain();
-      g.gain.setValueAtTime(0.0001, c.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.05, c.currentTime + 1.5);
-      src.connect(bq).connect(g).connect(master);
-      src.start();
-      murmur = { src, gain: g };
-    } else if (!on && murmur) {
-      const m = murmur;
-      murmur = null;
-      m.gain.gain.cancelScheduledValues(c.currentTime);
-      m.gain.gain.setValueAtTime(Math.max(m.gain.gain.value, 0.0001), c.currentTime);
-      m.gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.6);
-      m.src.stop(c.currentTime + 0.7);
-    }
-  },
+  /** Room murmur removed (it read as headset static). Kept as a no-op for callers. */
+  setMurmur(_on: boolean) {},
 };

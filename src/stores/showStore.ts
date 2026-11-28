@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { sfx } from '../lib/sfx';
+import { DRUM_ROLL_HIT_MS } from '../config/drumRoll';
 
 /**
  * showStore — the single source of truth for the show.
@@ -41,8 +42,9 @@ export const CUES: { dept: Dept; op: string }[] = [
 
 // Timing (ms)
 export const T = {
-  firstStandby: 1200,
-  standbyHold: 650,    // Standby logged → bar starts
+  firstStandby: 3200,  // page settles + visitor reads the intro before the first cue
+  firstStandbyHold: 2400, // extra warning time on the very first cue
+  standbyHold: 1100,   // Standby logged → bar starts (the warning flashes during this)
   approach: 1500,      // bar travel time to the mark
   grace: 450,          // how late a GO still counts
   betweenCues: 750,
@@ -55,6 +57,7 @@ const SOUND_KEY = 'nebula.sound';
 let logId = 0;
 let timers: number[] = [];
 let runId = 0;
+let confettiFired = false; // confetti already fired on the drum hit this run
 
 const now = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
 const later = (fn: () => void, ms: number) => {
@@ -87,6 +90,9 @@ interface ShowState {
   lightLevel: number;
   videoRolling: boolean;
   audioUp: boolean;
+  audioStartedAt: number; // performance.now() of Go Audio (drives the drum roll + meter); 0 = not started
+  ballyhooAt: number;     // Date.now() when the moving lights last went into a ballyhoo
+  stageShift: number;     // px the stagehand has pushed the stage (negative = left)
 
   // log
   log: LogEntry[];
@@ -112,6 +118,8 @@ interface ShowState {
   toggleSound: () => void;
   setHaze: (on: boolean) => void;
   setBlackout: (on: boolean) => void;
+  ballyhoo: () => void;
+  setStageShift: (px: number) => void;
 }
 
 function grade(dept: Dept, op: string, delta: number): { text: string; tone: Tone } {
@@ -138,12 +146,15 @@ export const useShowStore = create<ShowState>((set, get) => {
         set({ videoRolling: true });
         break;
       case 'Audio':
-        set({ audioUp: true });
-        sfx.setMurmur(get().soundOn);
+        set({ audioUp: true, audioStartedAt: performance.now() });
+        sfx.drumRoll(get().soundOn);
         break;
       case 'Confetti':
-        // The big button listens for this and fires the first burst
+        if (confettiFired) break;
+        confettiFired = true;
+        // The big button listens for this and fires the first burst; CO2 jets go with it
         window.dispatchEvent(new CustomEvent('nebula:go-confetti'));
+        window.dispatchEvent(new CustomEvent('nebula:co2', { detail: 1.3 }));
         break;
     }
   };
@@ -166,6 +177,10 @@ export const useShowStore = create<ShowState>((set, get) => {
       try { localStorage.setItem(BEST_KEY, String(avg)); } catch { /* private mode */ }
       set({ bestAvgMs: avg });
     }
+    if (clean === CUES.length) {
+      set({ ballyhooAt: Date.now() });
+      announce('Clean show. Ballyhoo! You earned it.', 'LX', 'good');
+    }
     announce(
       `Show report: ${clean}/${CUES.length} clean · avg ${avg}ms${newBest ? ' · NEW BEST' : best !== null ? ` · best ${best}ms` : ''}`,
       'SM',
@@ -184,19 +199,35 @@ export const useShowStore = create<ShowState>((set, get) => {
     announce(`Standby ${dept}.`, 'SM', 'cue');
     sfx.standby(get().soundOn);
 
+    // The Confetti mark lands exactly on the drum roll's hit
+    let hold = i === 0 ? T.firstStandbyHold : T.standbyHold;
+    const startedAt = get().audioStartedAt;
+    if (dept === 'Confetti' && startedAt > 0) {
+      hold = Math.max(250, startedAt + DRUM_ROLL_HIT_MS - T.approach - performance.now());
+    }
+    if (dept === 'Confetti') confettiFired = false;
+
     later(() => {
       if (myRun !== runId) return;
       set({ status: 'approach', targetAt: performance.now() + T.approach });
+      // Confetti fires on the hit even if nobody has called it yet; a press inside the
+      // grace window still gets graded (and won't fire it twice).
+      if (dept === 'Confetti') {
+        later(() => {
+          if (myRun !== runId || get().status !== 'approach' || get().cueIndex !== i) return;
+          fireCue('Confetti');
+        }, T.approach);
+      }
       // If nobody calls it, the ASM does.
       later(() => {
         if (myRun !== runId || get().status !== 'approach' || get().cueIndex !== i) return;
         set((s) => ({ status: 'executing', results: [...s.results, { dept, deltaMs: null }] }));
-        announce(`Go ${dept}. (I got it.)`, 'ASM', 'chatter');
+        announce(dept === 'Confetti' ? 'GO Confetti. (Right on the hit.)' : `Go ${dept}. (I got it.)`, 'ASM', 'chatter');
         sfx.go(get().soundOn);
         fireCue(dept);
         later(() => runCue(i + 1, myRun), T.betweenCues);
       }, T.approach + T.grace);
-    }, T.standbyHold);
+    }, hold);
   };
 
   let soundOn = false;
@@ -212,6 +243,9 @@ export const useShowStore = create<ShowState>((set, get) => {
     lightLevel: 0,
     videoRolling: false,
     audioUp: false,
+    audioStartedAt: 0,
+    ballyhooAt: 0,
+    stageShift: 0,
 
     log: [],
 
@@ -238,12 +272,13 @@ export const useShowStore = create<ShowState>((set, get) => {
         lightLevel: 0,
         videoRolling: false,
         audioUp: false,
+        audioStartedAt: 0,
         coverOpen: false,
       });
-      sfx.setMurmur(false);
+      sfx.stopDrumRoll();
       if (replay) announce('Resetting to top of show.', 'SM', 'info');
       announce('You have the headset. Hit GO (or space) when the bar hits the mark.', 'SM', 'info');
-      later(() => runCue(0, myRun), replay ? 900 : T.firstStandby);
+      later(() => runCue(0, myRun), replay ? 1800 : T.firstStandby);
     },
 
     callGo: () => {
@@ -301,11 +336,15 @@ export const useShowStore = create<ShowState>((set, get) => {
       set({ soundOn: on });
       try { localStorage.setItem(SOUND_KEY, on ? 'on' : 'off'); } catch { /* ignore */ }
       sfx.unlock();
-      sfx.setMurmur(on && get().audioUp);
       if (on) sfx.click(true);
     },
 
     setHaze: (on) => set({ haze: on }),
     setBlackout: (on) => set({ blackout: on }),
+    setStageShift: (px) => set({ stageShift: px }),
+    ballyhoo: () => {
+      set({ ballyhooAt: Date.now() });
+      announce('Ballyhoo!', 'LX', 'chatter');
+    },
   };
 });

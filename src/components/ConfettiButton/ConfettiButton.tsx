@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { useShowStore } from '../../stores/showStore';
 import { sfx } from '../../lib/sfx';
+import { AudioMeter } from '../AudioMeter';
 
 // Types for confetti effects
 interface LandingSpec {
@@ -224,6 +225,8 @@ export const ConfettiButton: React.FC<{
     const i = n % effects.length;
     effects[i]();
     sfx.thump(useShowStore.getState().soundOn, EFFECT_SIZE[i]);
+    // CO2 jets on the big ones (side cannons, MEGA EXPLOSION)
+    if (i === 2 || i === 4) window.dispatchEvent(new CustomEvent('nebula:co2', { detail: i === 4 ? 1.5 : 1 }));
     setCount(n + 1);
   };
 
@@ -517,6 +520,9 @@ export const ConfettiButton: React.FC<{
               </div>
             </div>
           )}
+
+          {/* L/R audio meters either side of the button */}
+          <AudioMeter />
           </div>
         </div>
       </div>
