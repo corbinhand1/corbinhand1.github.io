@@ -155,9 +155,8 @@ export const useShowStore = create<ShowState>((set, get) => {
       case 'Confetti':
         if (confettiFired) break;
         confettiFired = true;
-        // The big button listens for this and fires the first burst; CO2 jets go with it
+        // The big button listens for this and fires the first burst (which brings the cryo with it)
         window.dispatchEvent(new CustomEvent('nebula:go-confetti'));
-        window.dispatchEvent(new CustomEvent('nebula:co2', { detail: 1.3 }));
         break;
     }
   };

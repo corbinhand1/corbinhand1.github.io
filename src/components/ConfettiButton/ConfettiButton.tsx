@@ -225,8 +225,10 @@ export const ConfettiButton: React.FC<{
     const i = n % effects.length;
     effects[i]();
     sfx.thump(useShowStore.getState().soundOn, EFFECT_SIZE[i]);
-    // CO2 jets on the big ones (side cannons, MEGA EXPLOSION)
-    if (i === 2 || i === 4) window.dispatchEvent(new CustomEvent('nebula:co2', { detail: i === 4 ? 1.5 : 1 }));
+    // Cryo with every confetti hit, sized to the effect:
+    // classic, rain, side cannons, color chaos, MEGA EXPLOSION
+    const CO2_SIZE = [1.1, 0.75, 1.2, 1.3, 1.6];
+    window.dispatchEvent(new CustomEvent('nebula:co2', { detail: CO2_SIZE[i] }));
     setCount(n + 1);
   };
 

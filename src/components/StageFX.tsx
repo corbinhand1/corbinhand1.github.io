@@ -179,73 +179,196 @@ export const KabukiDrop: React.FC = () => {
 };
 
 /* ======================================================================
- * CO2 jets — white cryo blasts from both bottom corners.
+ * CO2 jets — a particle simulation of a real cryo blast from both bottom
+ * corners: a tight, bright jet out of the nozzle that widens and slows as it
+ * climbs, churns with turbulence, blooms at the top, rolls over and sinks
+ * back (CO2 is heavier than air) while it thins out. Backlit cool white.
+ * Sized to the window so the whole event stays in frame.
  * Fire with fireCO2(size).
  * ==================================================================== */
 export function fireCO2(size = 1) {
   window.dispatchEvent(new CustomEvent('nebula:co2', { detail: size }));
 }
 
-type Blast = { id: number; size: number };
+type Puff = {
+  x: number; y: number; vx: number; vy: number;
+  r: number; r0: number; grow: number; age: number; life: number; a: number;
+};
+type Emitter = { x: number; y: number; dir: number; until: number; rate: number; speed: number; carry: number; scale: number; spread: number };
+
+/** vapour sprite: `hard` gives a firmer edge for the dense jet, soft for the shredding cloud */
+function makeSprite(px: number, hard: boolean) {
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const g = c.getContext('2d')!;
+  const grd = g.createRadialGradient(px / 2, px / 2, 0, px / 2, px / 2, px / 2);
+  if (hard) {
+    grd.addColorStop(0, 'rgba(250,252,255,1)');
+    grd.addColorStop(0.55, 'rgba(240,246,255,.85)');
+    grd.addColorStop(0.8, 'rgba(228,238,255,.25)');
+    grd.addColorStop(1, 'rgba(228,238,255,0)');
+  } else {
+    grd.addColorStop(0, 'rgba(244,248,255,1)');
+    grd.addColorStop(0.35, 'rgba(232,240,255,.5)');
+    grd.addColorStop(0.7, 'rgba(220,232,255,.14)');
+    grd.addColorStop(1, 'rgba(220,232,255,0)');
+  }
+  g.fillStyle = grd;
+  g.fillRect(0, 0, px, px);
+  return c;
+}
+
+// cheap smooth pseudo-noise for turbulence
+const swirl = (x: number, y: number, t: number) =>
+  Math.sin(x * 0.017 + t * 2.1) * Math.cos(y * 0.019 - t * 1.6) + 0.5 * Math.sin((x + y) * 0.031 + t * 2.9);
 
 export const CO2Jets: React.FC = () => {
-  const [blasts, setBlasts] = useState<Blast[]>([]);
-  const id = useRef(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    if (reducedMotion()) return;
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext('2d')!;
+    const hardSprite = makeSprite(96, true);
+    const softSprite = makeSprite(96, false);
+    let W = 0, H = 0, dpr = 1;
+    const resize = () => {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const puffs: Puff[] = [];
+    const emitters: Emitter[] = [];
+    let raf = 0, last = 0, t = 0;
+
+    // Tuning -------------------------------------------------------------
+    const DRAG = 3.1;         // per second: climb ≈ speed / DRAG
+    const GRAVITY = 0.34;     // * H per s^2: the spent cloud sinks back
+    const JET_AGE = 0.22;     // s: how long a particle stays part of the dense jet
+    // --------------------------------------------------------------------
+
+    const fire = (size: number) => {
+      const now = performance.now();
+      const mobile = W < 768;
+      for (const side of [-1, 1]) {
+        emitters.push({
+          x: side < 0 ? W * (mobile ? 0.1 : 0.07) : W * (mobile ? 0.9 : 0.93),
+          y: H + 4,
+          dir: -Math.PI / 2 + side * -0.05,
+          until: now + (240 + 110 * size),                      // a short, hard burst
+          rate: (mobile ? 900 : 1700) * Math.min(size, 1.5),
+          speed: H * 2.3 * Math.sqrt(size),                      // tops out ~70% of the window
+          carry: 0,
+          // particle size and cone width follow the screen width, so phones get slimmer columns
+          scale: Math.min(1, Math.max(0.45, W / 1200)),
+          spread: mobile ? 0.11 : 0.2,
+        });
+      }
+      if (!raf) { last = now; raf = requestAnimationFrame(tick); }
+    };
+
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now; t += dt;
+
+      // emit
+      for (let i = emitters.length - 1; i >= 0; i--) {
+        const e = emitters[i];
+        if (now > e.until) { emitters.splice(i, 1); continue; }
+        e.carry += e.rate * dt;
+        const n = Math.floor(e.carry);
+        e.carry -= n;
+        for (let k = 0; k < n; k++) {
+          const ang = e.dir + (Math.random() - 0.5) * e.spread;   // a column, not a line
+          const sp = e.speed * (0.85 + Math.random() * 0.25);
+          const r = (7 + Math.random() * 8) * e.scale;
+          puffs.push({
+            x: e.x + (Math.random() - 0.5) * 6, y: e.y,
+            vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+            r, r0: r, grow: (70 + Math.random() * 90) * e.scale,
+            age: 0, life: 1.0 + Math.random() * 0.65,   // the whole blast is gone in ~1.6s
+            a: 0.5 + Math.random() * 0.3,
+          });
+        }
+      }
+
+      // simulate
+      const drag = Math.exp(-DRAG * dt);
+      for (let i = puffs.length - 1; i >= 0; i--) {
+        const p = puffs[i];
+        p.age += dt;
+        if (p.age >= p.life) { puffs.splice(i, 1); continue; }
+        const speed = Math.hypot(p.vx, p.vy);
+        const slow = Math.max(0, 1 - speed / (H * 0.7));
+        // the spent top shreds: strong sideways turbulence and a quick sink
+        p.vx += (swirl(p.x, p.y, t) * 900 + (Math.random() - 0.5) * 700) * slow * dt;
+        p.vy += (GRAVITY * H * slow + swirl(p.y, p.x, t + 3) * 420 * slow) * dt;
+        p.vx *= drag; p.vy *= drag;
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        p.r = Math.min(Math.min(H * 0.11, W * 0.09), p.r + p.grow * dt * (0.7 + 1.5 * slow));
+      }
+
+      // draw: each particle is stretched along its motion, so the jet reads as streaks
+      // and the breakup reads as torn wisps rather than round puffs
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const draw = (hot: boolean) => {
+        ctx.globalCompositeOperation = hot ? 'lighter' : 'source-over';
+        for (const p of puffs) {
+          const jet = p.age < JET_AGE;
+          if (hot && !jet) continue;
+          const k = p.age / p.life;
+          const fadeIn = Math.min(1, p.age / 0.02);
+          const fadeOut = (1 - k) * (1 - k);
+          const thin = Math.max(0.1, Math.pow(p.r0 / p.r, 0.6));
+          const alpha = hot
+            ? 0.16 * (1 - p.age / JET_AGE)
+            : p.a * fadeIn * fadeOut * (jet ? 0.9 : thin * 1.25);
+          if (alpha <= 0.004) continue;
+          const speed = Math.hypot(p.vx, p.vy);
+          const stretch = 1 + Math.min(1.8, speed / (H * 0.7)) + (jet ? 0 : 0.5);
+          const ang = Math.atan2(p.vy, p.vx);
+          const c = Math.cos(ang), s = Math.sin(ang);
+          // translate → rotate to motion → stretch along it, squeeze across it
+          const sx = stretch, sy = 1;
+          ctx.setTransform(dpr * c * sx, dpr * s * sx, -dpr * s * sy, dpr * c * sy, dpr * p.x, dpr * p.y);
+          ctx.globalAlpha = Math.min(1, alpha);
+          ctx.drawImage(jet ? hardSprite : softSprite, -p.r, -p.r, p.r * 2, p.r * 2);
+        }
+      };
+      draw(false);
+      draw(true);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+
+      if (puffs.length || emitters.length) raf = requestAnimationFrame(tick);
+      else { raf = 0; ctx.clearRect(0, 0, canvas.width, canvas.height); }
+    };
+
     const on = (e: Event) => {
       const size = Math.min(1.6, Math.max(0.6, (e as CustomEvent).detail ?? 1));
-      const b = { id: ++id.current, size };
-      setBlasts((bs) => [...bs.slice(-3), b]);
       sfx.co2(useShowStore.getState().soundOn, size);
-      window.setTimeout(() => setBlasts((bs) => bs.filter((x) => x.id !== b.id)), 2400);
+      fire(size);
     };
     window.addEventListener('nebula:co2', on);
-    return () => window.removeEventListener('nebula:co2', on);
+    return () => {
+      window.removeEventListener('nebula:co2', on);
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
-  if (reducedMotion()) return null;
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 15 }} aria-hidden>
-      <style>{`
-        .co2 {
-          position: absolute; bottom: -4vh; width: calc(var(--s) * 26vw); min-width: 120px; height: calc(var(--s) * 82vh);
-          transform-origin: 50% 100%; max-width: none;
-          animation: co2-blast 2.2s cubic-bezier(.15,.8,.3,1) forwards;
-        }
-        .co2--l { left: 4vw; --lean: 7deg; }
-        .co2--r { right: 4vw; --lean: -7deg; }
-        .co2__core, .co2__cloud { position: absolute; inset: 0; border-radius: 50% 50% 40% 40% / 70% 70% 30% 30%; }
-        .co2__core {
-          background: radial-gradient(ellipse 42% 98% at 50% 100%, #fff 0%, rgba(245,248,255,.92) 30%, rgba(230,238,255,.55) 58%, rgba(220,230,255,0) 82%);
-          filter: blur(3px);
-        }
-        .co2__cloud {
-          inset: -10% -35% 0;
-          background: radial-gradient(ellipse 55% 65% at 50% 72%, rgba(245,248,255,.85), rgba(230,238,255,.35) 55%, rgba(230,238,255,0) 78%);
-          filter: blur(14px);
-          animation: co2-cloud 2.2s ease-out forwards;
-        }
-        @keyframes co2-blast {
-          0%   { transform: rotate(var(--lean)) scaleY(.05) scaleX(.5); opacity: 0; }
-          8%   { transform: rotate(var(--lean)) scaleY(1) scaleX(.8); opacity: 1; }
-          45%  { transform: rotate(var(--lean)) scaleY(1.05) scaleX(1); opacity: 1; }
-          100% { transform: rotate(var(--lean)) scaleY(1.15) scaleX(1.6) translateY(-6vh); opacity: 0; }
-        }
-        @media (max-width: 767px) {
-          .co2 { height: calc(var(--s) * 52vh); width: calc(var(--s) * 30vw); min-width: 0; }
-          .co2--l { left: -9vw; --lean: 3deg; }
-          .co2--r { right: -9vw; --lean: -3deg; }
-        }
-        @keyframes co2-cloud { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; transform: scale(1.5) translateY(-8vh); } }
-      `}</style>
-      {blasts.map((b) => (
-        <React.Fragment key={b.id}>
-          <div className="co2 co2--l" style={{ ['--s' as any]: b.size }}><div className="co2__cloud" /><div className="co2__core" /></div>
-          <div className="co2 co2--r" style={{ ['--s' as any]: b.size }}><div className="co2__cloud" /><div className="co2__core" /></div>
-        </React.Fragment>
-      ))}
-    </div>
+    <canvas
+      ref={canvasRef}
+      aria-hidden
+      className="fixed inset-0 pointer-events-none"
+      style={{ zIndex: 15, width: '100vw', height: '100vh', maxWidth: 'none' }}
+    />
   );
 };
 

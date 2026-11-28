@@ -8,66 +8,6 @@ import { startStageMove, stageGagUsed } from './Stagehand';
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ------------------------------------------------------------------ */
-/* Follow spot: a warm spot that tracks the pointer once lights are up */
-/* ------------------------------------------------------------------ */
-function FollowSpot() {
-  const lightsUp = useShowStore((s) => s.lightLevel > 0);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!lightsUp || prefersReducedMotion()) return;
-    const cur = { x: window.innerWidth / 2, y: window.innerHeight * 0.32 };
-    const target = { ...cur };
-    let raf = 0;
-
-    const paint = () => {
-      ref.current?.style.setProperty('--sx', `${cur.x}px`);
-      ref.current?.style.setProperty('--sy', `${cur.y}px`);
-    };
-    const step = () => {
-      // a little lag, like a real operator
-      cur.x += (target.x - cur.x) * 0.12;
-      cur.y += (target.y - cur.y) * 0.12;
-      paint();
-      if (Math.abs(target.x - cur.x) > 0.5 || Math.abs(target.y - cur.y) > 0.5) {
-        raf = requestAnimationFrame(step);
-      } else {
-        raf = 0;
-      }
-    };
-    const onMove = (e: PointerEvent) => {
-      target.x = e.clientX;
-      target.y = e.clientY;
-      if (!raf) raf = requestAnimationFrame(step);
-    };
-    paint();
-    window.addEventListener('pointermove', onMove, { passive: true });
-    window.addEventListener('pointerdown', onMove, { passive: true });
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerdown', onMove);
-      cancelAnimationFrame(raf);
-    };
-  }, [lightsUp]);
-
-  return (
-    <div
-      ref={ref}
-      aria-hidden
-      className="fixed inset-0 pointer-events-none"
-      style={{
-        zIndex: 12,
-        opacity: lightsUp ? 1 : 0,
-        transition: 'opacity 2s ease',
-        mixBlendMode: 'screen',
-        background:
-          'radial-gradient(circle clamp(110px, 16vw, 190px) at var(--sx, 50%) var(--sy, 32%), rgba(255,236,200,0.26) 0%, rgba(255,226,170,0.14) 55%, rgba(255,220,160,0) 100%)',
-      }}
-    />
-  );
-}
-
 /* --------------------------- Haze ("places") --------------------------- */
 function Haze() {
   const haze = useShowStore((s) => s.haze);
@@ -249,7 +189,6 @@ export const ShowFX: React.FC = () => {
   useHeadsetChatter();
   return (
     <>
-      <FollowSpot />
       <Haze />
       <HouseLights />
       <Blackout />
